@@ -21,6 +21,14 @@ Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
 - Human-owned carryover: T-069 (confirm console UI placement), T-075 (open 19 locale tickets) — flag these when resuming Tier 1+.
 - T-013 previously human-owned — now CODE READY on `../oidc` branch `feat/authrequest-resource-rfc8707` (commit 1a138e7). Remaining human action: push branch + open upstream PR.
 
+### Iteration 4 — 2026-04-24 (Tier 1 — 4/9 done)
+- Pre-flight: Fixed "missing generated proto packages" tree-gap. They are gitignored; `nx run @zitadel/api:generate-stubs generate-assets generate-statik` regenerates. `go build ./cmd/... ./internal/... ./pkg/...` clean. `backend/main.go` has a pre-existing commented-out `main()` making `go build ./...` fail — same at cc74a36b6, not caused by this work.
+- T-009: DONE — DCRConfig.Validate startup refuse on empty defaults in anonymous mode. 7 subtests green.
+- T-010: DONE (with R5 deviation doc) — WARN on ExternalDomain-with-slash. Kit's "issuer=URL" assumption doesn't match Zitadel's hostname-only ExternalDomain; runtime check lands with T-029/T-030. 5 subtests green.
+- T-012: DONE — RFC 8707 sidecar (context key + middleware + accessors). Installed in OIDC HTTP chain. 9 subtests green.
+- T-014: DONE (V1 only) — domain.AuthRequest.Resources + converter wire-through. V2 login path (command.AuthRequest via authrequest.AddedEvent) is out-of-scope; needs event-schema work. Flagged.
+- Codex review (reminder): F-001 still OPEN — the T-004 accept-without-validation window remains until T-026/T-027 land. Tier 2 closure plan: bundle T-026/T-027 so `/authorize` resource flow ships correct; T-045 fills token-exchange `aud` at Tier 3.
+
 ### Iteration 3 — 2026-04-24 (cross-repo pivot: upstream oidc library)
 - Scope expansion: user scoped ../oidc into the build. Ran minimal ck:init + targeted research on pkg/oidc/authorization.go + pkg/op/auth_request.go.
 - New cavekit at ../oidc/context/kits/cavekit-authrequest-resource.md (R1..R5, 5 tasks all Small).
