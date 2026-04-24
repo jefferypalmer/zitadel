@@ -1,0 +1,12 @@
+---
+created: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-24T00:00:00Z"
+---
+# Implementation Tracking: DCR Config & Feature Flag
+
+Build site: context/plans/build-site.md
+
+| Task | Status | Notes |
+|------|--------|-------|
+| T-001 | DONE | Added `OIDC.DCR.*` block to `cmd/defaults.yaml` (88 new lines). All 17 R1 acceptance criteria verified via `python3 yaml.safe_load` assertion set. No `DCR.CORS` subtree (R1 last bullet — CORS reused from existing `cors_interceptor.go`). |
+| T-002 | DONE | Added `KeyDynamicClientRegistration Key = 17` + `Features.DynamicClientRegistration bool` field with `json:"dynamic_client_registration,omitempty"` tag. Hand-edited `key_enumer.go` (generated file) extending `_KeyName_4` + `_KeyIndex_4` + `_KeyValues` + `_KeyNameToValueMap` + `_KeyNames` + `_KeyNoOp` + `String()` switch. `go test ./internal/feature/...` passes. Next free slot after 16 used (M0 collision-check confirmed). No existing key renamed. |

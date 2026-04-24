@@ -700,6 +700,85 @@ OIDC:
     # Lifetime of the token used to notify clients through OIDC back-channel logout.
     TokenLifetime: 15m # ZITADEL_OIDC_BACKCHANNELLOGOUT_TOKENLIFETIME
 
+  # Dynamic Client Registration (RFC 7591 / RFC 7592).
+  # Opt-in. Also requires the runtime feature flag `dynamic_client_registration`
+  # (dual-gate). CORS is reused from the global HTTP CORS interceptor — there
+  # is no DCR-specific CORS config tree by design.
+  DCR:
+    # Gate 1 (startup): mounts `/oidc/v1/register{/*}` and advertises
+    # `registration_endpoint` in discovery / RFC 8414 AS metadata.
+    Enabled: false # ZITADEL_OIDC_DCR_ENABLED
+    # When false, `/oidc/v1/register` accepts anonymous requests (Claude Code
+    # MCP default). When true, every request must carry an Initial Access
+    # Token. If false, `DefaultProjectID` and `DefaultOrgID` MUST be set or
+    # startup refuses (see R4).
+    RequireInitialAccessToken: false # ZITADEL_OIDC_DCR_REQUIREINITIALACCESSTOKEN
+    # Anonymous-mode fallback project/org for DCR-created apps. Ignored when
+    # `RequireInitialAccessToken=true` (IAT carries identifiers).
+    DefaultProjectID: "" # ZITADEL_OIDC_DCR_DEFAULTPROJECTID
+    DefaultOrgID: "" # ZITADEL_OIDC_DCR_DEFAULTORGID
+    # Client-metadata clamps.
+    MaxRedirectURIs: 10 # ZITADEL_OIDC_DCR_MAXREDIRECTURIS
+    MaxRequestBodyBytes: 65536 # ZITADEL_OIDC_DCR_MAXREQUESTBODYBYTES
+    # Allow-lists. Requests asking for something outside these return
+    # `invalid_client_metadata`. `client_credentials` is admin-opt-in only
+    # and intentionally omitted from the default grant list. `client_secret_jwt`
+    # is intentionally omitted from the default auth-method list.
+    AllowedGrantTypes: # ZITADEL_OIDC_DCR_ALLOWEDGRANTTYPES
+      - authorization_code
+      - refresh_token
+    AllowedResponseTypes: # ZITADEL_OIDC_DCR_ALLOWEDRESPONSETYPES
+      - code
+    AllowedAuthMethods: # ZITADEL_OIDC_DCR_ALLOWEDAUTHMETHODS
+      - none
+      - client_secret_basic
+      - client_secret_post
+      - private_key_jwt
+    AllowedApplicationTypes: # ZITADEL_OIDC_DCR_ALLOWEDAPPLICATIONTYPES
+      - native
+      - web
+    # Host-pattern allow-list for redirect URIs. Empty list means all
+    # hosts are allowed (subject to scheme/loopback rules elsewhere).
+    AllowedRedirectURIHostPatterns: [] # ZITADEL_OIDC_DCR_ALLOWEDREDIRECTURIHOSTPATTERNS
+    # RFC 8707 resource allow-list. Empty list means UNRESTRICTED (inverted
+    # from usual Go convention — matches RFC 8707 §2 "no allow-list configured"
+    # semantics). Non-empty list: every requested `resource` must match.
+    AllowedAudiences: [] # ZITADEL_OIDC_DCR_ALLOWEDAUDIENCES
+    # RFC 7592 registration access token.
+    RegistrationAccessToken:
+      Enabled: true # ZITADEL_OIDC_DCR_REGISTRATIONACCESSTOKEN_ENABLED
+      # 0s = no expiry (RFC 7592 §3 MAY).
+      Lifetime: 0s # ZITADEL_OIDC_DCR_REGISTRATIONACCESSTOKEN_LIFETIME
+    # Initial Access Token defaults applied when admin creates an IAT
+    # without explicit values.
+    InitialAccessToken:
+      DefaultLifetime: 24h # ZITADEL_OIDC_DCR_INITIALACCESSTOKEN_DEFAULTLIFETIME
+      DefaultMaxUses: 1 # ZITADEL_OIDC_DCR_INITIALACCESSTOKEN_DEFAULTMAXUSES
+    # `software_statement` JWT verification. Phase 1 ships a config stub only;
+    # verification is Phase 2.
+    SoftwareStatement:
+      Enabled: false # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_ENABLED
+      TrustedIssuers: [] # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_TRUSTEDISSUERS
+    # 0s = no expiry per RFC 7591 §3.2.1 (`client_secret_expires_at: 0`).
+    ClientSecretExpiresIn: 0s # ZITADEL_OIDC_DCR_CLIENTSECRETEXPIRESIN
+    # SSRF guard for `jwks_uri` fetches. Loopback is rejected in production;
+    # set `AllowLoopbackInDev: true` only in dev/integration environments.
+    JwksURI:
+      HTTPTimeout: 10s # ZITADEL_OIDC_DCR_JWKSURI_HTTPTIMEOUT
+      AllowLoopbackInDev: false # ZITADEL_OIDC_DCR_JWKSURI_ALLOWLOOPBACKINDEV
+      # Private/reserved ranges refused by the fetcher (RFC 1918, loopback,
+      # link-local, CGNAT-adjacent, IPv6 ULA / link-local). Cloud metadata
+      # endpoints (169.254.169.254) are covered by the link-local range.
+      DisallowedIPRanges: # ZITADEL_OIDC_DCR_JWKSURI_DISALLOWEDIPRANGES
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 127.0.0.0/8
+        - 169.254.0.0/16
+        - ::1/128
+        - fc00::/7
+        - fe80::/10
+
 SAML:
   DefaultLoginURLV2: "/ui/v2/login/login?samlRequest=" # ZITADEL_SAML_DEFAULTLOGINURLV2
   ProviderConfig:
