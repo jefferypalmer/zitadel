@@ -18,4 +18,17 @@ Build site: context/plans/build-site.md
 - T-007: M4 DELETE-revocation path decision — DONE. Path (a) RevokeApplicationTokens selected; RFC 7592 §4 REQUIRES language + existing event-sourcing primitives justify it. Artifact: m4-token-revocation-decision-t007.md. Next: (Tier-0 complete — stopping for user review per user option #1)
 
 Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
-- Human-owned carryover: T-013 (upstream zitadel/oidc PR), T-069 (confirm console UI placement), T-075 (open 19 locale tickets) — flag these when resuming Tier 1+.
+- Human-owned carryover: T-069 (confirm console UI placement), T-075 (open 19 locale tickets) — flag these when resuming Tier 1+.
+- T-013 previously human-owned — now CODE READY on `../oidc` branch `feat/authrequest-resource-rfc8707` (commit 1a138e7). Remaining human action: push branch + open upstream PR.
+
+### Iteration 3 — 2026-04-24 (cross-repo pivot: upstream oidc library)
+- Scope expansion: user scoped ../oidc into the build. Ran minimal ck:init + targeted research on pkg/oidc/authorization.go + pkg/op/auth_request.go.
+- New cavekit at ../oidc/context/kits/cavekit-authrequest-resource.md (R1..R5, 5 tasks all Small).
+- New build-site at ../oidc/context/plans/build-site.md (O-001..O-005, 3 tiers).
+- Executed full 5-task build:
+  - O-001: AuthRequest.Resource field + json/schema tags — DONE (pkg/oidc/authorization.go).
+  - O-002: CopyRequestObjectToAuthRequest carries Resource — DONE (pkg/op/auth_request.go).
+  - O-003: TestAuthRequest_DecodeResource (absent/single/multiple) — DONE, green.
+  - O-004: TestCopyRequestObjectToAuthRequest_Resource (copy/leave-existing) — DONE, green.
+  - O-005: go build ./... + go test ./... green; struct-literal audit clean.
+- Tier-0 codex peer review finding F-001 updated: Option D added (land upstream PR → bump dep → wire propagation).

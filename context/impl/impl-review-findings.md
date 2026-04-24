@@ -27,3 +27,22 @@ Option C (interim gate): replace the removed rejection with a narrower interim r
 Recommendation: **Option B** — bundling T-004 with T-026/T-027 into a single coherent change preserves RFC 8707 contract semantics at all tier boundaries. The build-site ordering that placed T-004 in Tier 0 and T-027 in Tier 2 introduces an unnecessary correctness gap across tier commits.
 
 Decision owner: human (user). Waiting on direction before revert or bundling.
+
+## Update (2026-04-24, post-T-013 code-ready)
+
+T-013 (upstream `github.com/zitadel/oidc` PR) is now code-complete on
+`../oidc` branch `feat/authrequest-resource-rfc8707`. Once that PR
+merges and Zitadel bumps the dep past the merge SHA, `r.Data.Resource`
+will be available on `AuthRequest` in the `/authorize` path, so T-014
+can wire propagation directly — no sidecar needed. This adds a new
+remediation option:
+
+- **Option D (new)**: land the upstream PR first, bump the dep, then
+  land T-014+T-026+T-027+T-045 in a single coherent PR that closes
+  the F-001 window. T-004 stays as-is because the next-tier code path
+  uses the accepted `resource` value. This is the cleanest outcome
+  when the upstream merge has a short SLA.
+
+Preferred path depends on upstream merge timeline. Short SLA →
+Option D; long SLA → Option B (bundle T-004+T-026+T-027 in Tier 2
+with the interim sidecar from T-012).
