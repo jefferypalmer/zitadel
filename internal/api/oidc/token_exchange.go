@@ -41,9 +41,9 @@ func (s *Server) tokenExchange(ctx context.Context, r *op.ClientRequest[oidc.Tok
 	ctx, span := tracing.NewSpan(ctx)
 	defer func() { span.EndWithError(err) }()
 
-	if len(r.Data.Resource) > 0 {
-		return nil, oidc.ErrInvalidTarget().WithDescription("resource parameter not supported")
-	}
+	// `resource` (RFC 8707) is accepted here; allow-list validation and
+	// propagation into the issued-token `aud` lands with T-026 and T-045
+	// via cavekit-rfc8707-resource.md R3/R5.
 
 	client, ok := r.Client.(*Client)
 	if !ok {
