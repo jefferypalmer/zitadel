@@ -255,6 +255,10 @@ func NewServer(
 			instanceHandler,
 			userAgentCookie,
 			http_utils.CopyHeadersToContext,
+			// RFC 8707 sidecar: captures `resource` form values into ctx
+			// so the /authorize converter can read them without needing
+			// upstream AuthRequest.Resource (cavekit-rfc8707-resource.md R7).
+			AuthorizeResourceSidecar,
 			accessHandler.HandleWithPublicAuthPathPrefixes(publicAuthPathPrefixes(config.CustomEndpoints)),
 			middleware.ActivityHandler,
 		))

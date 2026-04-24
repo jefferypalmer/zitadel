@@ -119,6 +119,11 @@ func CreateAuthRequestToBusiness(ctx context.Context, authReq *oidc.AuthRequest,
 		UserID:              userID,
 		InstanceID:          authz.GetInstance(ctx).InstanceID(),
 		Audience:            audience,
+		// RFC 8707 `resource` bridged via the sidecar middleware until
+		// upstream AuthRequest.Resource lands (T-013 → T-014 — see
+		// cavekit-rfc8707-resource.md R7). Allow-list validation (T-026)
+		// and `aud`-claim propagation (T-027/T-045) are separate tasks.
+		Resources: ResourcesFromContext(ctx),
 		Request: domain.NewAuthRequestOIDC(
 			authReq.Scopes,
 			ResponseTypeToBusiness(authReq.ResponseType),

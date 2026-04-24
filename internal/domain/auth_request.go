@@ -62,6 +62,14 @@ type AuthRequest struct {
 	OrgTranslations          []*CustomText
 	SAMLRequestID            string
 	RequestLocalAuth         bool
+	// Resources carries RFC 8707 `resource` indicators parsed from the
+	// /authorize request. The library-side parsing is covered by
+	// zitadel/oidc v3 AuthRequest.Resource (upstream PR pending) or by
+	// the sidecar in cavekit-rfc8707-resource.md R7 for library versions
+	// that predate the field. Allow-list validation (T-026) and
+	// propagation into OIDCSession.Audience / access-token `aud`
+	// (T-027/T-045) are separate tasks.
+	Resources []string
 	// orgID the policies were last loaded with
 	policyOrgID string
 	// SessionID is set to the computed sessionID of the login session table

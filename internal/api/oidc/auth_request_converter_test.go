@@ -1,6 +1,7 @@
 package oidc
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,45 @@ import (
 
 	"github.com/zitadel/zitadel/internal/domain"
 )
+
+// TestCreateAuthRequestToBusiness_ResourcesFromSidecar pins the RFC 8707
+// sidecar wire-through: the `resource` slice attached to ctx via
+// AuthorizeResourceSidecar / WithAuthorizeResources must land on
+// domain.AuthRequest.Resources. T-014 only covers the V1 login path
+// (the only path that flows through CreateAuthRequestToBusiness);
+// the V2 login path (createAuthRequestLoginClient → command.AuthRequest)
+// is tracked separately — see impl-rfc8707-resource.md.
+func TestCreateAuthRequestToBusiness_ResourcesFromSidecar(t *testing.T) {
+	tests := []struct {
+		name      string
+		ctxSeed   []string
+		wantSlice []string
+	}{
+		{
+			name:      "no resource on ctx → nil on domain",
+			ctxSeed:   nil,
+			wantSlice: nil,
+		},
+		{
+			name:      "single resource",
+			ctxSeed:   []string{"https://api.example.com"},
+			wantSlice: []string{"https://api.example.com"},
+		},
+		{
+			name:      "multiple resources — order preserved",
+			ctxSeed:   []string{"https://api.example.com", "https://mcp.example.com"},
+			wantSlice: []string{"https://api.example.com", "https://mcp.example.com"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := WithAuthorizeResources(context.Background(), tt.ctxSeed)
+			req := &oidc.AuthRequest{ClientID: "c", RedirectURI: "http://x/cb"}
+			got := CreateAuthRequestToBusiness(ctx, req, "agent", "user", nil)
+			assert.Equal(t, tt.wantSlice, got.Resources)
+		})
+	}
+}
 
 func TestResponseModeToBusiness(t *testing.T) {
 	type args struct {
