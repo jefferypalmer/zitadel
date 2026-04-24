@@ -44,6 +44,56 @@ type Config struct {
 	PublicKeyCacheMaxAge              time.Duration
 	DefaultBackChannelLogoutLifetime  time.Duration
 	BackChannelLogout                 handlers.BackChannelLogoutWorkerConfig
+	DCR                               DCRConfig
+}
+
+// DCRConfig is the runtime configuration for Dynamic Client Registration
+// (RFC 7591 / RFC 7592 / RFC 8707). The yaml block at OIDC.DCR populates
+// this; see cmd/defaults.yaml.
+//
+// Dual-gate: mounting of /oidc/v1/register{/*} and advertisement of
+// `registration_endpoint` in discovery / RFC 8414 AS metadata require
+// BOTH DCR.Enabled=true (startup / yaml) AND the runtime feature flag
+// feature.KeyDynamicClientRegistration=true per instance.
+type DCRConfig struct {
+	Enabled                        bool
+	RequireInitialAccessToken      bool
+	DefaultProjectID               string
+	DefaultOrgID                   string
+	MaxRedirectURIs                int
+	MaxRequestBodyBytes            int64
+	AllowedGrantTypes              []string
+	AllowedResponseTypes           []string
+	AllowedAuthMethods             []string
+	AllowedApplicationTypes        []string
+	AllowedRedirectURIHostPatterns []string
+	AllowedAudiences               []string
+	RegistrationAccessToken        DCRRegistrationAccessTokenConfig
+	InitialAccessToken             DCRInitialAccessTokenConfig
+	SoftwareStatement              DCRSoftwareStatementConfig
+	ClientSecretExpiresIn          time.Duration
+	JwksURI                        DCRJwksURIConfig
+}
+
+type DCRRegistrationAccessTokenConfig struct {
+	Enabled  bool
+	Lifetime time.Duration
+}
+
+type DCRInitialAccessTokenConfig struct {
+	DefaultLifetime time.Duration
+	DefaultMaxUses  int
+}
+
+type DCRSoftwareStatementConfig struct {
+	Enabled        bool
+	TrustedIssuers []string
+}
+
+type DCRJwksURIConfig struct {
+	HTTPTimeout        time.Duration
+	AllowLoopbackInDev bool
+	DisallowedIPRanges []string
 }
 
 // BackChannelLogoutConfig returns the BackChannelLogoutWorkerConfig and takes the deprecated TokenLifetime into account.

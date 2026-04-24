@@ -130,6 +130,15 @@ func NewConfig(cmd *cobra.Command, v *viper.Viper) (*Config, instrumentation.Shu
 		err = errors.Join(err, shutdown(cmd.Context()))
 		return nil, nil, fmt.Errorf("system defaults config invalid: %w", err)
 	}
+
+	// cavekit-config.md R4 / R5 — refuse start when DCR is enabled in
+	// anonymous mode with empty DefaultProjectID/DefaultOrgID (R4), and
+	// emit a hostname-root WARN when the issuer has a non-empty path (R5).
+	if err := config.OIDC.DCR.Validate(cmd.Context(), config.ExternalSecure, config.ExternalDomain, config.ExternalPort); err != nil {
+		err = errors.Join(err, shutdown(cmd.Context()))
+		return nil, nil, fmt.Errorf("OIDC.DCR config invalid: %w", err)
+	}
+
 	// Copy the global role permissions mappings to the instance until we allow instance-level configuration over the API.
 	config.DefaultInstance.RolePermissionMappings = config.InternalAuthZ.RolePermissionMappings
 
