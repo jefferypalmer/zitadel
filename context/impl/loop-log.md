@@ -21,6 +21,21 @@ Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
 - Human-owned carryover: T-069 (confirm console UI placement), T-075 (open 19 locale tickets) — flag these when resuming Tier 1+.
 - T-013 previously human-owned — now CODE READY on `../oidc` branch `feat/authrequest-resource-rfc8707` (commit 1a138e7). Remaining human action: push branch + open upstream PR.
 
+### Iteration 7 — 2026-04-26 (Tier 2 — full wave complete, 15/17 done)
+- T-029 (8d41f0fbe): discovery registration_endpoint dual-gated. Files: server.go (Server.dcrEnabled + dcrAdvertised + registrationEndpointURL), dcr/handler.go (HandlerPrefix const), op.go, start.go, dcr_discovery_test.go. 9 subtests P incl. NeverNullInJSON.
+- T-030 (ba0c31155): RFC 8414 AS metadata at /.well-known/oauth-authorization-server. Files: as_metadata/handler.go (Metadata struct + NewHandler + issuerWarner), Server.AsMetadata builder, start.go mount. 4 test groups P. R3 cross-doc byte-identity deferred to T-047.
+- T-031 (593eda666): DCR mux router with POST/GET/PUT/DELETE method-aware routing. Files: dcr/handler.go (gorilla mux + featureGateMiddleware + 4 stubs). 7+6 subtests P incl. gate-overrides-routing.
+- T-019 (78b8f520a): projections.initial_access_tokens table + 3 reducers. Files: projection/initial_access_token.go + test (6 subtests P). Schema deviations: SMALLINT[] for consumed_slots (no INT[] in framework), BIGINT for max_uses/uses_consumed.
+- T-020 (c53263536): IAT query helpers ByID + ByHash with go:embed SQL. Files: query/initial_access_token.go + 2 SQL files + test (6 subtests P via sqlmock).
+- T-021 (52210faa4): IAT plaintext format (zdiat_ + 48-byte b64url) + Passwap hashing + CreateInitialAccessToken + VerifyIATPlaintext commands. Files: command/iat.go + test (3 tests + prefix-collision guard P). M1 grep clean.
+- T-017 (1f82fb621): race-safe ConsumeInitialAccessToken with 3-retry loop + RevokeInitialAccessToken. Files: command/iat.go (IATSnapshot + IATLookup + Consume + Revoke) + iat_consume_test.go (9 subtests P).
+- T-018 (659a2d853): dcr_iat_concurrency_test.go via fake Pusher simulating UniqueConstraint. 3 scenarios (10/3, 4/4, 5/4) clean for -race -count=1000.
+- T-022 (ba59f8a10): admin.proto Create/List/Revoke RPCs + InitialAccessTokenView msg + Initial Access Tokens swagger tag. Generated stubs build clean.
+- T-023+T-024 (9bd0320fc): admin gRPC handler bodies + dual-gate (yaml off → UNIMPLEMENTED, runtime flag off → FAILED_PRECONDITION). Files: admin/iat.go + admin/server.go (dcrYAMLEnabled field) + start.go wiring. 7 subtests P pinning gate matrix.
+- T-025: serialization-characteristic godoc already in T-017 ConsumeInitialAccessToken + T-021 CreateInitialAccessToken docstrings. Verified verbatim phrase present.
+- Tier 2 status: 15/17 done. Remaining: T-032 (shared dcr/errors.go + validate.go skeleton — Tier 2, blocks Tier 3 register-handler bodies). T-018-related projection-lag test (T-060) is Tier 5 not Tier 2.
+- Build P (`go build ./cmd/... ./internal/... ./pkg/...` clean). Tests P across all touched packages.
+
 ### Iteration 6 — 2026-04-26 (Tier 2 — F-001 closer cluster, 3/17 done)
 - T-026: AllowedAudiences allow-list — DONE. Files: rfc8707_validate.go, rfc8707_sidecar.go, op.go. ValidateResources + factory NewAuthorizeResourceSidecar(allowed). 12+6+1 subtests P. Build P, Tests P.
 - T-028: invalid_target envelope — DONE. Bundled w/ T-026 (same file). writeInvalidTargetError + 3 envelope subtests P. /token wiring deferred to T-045.
