@@ -23,13 +23,9 @@ import (
 // the two from diverging.
 const HandlerPrefix = "/oidc/v1/register"
 
-// errorEnvelope is the RFC 7591 §3.2.2 client-registration error body.
-// All DCR handler error responses MUST use this shape so consumers
-// (including Claude Code MCP) can parse uniformly.
-type errorEnvelope struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description,omitempty"`
-}
+// The RFC 7591 §3.2.2 error envelope and the shared response writer
+// live in errors.go (T-032) so POST register, GET/PUT/DELETE manage,
+// and any future DCR surface emit byte-identical 4xx bodies.
 
 // Handler returns the DCR HTTP surface mounted under
 // `/oidc/v1/register{/*}`. The yaml gate (cavekit-config.md R3) is
@@ -75,7 +71,7 @@ func Handler() http.Handler {
 	// 405 for known paths). Override 405 to match RFC 7591 idiom (return
 	// the RFC envelope).
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		writeError(w, http.StatusMethodNotAllowed, "invalid_request",
+		WriteError(w, http.StatusMethodNotAllowed, ErrCodeInvalidRequest,
 			"this DCR endpoint does not support the requested HTTP method.")
 	})
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -93,7 +89,7 @@ func Handler() http.Handler {
 func featureGateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !authz.GetFeatures(r.Context()).DynamicClientRegistration {
-			writeError(w, http.StatusForbidden, "feature_disabled",
+			WriteError(w, http.StatusForbidden, ErrCodeFeatureDisabled,
 				"Dynamic Client Registration is not enabled for this instance.")
 			return
 		}
@@ -118,27 +114,16 @@ func postRegisterStub(w http.ResponseWriter, r *http.Request) {
 // 501 so an integration probe can distinguish "method routed correctly
 // but not yet implemented" from "wrong path".
 func getClientStub(w http.ResponseWriter, r *http.Request) {
-	writeError(w, http.StatusNotImplemented, "not_implemented",
+	WriteError(w, http.StatusNotImplemented, ErrCodeNotImplemented,
 		"GET /oidc/v1/register/{client_id} arrives with T-053 (RFC 7592 read).")
 }
 
 func putClientStub(w http.ResponseWriter, r *http.Request) {
-	writeError(w, http.StatusNotImplemented, "not_implemented",
+	WriteError(w, http.StatusNotImplemented, ErrCodeNotImplemented,
 		"PUT /oidc/v1/register/{client_id} arrives with T-054 (RFC 7592 update).")
 }
 
 func deleteClientStub(w http.ResponseWriter, r *http.Request) {
-	writeError(w, http.StatusNotImplemented, "not_implemented",
+	WriteError(w, http.StatusNotImplemented, ErrCodeNotImplemented,
 		"DELETE /oidc/v1/register/{client_id} arrives with T-056 (RFC 7592 delete).")
-}
-
-func writeError(w http.ResponseWriter, status int, code, description string) {
-	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Pragma", "no-cache")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(errorEnvelope{
-		Error:            code,
-		ErrorDescription: description,
-	})
 }

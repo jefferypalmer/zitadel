@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-26T00:00:00Z"
+last_edited: "2026-04-26T20:30:00Z"
 ---
 # Loop Log — DCR Build Site
 
@@ -72,3 +72,7 @@ Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
   - O-004: TestCopyRequestObjectToAuthRequest_Resource (copy/leave-existing) — DONE, green.
   - O-005: go build ./... + go test ./... green; struct-literal audit clean.
 - Tier-0 codex peer review finding F-001 updated: Option D added (land upstream PR → bump dep → wire propagation).
+
+### Iteration 8 — 2026-04-26 (Tier 2 close-out — T-032)
+- T-032: DONE. Files: internal/api/oidc/dcr/errors.go (new — ErrorEnvelope + WriteError + 8 RFC 7591 code consts + DCR-<5alpha> zerrors prefix doc), internal/api/oidc/dcr/validate.go (new — doc-only skeleton announcing ValidateAndClampMetadata + ApplyDefaultsRFC7591 + CheckRedirectURIs API for T-033/T-034/T-054), internal/api/oidc/dcr/handler.go (refactor — consume shared writer + error-code consts; private errorEnvelope/writeError removed). Build P, Tests P (`go test ./internal/api/oidc/dcr/...` 0.008s — 17 subtests still green).
+- Tier 2 status: 16/16 DONE. Frontier next wave: T-033 / T-034 / T-037 / T-038 / T-045 / T-047 / T-048 (Tier 3 register + manage handler bodies + AS-metadata cross-doc test).
