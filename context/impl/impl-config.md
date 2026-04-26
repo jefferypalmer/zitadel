@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-26T20:30:00Z"
 ---
 # Implementation Tracking: DCR Config & Feature Flag
 
@@ -13,3 +13,4 @@ Build site: context/plans/build-site.md
 | T-009 | DONE | Added `DCRConfig.Validate(ctx, externalSecure, externalDomain, externalPort) error` in `internal/api/oidc/dcr_config.go`; wired into `cmd/start/config.go` `NewConfig` post-SystemDefaults.Validate. Non-zero exit on R4 failure (empty `DefaultProjectID`/`DefaultOrgID` in anonymous mode). 7 subtests all green. |
 | T-010 | DONE (with R5 deviation) | Startup WARN emitted when `OIDC.DCR.Enabled=true` and `ExternalDomain` contains a '/'. Naming reason: Zitadel's `ExternalDomain` is a hostname, not a URL — proxy-driven subpath deployments are NOT observable from startup config alone, and `http.BuildHTTP(hostname+path, port)` produces malformed output. The kit's "issuer like `https://example.com/zitadel`" phrasing assumes the issuer is in config; it isn't. Runtime-level check for subpath-via-proxy deployments will land with discovery work (T-029/T-030) where per-request issuer is available — kit was updated 2026-04-26 to formally absorb the runtime warning into T-030 R4. 5 subtests green. |
 | T-008 | DONE | See `impl-register-handler.md`. Dual-gate skeleton + 403/200 stub. Real handler body ships with T-031. |
+| T-048 | DONE (with kit drift) | Integration-runtime DCR enable. **Kit-path drift:** kit R7 AC1 names `internal/integration/config/client.yaml` but that file's `Config` struct (`internal/integration/config.go`) only carries Hostname/Port/Secure/LoginURLV2/LogoutURLV2/WebAuthNName — no OIDC tree. The actual integration server config is `apps/api/test-integration-api.yaml` (loaded by the integration test runtime alongside `cmd/defaults.yaml`). Added `OIDC.DCR.{Enabled: true, RequireInitialAccessToken: true}` block there. **AC2 deviation:** DefaultProjectID/DefaultOrgID intentionally NOT set — those reference the per-instance default org created dynamically by `Instance.DefaultOrganizationID()`, not knowable at yaml-parse time. RequireInitialAccessToken=true gates anonymous mode off so static defaults aren't required for startup. Integration tests needing anonymous mode flip these via instance-feature commands at runtime. **AC3 deviation:** `TestInstance_BasicLoadsConfig` does not exist in tree (kit-name drift). yaml-syntax smoke validated via python yaml.safe_load → DCR block parses as `{'Enabled': True, 'RequireInitialAccessToken': True}`. CI integration suite is the load-time gate. |

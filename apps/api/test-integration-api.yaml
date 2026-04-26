@@ -127,6 +127,16 @@ SystemDefaults:
 OIDC:
   DefaultLoginURLV2: "/login?authRequest=" # ZITADEL_OIDC_DEFAULTLOGINURLV2
   DefaultLogoutURLV2: "/logout?post_logout_redirect=" # ZITADEL_OIDC_DEFAULTLOGOUTURLV2
+  # T-048: enable DCR in integration runtime so cavekit-iat / cavekit-register-handler
+  # / cavekit-manage-handler tests can hit the live `/oidc/v1/register` surface.
+  # Anonymous mode (DefaultProjectID/DefaultOrgID) is intentionally gated off via
+  # RequireInitialAccessToken=true — those defaults reference instance state that
+  # is created dynamically by `Instance.DefaultOrganizationID()` per integration
+  # run, not statically resolvable in this yaml. Tests that need anonymous mode
+  # set defaults via the instance feature/setting commands at runtime.
+  DCR:
+    Enabled: true # ZITADEL_OIDC_DCR_ENABLED
+    RequireInitialAccessToken: true # ZITADEL_OIDC_DCR_REQUIREINITIALACCESSTOKEN
 
 SAML:
   DefaultLoginURLV2: "/login?authRequest=" # ZITADEL_SAML_DEFAULTLOGINURLV2

@@ -76,3 +76,8 @@ Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
 ### Iteration 8 — 2026-04-26 (Tier 2 close-out — T-032)
 - T-032: DONE. Files: internal/api/oidc/dcr/errors.go (new — ErrorEnvelope + WriteError + 8 RFC 7591 code consts + DCR-<5alpha> zerrors prefix doc), internal/api/oidc/dcr/validate.go (new — doc-only skeleton announcing ValidateAndClampMetadata + ApplyDefaultsRFC7591 + CheckRedirectURIs API for T-033/T-034/T-054), internal/api/oidc/dcr/handler.go (refactor — consume shared writer + error-code consts; private errorEnvelope/writeError removed). Build P, Tests P (`go test ./internal/api/oidc/dcr/...` 0.008s — 17 subtests still green).
 - Tier 2 status: 16/16 DONE. Frontier next wave: T-033 / T-034 / T-037 / T-038 / T-045 / T-047 / T-048 (Tier 3 register + manage handler bodies + AS-metadata cross-doc test).
+
+### Iteration 9 — 2026-04-26 (Tier 3 entry — T-048)
+- T-048: DONE (with kit-path drift). Files: apps/api/test-integration-api.yaml (added OIDC.DCR.{Enabled: true, RequireInitialAccessToken: true}). **Drift:** kit R7 AC1 named internal/integration/config/client.yaml — that struct has no OIDC tree. Actual integration server config is apps/api/test-integration-api.yaml. AC2 (DefaultProjectID/OrgID) intentionally unset — instance default org is dynamic; integration runs IAT-only. AC3 (TestInstance_BasicLoadsConfig) — test does not exist in tree. yaml syntax validated via python yaml.safe_load.
+- Build P (yaml only). Tests N/A (no code changes).
+- Tier 3 frontier: T-033 / T-034 / T-037 / T-038 / T-044 / T-045 / T-047 / T-049 still ready.
