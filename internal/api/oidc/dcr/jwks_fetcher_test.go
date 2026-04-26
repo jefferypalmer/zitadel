@@ -35,9 +35,9 @@ var defaultDeniedRanges = []string{
 // the effective deny list (everything else stays).
 func TestParseDeniedRanges_AllowLoopbackInDev(t *testing.T) {
 	tests := []struct {
-		name      string
-		dev       bool
-		wantHas   []string
+		name       string
+		dev        bool
+		wantHas    []string
 		wantMisses []string
 	}{
 		{

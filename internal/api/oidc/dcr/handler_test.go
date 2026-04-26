@@ -185,7 +185,7 @@ func TestHandler_FeatureGateOverridesMethodRouting(t *testing.T) {
 		{http.MethodGet, "/abc"},
 		{http.MethodPut, "/abc"},
 		{http.MethodDelete, "/abc"},
-		{http.MethodPatch, "/abc"},   // unknown method
+		{http.MethodPatch, "/abc"}, // unknown method
 		{http.MethodGet, "/unknown/sub/path"},
 	}
 	for _, c := range cases {

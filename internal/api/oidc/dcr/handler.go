@@ -38,13 +38,13 @@ const HandlerPrefix = "/oidc/v1/register"
 // Method routing (cavekit-register-handler.md R1 + cavekit-manage-handler.md R1):
 //
 //   - POST /                 → register a new client (RFC 7591). Real
-//                              body lands in T-033.
+//     body lands in T-033.
 //   - GET  /{client_id}      → read existing client metadata (RFC 7592).
-//                              Real body lands in T-053.
+//     Real body lands in T-053.
 //   - PUT  /{client_id}      → update client (RFC 7592). Real body
-//                              lands in T-054.
+//     lands in T-054.
 //   - DELETE /{client_id}    → delete client + revoke tokens (RFC 7592).
-//                              Real body lands in T-056.
+//     Real body lands in T-056.
 //
 // Any other (path, method) combination falls through to a 404.
 //

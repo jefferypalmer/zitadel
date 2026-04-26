@@ -228,12 +228,12 @@ func (s *Server) AsMetadata(ctx context.Context) *as_metadata.Metadata {
 	copy(rt, rtRaw)
 
 	return &as_metadata.Metadata{
-		Issuer:                            issuer,
-		AuthorizationEndpoint:             s.Endpoints().Authorization.Absolute(issuer),
-		TokenEndpoint:                     s.Endpoints().Token.Absolute(issuer),
-		JwksURI:                           s.Endpoints().JwksURI.Absolute(issuer),
-		RegistrationEndpoint:              s.registrationEndpointURL(ctx),
-		ResponseTypesSupported:            rt,
+		Issuer:                 issuer,
+		AuthorizationEndpoint:  s.Endpoints().Authorization.Absolute(issuer),
+		TokenEndpoint:          s.Endpoints().Token.Absolute(issuer),
+		JwksURI:                s.Endpoints().JwksURI.Absolute(issuer),
+		RegistrationEndpoint:   s.registrationEndpointURL(ctx),
+		ResponseTypesSupported: rt,
 		ResponseModesSupported: []string{
 			string(oidc.ResponseModeQuery),
 			string(oidc.ResponseModeFragment),

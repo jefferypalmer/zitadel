@@ -11,9 +11,9 @@ import (
 // exported string constants so handler bodies (T-033, T-053, T-054,
 // T-056) and tests reference the same canonical value.
 const (
-	ErrCodeInvalidRedirectURI         = "invalid_redirect_uri"
-	ErrCodeInvalidClientMetadata      = "invalid_client_metadata"
-	ErrCodeInvalidSoftwareStatement   = "invalid_software_statement"
+	ErrCodeInvalidRedirectURI          = "invalid_redirect_uri"
+	ErrCodeInvalidClientMetadata       = "invalid_client_metadata"
+	ErrCodeInvalidSoftwareStatement    = "invalid_software_statement"
 	ErrCodeUnapprovedSoftwareStatement = "unapproved_software_statement"
 
 	// Not in RFC 7591 §3.2.2 but used uniformly across DCR for the
