@@ -76,7 +76,10 @@ func (o *OPStorage) StoreDeviceAuthorization(ctx context.Context, clientID, devi
 		logger.OnError(err).Error(logMsg)
 		span.EndWithError(err)
 	}()
-	scope, audience, orgID, err := o.createAuthRequestScopeAndAudience(ctx, clientID, scope)
+	// RFC 8707 (T-027): resources from the device-auth request enter via
+	// the sidecar middleware (the OIDC HTTP chain is shared with /authorize).
+	// Validation against AllowedAudiences already ran in the sidecar.
+	scope, audience, orgID, err := o.createAuthRequestScopeAndAudience(ctx, clientID, scope, ResourcesFromContext(ctx))
 	if err != nil {
 		return err
 	}

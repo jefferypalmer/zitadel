@@ -81,7 +81,7 @@ func (o *OPStorage) CreateAuthRequest(ctx context.Context, req *oidc.AuthRequest
 	}
 }
 
-func (o *OPStorage) createAuthRequestScopeAndAudience(ctx context.Context, clientID string, reqScope []string) (scope, audience []string, orgID string, err error) {
+func (o *OPStorage) createAuthRequestScopeAndAudience(ctx context.Context, clientID string, reqScope, resources []string) (scope, audience []string, orgID string, err error) {
 	project, err := o.query.ProjectByClientID(ctx, clientID)
 	if err != nil {
 		return nil, nil, "", err
@@ -101,11 +101,42 @@ func (o *OPStorage) createAuthRequestScopeAndAudience(ctx context.Context, clien
 	if err != nil {
 		return nil, nil, "", err
 	}
+	// RFC 8707 (cavekit-rfc8707-resource.md R4 / T-027): merge requested
+	// resource indicators into the audience slice so they flow through to
+	// OIDCSession.Audience and ultimately the issued access-token `aud`
+	// claim. Validation against the AllowedAudiences allow-list happened
+	// at request entry (NewAuthorizeResourceSidecar / T-026); the values
+	// reaching here are already trusted.
+	audience = mergeResourcesIntoAudience(audience, resources)
 	return scope, audience, orgID, nil
 }
 
+// mergeResourcesIntoAudience appends each resource to audience while
+// deduping (matches the addProjectID pattern in internal/domain/token.go).
+// nil/empty resources is a fast-path no-op so the non-RFC8707 callers
+// pay nothing.
+func mergeResourcesIntoAudience(audience, resources []string) []string {
+	if len(resources) == 0 {
+		return audience
+	}
+	for _, r := range resources {
+		seen := false
+		for _, a := range audience {
+			if a == r {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			audience = append(audience, r)
+		}
+	}
+	return audience
+}
+
 func (o *OPStorage) createAuthRequestLoginClient(ctx context.Context, req *oidc.AuthRequest, hintUserID, loginClient string) (op.AuthRequest, error) {
-	scope, audience, orgID, err := o.createAuthRequestScopeAndAudience(ctx, req.ClientID, req.Scopes)
+	resources := ResourcesFromContext(ctx)
+	scope, audience, orgID, err := o.createAuthRequestScopeAndAudience(ctx, req.ClientID, req.Scopes, resources)
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +158,12 @@ func (o *OPStorage) createAuthRequestLoginClient(ctx context.Context, req *oidc.
 		Issuer:           o.contextToIssuer(ctx),
 		OrganizationID:   orgID,
 		// RFC 8707 (T-014b): bridged via the sidecar middleware until
-		// upstream zitadel/oidc AuthRequest.Resource lands.
-		Resources: ResourcesFromContext(ctx),
+		// upstream zitadel/oidc AuthRequest.Resource lands. The same
+		// slice is also merged into `audience` above so the issued
+		// access-token `aud` claim reflects the requested resources
+		// (T-027 / R4). Keeping the field populated lets T-045 narrow
+		// audience per RFC 8707 §2.2 on refresh.
+		Resources: resources,
 	}
 	if req.LoginHint != "" {
 		authRequest.LoginHint = &req.LoginHint
@@ -150,7 +185,10 @@ func (o *OPStorage) createAuthRequest(ctx context.Context, req *oidc.AuthRequest
 		return nil, zerrors.ThrowPreconditionFailed(nil, "OIDC-sd436", "no user agent id")
 	}
 	// we do not need to handle the orgID for the v1 login, since it handles it already
-	scope, audience, _, err := o.createAuthRequestScopeAndAudience(ctx, req.ClientID, req.Scopes)
+	// RFC 8707 resources flow in via the sidecar context (T-014/T-027); they
+	// are merged into the returned audience here AND attached to the
+	// converted domain.AuthRequest.Resources field by CreateAuthRequestToBusiness.
+	scope, audience, _, err := o.createAuthRequestScopeAndAudience(ctx, req.ClientID, req.Scopes, ResourcesFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
