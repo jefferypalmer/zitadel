@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/zitadel/logging"
@@ -11,6 +12,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/op"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/auth/repository"
 	"github.com/zitadel/zitadel/internal/command"
 	"github.com/zitadel/zitadel/internal/crypto"
@@ -44,6 +46,16 @@ type Server struct {
 	opCrypto                  op.Crypto
 
 	assetAPIPrefix func(ctx context.Context) string
+
+	// dcrEnabled reflects the yaml gate (config.DCR.Enabled). Together
+	// with the per-instance runtime feature flag
+	// authz.GetFeatures(ctx).DynamicClientRegistration this implements
+	// the dual-gate from cavekit-config.md R3:
+	//   - yaml off → registration_endpoint absent in discovery + AS
+	//     metadata (cavekit-discovery-and-as-metadata.md R1/R3, T-029).
+	//   - yaml on  → field present iff the runtime flag is also on for
+	//     the calling instance (instance-level kill-switch).
+	dcrEnabled bool
 }
 
 func endpoints(endpointConfig *EndpointConfig) op.Endpoints {
@@ -172,6 +184,31 @@ func (s *Server) EndSession(ctx context.Context, r *op.Request[oidc.EndSessionRe
 	return s.LegacyServer.EndSession(ctx, r)
 }
 
+// dcrAdvertised reports whether the dual-gate (yaml + runtime feature
+// flag) is satisfied for the current instance. Used by both the OIDC
+// discovery handler and the RFC 8414 AS metadata handler so the two
+// documents agree on `registration_endpoint` advertisement
+// (cavekit-discovery-and-as-metadata.md R1/R3 / T-029).
+func (s *Server) dcrAdvertised(ctx context.Context) bool {
+	return s.dcrEnabled && authz.GetFeatures(ctx).DynamicClientRegistration
+}
+
+// registrationEndpointURL returns the absolute URL of the DCR register
+// endpoint sourced from the same context-derived issuer used elsewhere
+// in createDiscoveryConfig. Returns "" when the dual-gate is not
+// satisfied so the `omitempty` JSON tag drops the key (NEVER emits
+// "registration_endpoint": null per Claude Code Zod parser bug GH#38102).
+func (s *Server) registrationEndpointURL(ctx context.Context) string {
+	if !s.dcrAdvertised(ctx) {
+		return ""
+	}
+	issuer := op.IssuerFromContext(ctx)
+	if issuer == "" {
+		return ""
+	}
+	return strings.TrimRight(issuer, "/") + dcr.HandlerPrefix
+}
+
 func (s *Server) createDiscoveryConfig(ctx context.Context, supportedUILocales oidc.Locales) *oidc.DiscoveryConfiguration {
 	issuer := op.IssuerFromContext(ctx)
 
@@ -185,6 +222,7 @@ func (s *Server) createDiscoveryConfig(ctx context.Context, supportedUILocales o
 		EndSessionEndpoint:          s.Endpoints().EndSession.Absolute(issuer),
 		JwksURI:                     s.Endpoints().JwksURI.Absolute(issuer),
 		DeviceAuthorizationEndpoint: s.Endpoints().DeviceAuthorization.Absolute(issuer),
+		RegistrationEndpoint:        s.registrationEndpointURL(ctx),
 		ScopesSupported:             op.Scopes(s.Provider()),
 		ResponseTypesSupported:      op.ResponseTypes(s.Provider()),
 		ResponseModesSupported: []string{

@@ -689,7 +689,7 @@ func startAPIs(
 	// 404 (the "yaml off → 404" half of the dual-gate). The runtime
 	// feature-flag half lives inside dcr.Handler.
 	if config.OIDC.DCR.Enabled {
-		apis.RegisterHandlerOnPrefix("/oidc/v1/register", dcr.Handler())
+		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcr.Handler())
 	}
 	apis.RegisterHandlerPrefixes(oidcServer, oidcPrefixes...)
 

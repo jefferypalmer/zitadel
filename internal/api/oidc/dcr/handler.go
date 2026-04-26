@@ -11,6 +11,13 @@ import (
 	"github.com/zitadel/zitadel/internal/api/authz"
 )
 
+// HandlerPrefix is the URL path prefix the DCR handler is mounted at.
+// Exported so OIDC discovery (cavekit-discovery-and-as-metadata.md R1 /
+// T-029) and the RFC 8414 AS metadata handler (R2 / T-030) can advertise
+// the same registration_endpoint URL the start.go mount uses — keeps
+// the two from diverging.
+const HandlerPrefix = "/oidc/v1/register"
+
 // errorEnvelope is the RFC 7591 §3.2.2 client-registration error body.
 // All DCR handler error responses MUST use this shape so consumers
 // (including Claude Code MCP) can parse uniformly.

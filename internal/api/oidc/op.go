@@ -239,6 +239,7 @@ func NewServer(
 		targetEncryptionAlgorithm:  targetEncryptionAlgorithm,
 		opCrypto:                   alg,
 		assetAPIPrefix:             assets.AssetAPI(),
+		dcrEnabled:                 config.DCR.Enabled,
 	}
 	metricTypes := []metrics.MetricType{metrics.MetricTypeRequestCount, metrics.MetricTypeStatusCode, metrics.MetricTypeTotalCount}
 	server.Handler = op.RegisterLegacyServer(server,
