@@ -48,8 +48,29 @@ fix, and pattern category so cross-iteration trends become visible.
   and the first backprop log entry. Pattern category counter:
   `kit-internal-inconsistency: 1`.
 
+## Entry #2 — Stale 2026-04-24 pending flag (no-op, audit only)
+
+- **Date:** 2026-04-26
+- **Triggered by:** `/ck:revise --trace` option C (also-process the
+  stale flag after Trace A completed).
+- **Source:** `.cavekit/.auto-backprop-pending.json` recorded at
+  2026-04-24T13:37:14Z. Command:
+  `cd ../oidc && go test ./pkg/oidc/ -run TestAuthRequest_`.
+  Failure excerpt: `FAIL\tgithub.com/zitadel/oidc/v3/pkg/oidc [setup failed]`.
+- **Triage:** Re-running the same command in `/home/jeff/oidc` on
+  2026-04-26 returns `ok 0.002s`. The original failure was a
+  transient mid-build state during T-013 upstream RFC 8707 resource
+  work (commit 1a138e7 on branch `feat/authrequest-resource-rfc8707`,
+  CODE READY per loop-log iteration 3). No reproducer today.
+- **Classification:** N/A — no current failure to backprop.
+- **Kit changes:** None. The flag was logged for audit completeness;
+  the file was deleted as part of trace A's mandatory cleanup.
+- **Pattern category:** `infrastructural-transient` (recorded for
+  cross-trace pattern tracking even though no kit work resulted).
+
 ## Pattern category counts
 
 | Category | Count |
 |----------|-------|
 | kit-internal-inconsistency | 1 |
+| infrastructural-transient (no-op) | 1 |
