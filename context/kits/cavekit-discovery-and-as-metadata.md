@@ -52,15 +52,19 @@ Defines the two well-known endpoints that advertise DCR to clients: (a) the exis
 **Dependencies:** R1, R2.
 
 ### R4: Hostname-root deployment requirement
-**Description:** RFC 8414 / Claude Code probing assumes Zitadel is deployed at hostname root. Subpath deployments are tolerated (no startup hard-fail) but a startup WARN is emitted naming the URL Claude Code will probe (per `cavekit-config.md` R5). Documentation makes this requirement explicit.
+**Description:** RFC 8414 / Claude Code probing assumes Zitadel is deployed at hostname root. Subpath deployments are tolerated (no startup hard-fail) but a runtime WARN is emitted from the AS metadata handler (R2) when it observes a non-root issuer; documentation makes the requirement explicit.
+
+The runtime check sits in the AS metadata handler (NOT at startup) because Zitadel's `ExternalDomain` is a hostname, not a URL — proxy-driven subpath deployments are NOT observable from startup config alone. The handler in R2 has access to the per-request issuer via `op.IssuerFromContext(ctx)` / `http_util.DomainContext(ctx).Origin()` and is the natural detection point.
 
 **Acceptance Criteria:**
 - [ ] The DCR documentation page and the deployment guide carry an explicit note: "DCR / MCP support requires Zitadel deployed at a hostname root (no URL subpath)."
 - [ ] CHANGELOG entry mentions the hostname-root requirement.
-- [ ] Startup behavior for subpath deployments is governed by `cavekit-config.md` R5 (WARN, not fail).
-- [ ] When the issuer is at hostname root, NO warning is emitted.
+- [ ] Startup behavior for explicitly-misconfigured `ExternalDomain` (a literal `/` in the value) is governed by `cavekit-config.md` R5 (WARN at startup; already implemented by T-010).
+- [ ] T-030 AS metadata handler emits a WARN log on its first observation of a non-root issuer per instance (log-once cache keyed by `instanceID + issuer`). The log line names the hostname-root probe URL (`{scheme}://{host}/.well-known/oauth-authorization-server`) Claude Code will use.
+- [ ] When the request issuer is at hostname root, NO warning is emitted.
+- [ ] The handler still serves a 200 with metadata reflecting the non-root issuer (the warning is observational, not blocking).
 
-**Dependencies:** `cavekit-config.md` R5; `cavekit-console-ui-docs-and-observability.md` R3.
+**Dependencies:** R2; `cavekit-config.md` R5; `cavekit-console-ui-docs-and-observability.md` R3.
 
 ## Out of Scope
 - RFC 9728 (`/.well-known/oauth-protected-resource`).

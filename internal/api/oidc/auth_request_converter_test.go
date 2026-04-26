@@ -13,10 +13,9 @@ import (
 // TestCreateAuthRequestToBusiness_ResourcesFromSidecar pins the RFC 8707
 // sidecar wire-through: the `resource` slice attached to ctx via
 // AuthorizeResourceSidecar / WithAuthorizeResources must land on
-// domain.AuthRequest.Resources. T-014 only covers the V1 login path
-// (the only path that flows through CreateAuthRequestToBusiness);
-// the V2 login path (createAuthRequestLoginClient → command.AuthRequest)
-// is tracked separately — see impl-rfc8707-resource.md.
+// domain.AuthRequest.Resources for the V1 login path. The V2 login path
+// (createAuthRequestLoginClient → command.AuthRequest →
+// authrequest.AddedEvent) is covered by T-014b in the command package.
 func TestCreateAuthRequestToBusiness_ResourcesFromSidecar(t *testing.T) {
 	tests := []struct {
 		name      string

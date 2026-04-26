@@ -40,6 +40,11 @@ type AddedEvent struct {
 	NeedRefreshToken bool                      `json:"need_refresh_token,omitempty"`
 	Issuer           string                    `json:"issuer,omitempty"`
 	OrganizationID   string                    `json:"organization_id,omitempty"`
+	// Resources carries RFC 8707 resource indicators parsed from the
+	// /authorize request. Additive field — events written before this
+	// field existed unmarshal with Resources=nil. See
+	// cavekit-rfc8707-resource.md R2 / T-014b.
+	Resources []string `json:"resources,omitempty"`
 }
 
 func (e *AddedEvent) Payload() interface{} {
@@ -96,6 +101,15 @@ func NewAddedEvent(ctx context.Context,
 		Issuer:           issuer,
 		OrganizationID:   organizationID,
 	}
+}
+
+// WithResources sets the RFC 8707 `resource` slice on the event. Returns
+// the receiver so it can be chained onto NewAddedEvent — keeps the
+// positional constructor signature stable for the existing 20+ test
+// call sites. See cavekit-rfc8707-resource.md R2 / T-014b.
+func (e *AddedEvent) WithResources(resources []string) *AddedEvent {
+	e.Resources = resources
+	return e
 }
 
 func AddedEventMapper(event eventstore.Event) (eventstore.Event, error) {

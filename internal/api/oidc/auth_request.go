@@ -126,6 +126,9 @@ func (o *OPStorage) createAuthRequestLoginClient(ctx context.Context, req *oidc.
 		MaxAge:           MaxAgeToBusiness(req.MaxAge),
 		Issuer:           o.contextToIssuer(ctx),
 		OrganizationID:   orgID,
+		// RFC 8707 (T-014b): bridged via the sidecar middleware until
+		// upstream zitadel/oidc AuthRequest.Resource lands.
+		Resources: ResourcesFromContext(ctx),
 	}
 	if req.LoginHint != "" {
 		authRequest.LoginHint = &req.LoginHint

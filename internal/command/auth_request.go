@@ -31,6 +31,10 @@ type AuthRequest struct {
 	NeedRefreshToken bool
 	Issuer           string
 	OrganizationID   string
+	// Resources carries RFC 8707 resource indicators (cavekit-rfc8707-resource.md
+	// R2 / T-014b). Populated by createAuthRequestLoginClient from the
+	// sidecar context.
+	Resources []string
 }
 
 type CurrentAuthRequest struct {
@@ -77,7 +81,7 @@ func (c *Commands) AddAuthRequest(ctx context.Context, authRequest *AuthRequest)
 		authRequest.NeedRefreshToken,
 		authRequest.Issuer,
 		authRequest.OrganizationID,
-	))
+	).WithResources(authRequest.Resources))
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +198,7 @@ func authRequestWriteModelToCurrentAuthRequest(writeModel *AuthRequestWriteModel
 			HintUserID:     writeModel.HintUserID,
 			Issuer:         writeModel.Issuer,
 			OrganizationID: writeModel.OrganizationID,
+			Resources:      writeModel.Resources,
 		},
 		SessionID:   writeModel.SessionID,
 		UserID:      writeModel.UserID,

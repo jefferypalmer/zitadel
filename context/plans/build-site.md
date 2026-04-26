@@ -34,6 +34,7 @@ last_edited: "2026-04-24T00:00:00Z"
 | T-012 | Implement RFC 8707 sidecar wrapper: `authRequestWithResource` + context-scoped resource map (per decision T-005) | cavekit-rfc8707-resource.md | R7 | T-005 | M |
 | T-013 | Open upstream `github.com/zitadel/oidc` PR adding `Resource` field to `AuthRequest` (parallel to T-012) | cavekit-rfc8707-resource.md | R7 | T-005 | M |
 | T-014 | Parse `resource` on `/authorize` and `/token`; add `Resources []string` field to `domain.AuthRequest`; wire into `auth_request_converter.go` | cavekit-rfc8707-resource.md | R2 | T-004, T-005 | M |
+| T-014b | Extend V2 login path: add `Resources []string` to `command.AuthRequest`, extend `authrequest.AddedEvent` payload (additive — old events unmarshal with empty `Resources`), update authrequest write model + projection, populate from sidecar context in `createAuthRequestLoginClient` | cavekit-rfc8707-resource.md | R2 | T-012, T-014 | S |
 | T-015 | Build SSRF-guarded `internal/api/oidc/dcr/jwks_fetcher.go` with deny-list + DNS-rebind + 3-hop redirect cap + 1MiB body cap + timeout + AllowLoopbackInDev | cavekit-security-hardening.md | R2 | T-001 | L |
 | T-016 | jwks_fetcher table-driven unit tests + `dcr_ssrf_test.go` integration test (RFC1918, link-local, IPv6 ULA, loopback, oversized, redirect traps, 169.254.169.254) | cavekit-security-hardening.md | R2 | T-015 | M |
 
