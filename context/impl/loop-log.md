@@ -84,3 +84,6 @@ Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
 
 ### Iteration 10 — 2026-04-26 (Tier 3 — T-047)
 - T-047: DONE. Files: internal/api/oidc/dcr_discovery_test.go (+128 lines: TestDiscoveryAndAsMetadata_R3_SharedFieldsByteIdentical + TestDiscoveryAndAsMetadata_R3_BothOmitRegistrationWhenDisabled + newServerFixtureForR3 helper). Builds both docs from single Server fixture; asserts struct-field equality + JSON-RawMessage byte-identity on issuer/authorization_endpoint/token_endpoint/jwks_uri/registration_endpoint; full disabled-matrix verifies key-absent (no `"registration_endpoint": null`). Build P, Tests P (5 new subtests).
+
+### Iteration 11 — 2026-04-26 (Tier 3 — T-044)
+- T-044: DONE (AC3 deferred to T-079). Files: internal/api/oidc/dcr_config_test.go (+TestDCRConfig_NoTLSKnobs_R10 reflection scan), context/impl/m_t044_tls_posture_inspection.md (new artifact). AC1 (same TLS as /oidc/v1/userinfo) verified structurally via shared apis server in start.go. AC2 (no DCR-specific TLS knobs) pinned by reflection test rejecting TLS/Cert/HTTPS/Insecure/MTLS field names on DCRConfig + DCRJwksURIConfig. AC3 (deployment-guide TLS-termination note) deferred to T-079 doc task. Build P, Tests P.

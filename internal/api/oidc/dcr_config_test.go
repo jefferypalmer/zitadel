@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -192,5 +193,47 @@ func TestDCRConfig_Validate_R5_IssuerPathWarning(t *testing.T) {
 					"did not expect a WARN line; got: %s", got)
 			}
 		})
+	}
+}
+
+// TestDCRConfig_NoTLSKnobs_R10 pins cavekit-register-handler.md R10
+// AC2: "No DCR-specific TLS configuration knobs exist." The DCR handler
+// inherits Zitadel's overall TLS posture from cmd/start (config.TLS,
+// config.ExternalSecure, the http.Server TLSConfig) — adding a
+// DCR-specific TLS field would break the R10 invariant by allowing
+// /oidc/v1/register to be served over a different TLS configuration
+// than /oidc/v1/userinfo.
+//
+// This test scans the DCRConfig fields by reflection and fails if any
+// future field name contains "TLS", "Cert", "Key" (in a transport
+// sense), or "HTTPS". The whitelist below tracks legitimate non-TLS
+// uses of "Key" (cf. RegistrationAccessToken) so the substring scan
+// remains tight.
+func TestDCRConfig_NoTLSKnobs_R10(t *testing.T) {
+	cfg := DCRConfig{}
+	rt := reflect.TypeOf(cfg)
+	tlsIsh := []string{"TLS", "Cert", "HTTPS", "Insecure", "MTLS", "Mtls"}
+	for i := 0; i < rt.NumField(); i++ {
+		name := rt.Field(i).Name
+		for _, needle := range tlsIsh {
+			assert.False(t, strings.Contains(name, needle),
+				"DCRConfig.%s appears to be a TLS knob (%q); R10 forbids DCR-specific TLS configuration. "+
+					"DCR inherits Zitadel's overall TLS posture (cmd/start config.TLS / config.ExternalSecure).",
+				name, needle)
+		}
+	}
+	// Same scan on the nested DCRJwksURIConfig — the only sub-struct that
+	// could plausibly grow a TLS knob (because it makes outbound HTTPS
+	// calls). The SSRF guard from T-015 governs JWKS-fetch hardening; the
+	// Zitadel host's inbound TLS posture is unaffected.
+	jt := reflect.TypeOf(DCRJwksURIConfig{})
+	for i := 0; i < jt.NumField(); i++ {
+		name := jt.Field(i).Name
+		for _, needle := range tlsIsh {
+			assert.False(t, strings.Contains(name, needle),
+				"DCRJwksURIConfig.%s contains %q — outbound JWKS-fetch hardening lives in the SSRF guard, "+
+					"not in TLS-specific DCR config (R10 forbids DCR-specific TLS knobs).",
+				name, needle)
+		}
 	}
 }
