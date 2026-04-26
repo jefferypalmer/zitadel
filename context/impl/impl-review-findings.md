@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T13:30:00Z"
-last_edited: "2026-04-24T13:30:00Z"
+last_edited: "2026-04-26T00:00:00Z"
 ---
 # Codex Peer Review — Tier 0 Findings
 
@@ -14,7 +14,15 @@ Review date: 2026-04-24
 
 | ID | Severity | File | Line | Description | Status |
 |----|----------|------|------|-------------|--------|
-| F-001 | P1 | internal/api/oidc/token_exchange.go | 44 | T-004 removed the `resource`-parameter rejection from `/token` token-exchange but the remainder of RFC 8707 (audience plumbing via T-014/T-027/T-045, allow-list validation via T-026) has not landed yet. Today a request with `resource=...` succeeds and mints a token whose `aud` claim never reflects the supplied resource — this is worse than the prior explicit `invalid_target` rejection per RFC 8707 §2 (AS should return `invalid_target` when it cannot honor the resource). Either keep rejecting until T-026/T-027/T-045 land, or accelerate the propagation pipeline so there is never a gap. | OPEN |
+| F-001 | P1 | internal/api/oidc/token_exchange.go | 44 | T-004 removed the `resource`-parameter rejection from `/token` token-exchange but the remainder of RFC 8707 (audience plumbing via T-014/T-027/T-045, allow-list validation via T-026) has not landed yet. Today a request with `resource=...` succeeds and mints a token whose `aud` claim never reflects the supplied resource — this is worse than the prior explicit `invalid_target` rejection per RFC 8707 §2 (AS should return `invalid_target` when it cannot honor the resource). Either keep rejecting until T-026/T-027/T-045 land, or accelerate the propagation pipeline so there is never a gap. | RESOLVED-AUTHORIZE / OPEN-TOKEN |
+
+## Resolution status (2026-04-26)
+
+**/authorize path: CLOSED.** Tier 2 cluster T-026 + T-027 + T-028 (commits 3124fd94a, 2591cb012) shipped together as the F-001 closer per Option B. The /authorize sidecar now validates `resource` against `AllowedAudiences` and rejects out-of-list values with the RFC 8707 §2 `invalid_target` 400 envelope BEFORE the request reaches the auth-request creation path; in-list values are merged into `OIDCSession.Audience` and surface in the issued access-token `aud` claim.
+
+**/token path: still open until T-045 (Tier 3).** The 6 token grant handlers (token_code, refresh, client_credentials, device, exchange, jwt_profile) do not yet call `ValidateResources` or `writeInvalidTargetError`; the helpers and the typed `IsInvalidTargetError` predicate are in place so T-045 is a one-liner per handler. Until T-045 lands, a /token request with `resource=...` still mints a token whose `aud` does not reflect the resource — same behavior as before the cluster, but now device-flow tokens DO get the merge because device-auth shares the `/authorize` sidecar pre-validation entry.
+
+Recommend marking F-001 as RESOLVED only after T-045 + T-046 close /token coverage.
 
 ## Recommended remediation
 

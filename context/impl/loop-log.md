@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-26T00:00:00Z"
 ---
 # Loop Log — DCR Build Site
 
@@ -20,6 +20,13 @@ Build site: context/plans/build-site.md
 Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
 - Human-owned carryover: T-069 (confirm console UI placement), T-075 (open 19 locale tickets) — flag these when resuming Tier 1+.
 - T-013 previously human-owned — now CODE READY on `../oidc` branch `feat/authrequest-resource-rfc8707` (commit 1a138e7). Remaining human action: push branch + open upstream PR.
+
+### Iteration 6 — 2026-04-26 (Tier 2 — F-001 closer cluster, 3/17 done)
+- T-026: AllowedAudiences allow-list — DONE. Files: rfc8707_validate.go, rfc8707_sidecar.go, op.go. ValidateResources + factory NewAuthorizeResourceSidecar(allowed). 12+6+1 subtests P. Build P, Tests P.
+- T-028: invalid_target envelope — DONE. Bundled w/ T-026 (same file). writeInvalidTargetError + 3 envelope subtests P. /token wiring deferred to T-045.
+- T-027: resources → audience merge — DONE. Files: auth_request.go, device_auth.go, rfc8707_audience_test.go. createAuthRequestScopeAndAudience signature gains resources; mergeResourcesIntoAudience helper. 3 callers wired (V1, V2, device-auth). 8 subtests P.
+- F-001 status: RESOLVED on /authorize path. Open on /token until T-045 lands the per-grant validate+propagate.
+- Stop point: F-001 closer cluster complete per user instruction. Awaiting confirmation before destructive event-schema work (T-019 projection table) or further Tier 2.
 
 ### Iteration 5 — 2026-04-26 (Tier 1 close-out — 9/9 done)
 - T-014b: V2 login resource threading. `Resources` added to authrequest.AddedEvent (additive json:omitempty), command.AuthRequest, write model, reduce, conversion. WithResources fluent setter keeps the 25+ existing positional NewAddedEvent test call sites stable. 6 subtests green incl. back-compat unmarshal.
