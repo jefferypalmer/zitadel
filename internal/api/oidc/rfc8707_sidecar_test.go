@@ -80,7 +80,7 @@ func TestAuthorizeResourceSidecar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got []string
-			handler := AuthorizeResourceSidecar(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler := NewAuthorizeResourceSidecar(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				got = ResourcesFromContext(r.Context())
 			}))
 
@@ -103,7 +103,7 @@ func TestAuthorizeResourceSidecar_DoesNotConsumeBody(t *testing.T) {
 	// The library will call ParseForm again. If the sidecar consumed the body
 	// without making it re-readable, downstream handlers would see an empty
 	// form. net/http.ParseForm is documented as safe to call multiple times.
-	handler := AuthorizeResourceSidecar(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := NewAuthorizeResourceSidecar(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.NoError(t, r.ParseForm())
 		assert.Equal(t, "https://api.example.com", r.Form.Get("resource"))
 		assert.Equal(t, "c", r.Form.Get("client_id"))

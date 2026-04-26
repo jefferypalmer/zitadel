@@ -258,7 +258,9 @@ func NewServer(
 			// RFC 8707 sidecar: captures `resource` form values into ctx
 			// so the /authorize converter can read them without needing
 			// upstream AuthRequest.Resource (cavekit-rfc8707-resource.md R7).
-			AuthorizeResourceSidecar,
+			// Also validates against config.DCR.AllowedAudiences and emits
+			// `invalid_target` 400 on rejection (R3/R6, T-026/T-028).
+			NewAuthorizeResourceSidecar(config.DCR.AllowedAudiences),
 			accessHandler.HandleWithPublicAuthPathPrefixes(publicAuthPathPrefixes(config.CustomEndpoints)),
 			middleware.ActivityHandler,
 		))
