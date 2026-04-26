@@ -134,6 +134,106 @@ func (c *Commands) CreateInitialAccessToken(
 	return plaintext, iatID, nil
 }
 
+// IATSnapshot is the projection state of an IAT at the moment the
+// consume command read it. Each retry loop iteration calls the
+// IATLookup closure to get a fresh snapshot before picking the next
+// slot — that's how revocation / expiry committed between retries are
+// observed (cavekit-iat.md R2 AC1, AC2).
+type IATSnapshot struct {
+	ID            string
+	ProjectID     string
+	InstanceID    string
+	ResourceOwner string
+	MaxUses       int
+	UsesConsumed  int
+	Revoked       bool
+	ExpiresAt     *time.Time
+}
+
+// IATLookup is the projection-read seam — the consume command calls it
+// on every retry. Concrete callers (the registration handler at T-037)
+// wrap query.Queries.InitialAccessTokenByID to satisfy this signature.
+// The lookup MUST return the latest projected state, not a cached snapshot.
+type IATLookup func(ctx context.Context) (*IATSnapshot, error)
+
+// IATConsumeMaxAttempts caps the retry loop in ConsumeInitialAccessToken
+// per cavekit-iat.md R2 AC4 ("retries up to 3 total attempts").
+const IATConsumeMaxAttempts = 3
+
+// ConsumeInitialAccessToken consumes one slot of the IAT identified by
+// the lookup closure. Race safety:
+//
+//   - The eventstore-level UniqueConstraint per (iat_id, use_index)
+//     declared by InitialAccessTokenConsumedEvent (T-011, finite=true)
+//     guarantees that two parallel consumers cannot both succeed for
+//     the same slot. The loser receives zerrors.ThrowAlreadyExists
+//     and we re-fetch the projection then retry with the next slot.
+//   - For max_uses=0 (unlimited), no UniqueConstraint is declared and
+//     the consume always succeeds; the slot index still increments
+//     for audit linkage but contention is benign.
+//
+// Returned (slot, nil) on success — slot is the use_index that was
+// reserved (== usesConsumed at the moment of push). On failure returns
+// a typed error the registration handler maps to HTTP 401 with
+// `error_description: "initial access token exhausted"` (R2 AC5).
+//
+// Concurrent consumption of IATs from the same project is serialized
+// by eventstore aggregate locking; use multiple projects for
+// parallelism (R7 — pinned in T-025 godoc).
+func (c *Commands) ConsumeInitialAccessToken(ctx context.Context, lookup IATLookup) (slot int, err error) {
+	for attempt := 1; attempt <= IATConsumeMaxAttempts; attempt++ {
+		snap, lookupErr := lookup(ctx)
+		if lookupErr != nil {
+			return -1, lookupErr
+		}
+		if snap.Revoked {
+			return -1, zerrors.ThrowInvalidArgument(nil, "COMMA-IAT07", "Errors.DCR.IAT.Revoked")
+		}
+		if snap.ExpiresAt != nil && !snap.ExpiresAt.After(time.Now()) {
+			return -1, zerrors.ThrowInvalidArgument(nil, "COMMA-IAT08", "Errors.DCR.IAT.Expired")
+		}
+		finite := snap.MaxUses > 0
+		if finite && snap.UsesConsumed >= snap.MaxUses {
+			return -1, zerrors.ThrowInvalidArgument(nil, "COMMA-IAT09", "Errors.DCR.IAT.Exhausted")
+		}
+
+		slot = snap.UsesConsumed
+		agg := project.NewAggregate(snap.ProjectID, snap.InstanceID).Aggregate
+		agg.ResourceOwner = snap.ResourceOwner
+		_, pushErr := c.eventstore.Push(ctx, project.NewInitialAccessTokenConsumedEvent(
+			ctx, &agg, snap.ID, slot, finite,
+		))
+		if pushErr == nil {
+			return slot, nil
+		}
+		if !zerrors.IsErrorAlreadyExists(pushErr) {
+			return -1, pushErr
+		}
+		// Slot reserved by a concurrent consumer between our read and
+		// push. Re-fetch the projection on the next loop iteration so a
+		// freshly-committed revoke / expire / max-uses-bump is observed.
+	}
+	return -1, zerrors.ThrowInvalidArgument(nil, "COMMA-IAT10", "Errors.DCR.IAT.Exhausted")
+}
+
+// RevokeInitialAccessToken pushes the project.initial_access_token.revoked
+// event for the given IAT. Idempotent at the projection (the reducer
+// re-sets revoked=TRUE) but not at the eventstore — repeated revokes
+// add audit trail entries.
+func (c *Commands) RevokeInitialAccessToken(ctx context.Context, iatID, projectID, resourceOwner string) error {
+	if strings.TrimSpace(iatID) == "" {
+		return zerrors.ThrowInvalidArgument(nil, "COMMA-IAT11", "Errors.DCR.IAT.IDMissing")
+	}
+	ro, err := c.checkProjectExists(ctx, projectID, resourceOwner)
+	if err != nil {
+		return err
+	}
+	agg := project.NewAggregate(projectID, authz.GetInstance(ctx).InstanceID()).Aggregate
+	agg.ResourceOwner = ro
+	_, err = c.eventstore.Push(ctx, project.NewInitialAccessTokenRevokedEvent(ctx, &agg, iatID))
+	return err
+}
+
 // VerifyIATPlaintext checks a presented Bearer plaintext against an
 // IAT's stored hash via the secret hasher. Returns nil on success;
 // returns a typed not-found-equivalent error on mismatch so the
