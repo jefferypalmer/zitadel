@@ -88,6 +88,9 @@ var (
 	DebugEventsProjection               *handler.Handler
 	HostedLoginTranslationProjection    *handler.Handler
 	OrganizationSettingsProjection      *handler.Handler
+	// InitialAccessTokenProjection backs the DCR IAT consume command's
+	// pre-push read (cavekit-iat.md R3 / T-019).
+	InitialAccessTokenProjection *handler.Handler
 
 	RelationalTablesProjection *handler.Handler
 
@@ -196,6 +199,7 @@ func Create(ctx context.Context, sqlClient *database.DB, es handler.EventStore, 
 	DebugEventsProjection = newDebugEventsProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["debug_events"]))
 	HostedLoginTranslationProjection = newHostedLoginTranslationProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["hosted_login_translation"]))
 	OrganizationSettingsProjection = newOrganizationSettingsProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["organization_settings"]))
+	InitialAccessTokenProjection = newInitialAccessTokenProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["initial_access_tokens"]))
 
 	ProjectGrantFields = newFillProjectGrantFields(applyCustomConfig(projectionConfig, config.Customizations[fieldsProjectGrant]))
 	OrgDomainVerifiedFields = newFillOrgDomainVerifiedFields(applyCustomConfig(projectionConfig, config.Customizations[fieldsOrgDomainVerified]))
@@ -390,6 +394,7 @@ func newProjectionsList() {
 		DebugEventsProjection,
 		HostedLoginTranslationProjection,
 		OrganizationSettingsProjection,
+		InitialAccessTokenProjection,
 		GroupProjection,
 		GroupUsersProjection,
 
