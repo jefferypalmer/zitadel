@@ -669,3 +669,109 @@ func TestOIDCOriginAllowList(t *testing.T) {
 		})
 	}
 }
+
+func TestOIDCAppFromRFC7591Metadata_R6_HappyPath(t *testing.T) {
+	app := OIDCAppFromRFC7591Metadata(
+		"Test Client",
+		[]string{"https://example.com/cb"},
+		[]string{"authorization_code", "refresh_token"},
+		[]string{"code"},
+		"client_secret_basic",
+		"web",
+		[]string{"https://example.com/post-logout"},
+		"https://example.com/bcl",
+	)
+	if app == nil {
+		t.Fatalf("expected non-nil OIDCApp")
+	}
+	if app.AppName != "Test Client" {
+		t.Errorf("AppName: want %q, got %q", "Test Client", app.AppName)
+	}
+	if len(app.RedirectUris) != 1 || app.RedirectUris[0] != "https://example.com/cb" {
+		t.Errorf("RedirectUris: %v", app.RedirectUris)
+	}
+	if len(app.GrantTypes) != 2 ||
+		app.GrantTypes[0] != OIDCGrantTypeAuthorizationCode ||
+		app.GrantTypes[1] != OIDCGrantTypeRefreshToken {
+		t.Errorf("GrantTypes: %v", app.GrantTypes)
+	}
+	if len(app.ResponseTypes) != 1 || app.ResponseTypes[0] != OIDCResponseTypeCode {
+		t.Errorf("ResponseTypes: %v", app.ResponseTypes)
+	}
+	if app.AuthMethodType == nil || *app.AuthMethodType != OIDCAuthMethodTypeBasic {
+		t.Errorf("AuthMethodType: %v", app.AuthMethodType)
+	}
+	if app.ApplicationType == nil || *app.ApplicationType != OIDCApplicationTypeWeb {
+		t.Errorf("ApplicationType: %v", app.ApplicationType)
+	}
+	if app.OIDCVersion == nil || *app.OIDCVersion != OIDCVersionV1 {
+		t.Errorf("OIDCVersion: %v", app.OIDCVersion)
+	}
+	if len(app.PostLogoutRedirectUris) != 1 {
+		t.Errorf("PostLogoutRedirectUris: %v", app.PostLogoutRedirectUris)
+	}
+	if app.BackChannelLogoutURI == nil || *app.BackChannelLogoutURI != "https://example.com/bcl" {
+		t.Errorf("BackChannelLogoutURI: %v", app.BackChannelLogoutURI)
+	}
+}
+
+func TestOIDCAppFromRFC7591Metadata_R6_ApplicationTypeMapping(t *testing.T) {
+	cases := []struct {
+		in   string
+		want OIDCApplicationType
+	}{
+		{"web", OIDCApplicationTypeWeb},
+		{"native", OIDCApplicationTypeNative},
+		{"browser", OIDCApplicationTypeUserAgent},
+		{"user_agent", OIDCApplicationTypeUserAgent},
+	}
+	for _, c := range cases {
+		t.Run(c.in, func(t *testing.T) {
+			app := OIDCAppFromRFC7591Metadata("n", nil, []string{"authorization_code"}, []string{"code"}, "none", c.in, nil, "")
+			if app.ApplicationType == nil || *app.ApplicationType != c.want {
+				t.Errorf("in=%q: want %v, got %v", c.in, c.want, app.ApplicationType)
+			}
+		})
+	}
+}
+
+func TestOIDCAppFromRFC7591Metadata_R6_AuthMethodMapping(t *testing.T) {
+	cases := []struct {
+		in   string
+		want OIDCAuthMethodType
+	}{
+		{"client_secret_basic", OIDCAuthMethodTypeBasic},
+		{"client_secret_post", OIDCAuthMethodTypePost},
+		{"none", OIDCAuthMethodTypeNone},
+		{"private_key_jwt", OIDCAuthMethodTypePrivateKeyJWT},
+	}
+	for _, c := range cases {
+		t.Run(c.in, func(t *testing.T) {
+			app := OIDCAppFromRFC7591Metadata("n", nil, []string{"authorization_code"}, []string{"code"}, c.in, "web", nil, "")
+			if app.AuthMethodType == nil || *app.AuthMethodType != c.want {
+				t.Errorf("in=%q: want %v, got %v", c.in, c.want, app.AuthMethodType)
+			}
+		})
+	}
+}
+
+func TestOIDCAppFromRFC7591Metadata_R6_UnknownVocabulary(t *testing.T) {
+	// Defensive: caller MUST clamp before calling, but if an unknown
+	// value slips through (e.g. test fixture), the function should
+	// produce a nil pointer rather than panicking. Downstream code
+	// already handles nil ApplicationType / AuthMethodType.
+	app := OIDCAppFromRFC7591Metadata("n", nil, nil, nil, "weird_method", "weird_type", nil, "")
+	if app.ApplicationType != nil {
+		t.Errorf("expected nil ApplicationType for unknown vocabulary, got %v", app.ApplicationType)
+	}
+	if app.AuthMethodType != nil {
+		t.Errorf("expected nil AuthMethodType for unknown vocabulary, got %v", app.AuthMethodType)
+	}
+}
+
+func TestOIDCAppFromRFC7591Metadata_R6_OmitsBackchannelWhenEmpty(t *testing.T) {
+	app := OIDCAppFromRFC7591Metadata("n", nil, []string{"authorization_code"}, []string{"code"}, "none", "web", nil, "")
+	if app.BackChannelLogoutURI != nil {
+		t.Errorf("expected nil BackChannelLogoutURI for empty input, got %v", app.BackChannelLogoutURI)
+	}
+}

@@ -1,5 +1,9 @@
 package dcr
 
+import (
+	"github.com/zitadel/zitadel/internal/domain"
+)
+
 // RFC7591Metadata is the RFC 7591 client-metadata request body. Field
 // names + JSON tags match RFC 7591 §2 + OIDC Registration 1.0 §2
 // verbatim. Unknown JSON fields land in `Extra` for T-033 to ignore /
@@ -48,4 +52,85 @@ type RFC7591Metadata struct {
 	DefaultACRValues  []string `json:"default_acr_values,omitempty"`
 	InitiateLoginURI  string   `json:"initiate_login_uri,omitempty"`
 	Scope             string   `json:"scope,omitempty"`
+}
+
+// ToOIDCApp bridges a clamped [RFC7591Metadata] to a [domain.OIDCApp]
+// via the domain-level mapping function (cavekit-register-handler.md
+// R6 / T-039). Caller MUST run [ValidateAndClampMetadata] first; this
+// function performs no validation.
+func (m *RFC7591Metadata) ToOIDCApp() *domain.OIDCApp {
+	if m == nil {
+		return nil
+	}
+	return domain.OIDCAppFromRFC7591Metadata(
+		m.ClientName,
+		m.RedirectURIs,
+		m.GrantTypes,
+		m.ResponseTypes,
+		m.TokenEndpointAuthMethod,
+		m.ApplicationType,
+		m.PostLogoutRedirectURIs,
+		m.BackChannelLogoutURI,
+	)
+}
+
+// BuildDCRMeta extracts the RFC 7591 §2 fields that are stored in the
+// `dcr_meta` JSONB column without acting on them
+// (cavekit-register-handler.md R6 AC: "Other RFC 7591 fields are
+// stored in the dcr_meta JSONB column"). The returned map contains
+// only fields the caller actually populated — empty / zero / nil
+// fields are omitted so the persisted JSON stays small.
+//
+// Pass-through fields (per kit R6):
+//   contacts, logo_uri, client_uri, policy_uri, tos_uri,
+//   software_id, software_version, default_max_age, require_auth_time,
+//   default_acr_values, initiate_login_uri.
+//
+// `scope` is also passed through because OIDC Reg 1.0 §2 lists it as
+// a registration-time hint and Phase 1 doesn't act on it.
+func (m *RFC7591Metadata) BuildDCRMeta() map[string]any {
+	if m == nil {
+		return nil
+	}
+	out := map[string]any{}
+	if len(m.Contacts) > 0 {
+		out["contacts"] = append([]string(nil), m.Contacts...)
+	}
+	if m.LogoURI != "" {
+		out["logo_uri"] = m.LogoURI
+	}
+	if m.ClientURI != "" {
+		out["client_uri"] = m.ClientURI
+	}
+	if m.PolicyURI != "" {
+		out["policy_uri"] = m.PolicyURI
+	}
+	if m.TosURI != "" {
+		out["tos_uri"] = m.TosURI
+	}
+	if m.SoftwareID != "" {
+		out["software_id"] = m.SoftwareID
+	}
+	if m.SoftwareVersion != "" {
+		out["software_version"] = m.SoftwareVersion
+	}
+	if m.DefaultMaxAge != nil {
+		out["default_max_age"] = *m.DefaultMaxAge
+	}
+	if m.RequireAuthTime != nil {
+		out["require_auth_time"] = *m.RequireAuthTime
+	}
+	if len(m.DefaultACRValues) > 0 {
+		out["default_acr_values"] = append([]string(nil), m.DefaultACRValues...)
+	}
+	if m.InitiateLoginURI != "" {
+		out["initiate_login_uri"] = m.InitiateLoginURI
+	}
+	if m.Scope != "" {
+		out["scope"] = m.Scope
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

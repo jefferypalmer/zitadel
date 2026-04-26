@@ -436,3 +436,121 @@ func OIDCOriginAllowList(redirectURIs, additionalOrigins []string) ([]string, er
 	}
 	return allowList, nil
 }
+
+// OIDCAppFromRFC7591Metadata maps clamped RFC 7591 client metadata to
+// an [OIDCApp] for the dynamic client registration flow
+// (cavekit-register-handler.md R6 / T-039).
+//
+// Caller MUST have already passed the input through
+// `internal/api/oidc/dcr.ValidateAndClampMetadata` (T-034) — this
+// function performs only structural conversion (string vocabulary →
+// domain enums), not validation. Unknown vocabulary values panic the
+// caller would have rejected by clamp, but to keep the function pure
+// here we simply skip them; an unknown auth_method or application_type
+// produces a nil pointer (which downstream code already tolerates).
+//
+// The function is intentionally placed in `internal/domain/` so that
+// other surfaces (RFC 7592 PUT in T-054, future per-org overrides) can
+// reuse it without importing `internal/api/oidc/dcr`. Bridging from
+// the wire-format `RFC7591Metadata` struct to this primitives-based
+// signature lives at the dcr package boundary.
+//
+// Pass-through RFC 7591 fields not present in [OIDCApp] (`contacts`,
+// `logo_uri`, etc.) are NOT handled here — T-040 routes them into the
+// `dcr_meta` JSONB column via the parallel `dcr.BuildDCRMeta` helper.
+//
+// `OIDCVersion` is set to V1 because Phase 1 DCR only emits OIDC v1
+// applications (cavekit-overview.md / kit out-of-scope: OIDC v2).
+func OIDCAppFromRFC7591Metadata(
+	clientName string,
+	redirectURIs []string,
+	grantTypes []string,
+	responseTypes []string,
+	tokenEndpointAuthMethod string,
+	applicationType string,
+	postLogoutRedirectURIs []string,
+	backChannelLogoutURI string,
+) *OIDCApp {
+	app := &OIDCApp{
+		AppName:                clientName,
+		RedirectUris:           redirectURIs,
+		PostLogoutRedirectUris: postLogoutRedirectURIs,
+		GrantTypes:             rfc7591GrantTypes(grantTypes),
+		ResponseTypes:          rfc7591ResponseTypes(responseTypes),
+		AuthMethodType:         rfc7591AuthMethod(tokenEndpointAuthMethod),
+		ApplicationType:        rfc7591ApplicationType(applicationType),
+	}
+	v := OIDCVersionV1
+	app.OIDCVersion = &v
+	if backChannelLogoutURI != "" {
+		bcl := backChannelLogoutURI
+		app.BackChannelLogoutURI = &bcl
+	}
+	return app
+}
+
+func rfc7591GrantTypes(ss []string) []OIDCGrantType {
+	out := make([]OIDCGrantType, 0, len(ss))
+	for _, s := range ss {
+		switch s {
+		case "authorization_code":
+			out = append(out, OIDCGrantTypeAuthorizationCode)
+		case "implicit":
+			out = append(out, OIDCGrantTypeImplicit)
+		case "refresh_token":
+			out = append(out, OIDCGrantTypeRefreshToken)
+		case "urn:ietf:params:oauth:grant-type:device_code":
+			out = append(out, OIDCGrantTypeDeviceCode)
+		case "urn:ietf:params:oauth:grant-type:token-exchange":
+			out = append(out, OIDCGrantTypeTokenExchange)
+		}
+	}
+	return out
+}
+
+func rfc7591ResponseTypes(ss []string) []OIDCResponseType {
+	out := make([]OIDCResponseType, 0, len(ss))
+	for _, s := range ss {
+		switch s {
+		case "code":
+			out = append(out, OIDCResponseTypeCode)
+		case "id_token":
+			out = append(out, OIDCResponseTypeIDToken)
+		case "id_token token":
+			out = append(out, OIDCResponseTypeIDTokenToken)
+		}
+	}
+	return out
+}
+
+func rfc7591AuthMethod(s string) *OIDCAuthMethodType {
+	var v OIDCAuthMethodType
+	switch s {
+	case "client_secret_basic":
+		v = OIDCAuthMethodTypeBasic
+	case "client_secret_post":
+		v = OIDCAuthMethodTypePost
+	case "none":
+		v = OIDCAuthMethodTypeNone
+	case "private_key_jwt":
+		v = OIDCAuthMethodTypePrivateKeyJWT
+	default:
+		return nil
+	}
+	return &v
+}
+
+func rfc7591ApplicationType(s string) *OIDCApplicationType {
+	var v OIDCApplicationType
+	switch s {
+	case "web":
+		v = OIDCApplicationTypeWeb
+	case "native":
+		v = OIDCApplicationTypeNative
+	case "browser", "user_agent":
+		v = OIDCApplicationTypeUserAgent
+	default:
+		return nil
+	}
+	return &v
+}
