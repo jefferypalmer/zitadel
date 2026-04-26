@@ -81,3 +81,6 @@ Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
 - T-048: DONE (with kit-path drift). Files: apps/api/test-integration-api.yaml (added OIDC.DCR.{Enabled: true, RequireInitialAccessToken: true}). **Drift:** kit R7 AC1 named internal/integration/config/client.yaml — that struct has no OIDC tree. Actual integration server config is apps/api/test-integration-api.yaml. AC2 (DefaultProjectID/OrgID) intentionally unset — instance default org is dynamic; integration runs IAT-only. AC3 (TestInstance_BasicLoadsConfig) — test does not exist in tree. yaml syntax validated via python yaml.safe_load.
 - Build P (yaml only). Tests N/A (no code changes).
 - Tier 3 frontier: T-033 / T-034 / T-037 / T-038 / T-044 / T-045 / T-047 / T-049 still ready.
+
+### Iteration 10 — 2026-04-26 (Tier 3 — T-047)
+- T-047: DONE. Files: internal/api/oidc/dcr_discovery_test.go (+128 lines: TestDiscoveryAndAsMetadata_R3_SharedFieldsByteIdentical + TestDiscoveryAndAsMetadata_R3_BothOmitRegistrationWhenDisabled + newServerFixtureForR3 helper). Builds both docs from single Server fixture; asserts struct-field equality + JSON-RawMessage byte-identity on issuer/authorization_endpoint/token_endpoint/jwks_uri/registration_endpoint; full disabled-matrix verifies key-absent (no `"registration_endpoint": null`). Build P, Tests P (5 new subtests).
