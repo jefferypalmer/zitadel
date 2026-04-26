@@ -5,6 +5,11 @@ import (
 )
 
 func init() {
+	// Initial Access Token (DCR / cavekit-iat.md R1 / T-011)
+	eventstore.RegisterFilterEventMapper(AggregateType, InitialAccessTokenAddedType, InitialAccessTokenAddedEventMapper)
+	eventstore.RegisterFilterEventMapper(AggregateType, InitialAccessTokenConsumedType, InitialAccessTokenConsumedEventMapper)
+	eventstore.RegisterFilterEventMapper(AggregateType, InitialAccessTokenRevokedType, InitialAccessTokenRevokedEventMapper)
+
 	eventstore.RegisterFilterEventMapper(AggregateType, ProjectAddedType, ProjectAddedEventMapper)
 	eventstore.RegisterFilterEventMapper(AggregateType, ProjectChangedType, ProjectChangeEventMapper)
 	eventstore.RegisterFilterEventMapper(AggregateType, ProjectDeactivatedType, ProjectDeactivatedEventMapper)

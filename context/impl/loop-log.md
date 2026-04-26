@@ -21,6 +21,16 @@ Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
 - Human-owned carryover: T-069 (confirm console UI placement), T-075 (open 19 locale tickets) — flag these when resuming Tier 1+.
 - T-013 previously human-owned — now CODE READY on `../oidc` branch `feat/authrequest-resource-rfc8707` (commit 1a138e7). Remaining human action: push branch + open upstream PR.
 
+### Iteration 5 — 2026-04-26 (Tier 1 close-out — 9/9 done)
+- T-014b: V2 login resource threading. `Resources` added to authrequest.AddedEvent (additive json:omitempty), command.AuthRequest, write model, reduce, conversion. WithResources fluent setter keeps the 25+ existing positional NewAddedEvent test call sites stable. 6 subtests green incl. back-compat unmarshal.
+- T-008: dual-gate handler mount. dcr/handler.go stub returns 403 `feature_disabled` when runtime flag off, 200 stub when on; cmd/start/start.go conditionally mounts /oidc/v1/register before oidcPrefixes when yaml Enabled=true. 4 subtests green.
+- T-015: SSRF-guarded JWKS fetcher. Full deny matrix (RFC 1918 / loopback / link-local incl. 169.254.169.254 / IPv6 ULA + link-local + loopback), DNS-rebind defense (single resolve per hop, pinned dialer), 3-hop redirect cap with per-hop re-validation, 1 MiB body cap, scheme guard, AllowLoopbackInDev override.
+- T-016: 24 jwks_fetcher subtests covering deny matrix + redirect chains (3 OK / 4 refused) + redirect-trap to private IP + body cap (oversized + exact-at-limit) + literal-IP rejection + happy path. All green. dcr_ssrf_test.go integration test deferred to land alongside T-031/T-057 when the live register handler exists.
+- T-011: IAT events on project aggregate. Added/Consumed/Revoked event types + factories + mappers + RegisterFilterEventMapper. Per-slot UniqueConstraint `iat_uses:<id>:<use_index>` for finite max_uses; nil constraint when max_uses=0. 9 subtests green incl. wire-type pin, finite-vs-unbounded constraint matrix, distinct-IAT-distinct-slot.
+- Kit update: cavekit-discovery-and-as-metadata.md R4 absorbed runtime issuer-path warning (option ii from session Q3) — runtime check lives in T-030 handler where per-request issuer is available.
+- Build site: T-014b inserted into Tier 1 (effort S, blocked by T-012 + T-014).
+- Tier 1 status: 9/9 (or 10/10 incl T-014b). All builds and targeted tests green. F-001 still OPEN — ships when T-026/T-027 land in Tier 2.
+
 ### Iteration 4 — 2026-04-24 (Tier 1 — 4/9 done)
 - Pre-flight: Fixed "missing generated proto packages" tree-gap. They are gitignored; `nx run @zitadel/api:generate-stubs generate-assets generate-statik` regenerates. `go build ./cmd/... ./internal/... ./pkg/...` clean. `backend/main.go` has a pre-existing commented-out `main()` making `go build ./...` fail — same at cc74a36b6, not caused by this work.
 - T-009: DONE — DCRConfig.Validate startup refuse on empty defaults in anonymous mode. 7 subtests green.
