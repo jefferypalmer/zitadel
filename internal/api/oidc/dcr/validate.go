@@ -1,36 +1,404 @@
 package dcr
 
+import (
+	"errors"
+	"fmt"
+	"slices"
+	"strings"
+
+	"github.com/zitadel/zitadel/internal/domain"
+	"github.com/zitadel/zitadel/internal/zerrors"
+)
+
 // validate.go is the single source of truth for DCR client-metadata
-// clamp + validation logic. It is consumed by both the POST /register
-// path (cavekit-register-handler.md R2/R4 — T-033/T-034) and the PUT
-// /register/{client_id} path (cavekit-manage-handler.md R5 — T-054) so
-// the two surfaces enforce identical rules.
+// clamp + validation logic. Consumed by both POST /register
+// (cavekit-register-handler.md R4 — T-034) and PUT
+// /register/{client_id} (cavekit-manage-handler.md R5 — T-054). The
+// two surfaces enforce identical rules by sharing this function.
 //
-// This file lands as a skeleton in T-032; the concrete clamp functions
-// arrive with T-033/T-034 (request decoding + metadata validate+clamp)
-// and are reused unchanged from T-054 (PUT re-clamp). The functions
-// listed below are placeholders documenting the intended public API so
-// later tasks know the shape to fill.
+// RFC 7591 §2 default population (T-033 / R2) lives elsewhere — this
+// file assumes the caller has already applied defaults. The clamp
+// functions here are the second pass: they reject anything outside
+// the configured allow-lists or the OIDC v1 compliance envelope.
+
+// ClampError is the structured error type returned by
+// [ValidateAndClampMetadata]. The HTTP error body uses
+// `Error` as the RFC 7591 error code (always one of the four §3.2.2
+// codes) and `Description` as the human-readable text. The wrapped
+// error carries the zerror with the `DCR-<5 alpha>` ID for log
+// correlation.
+type ClampError struct {
+	Code        string
+	Description string
+	Wrapped     error
+}
+
+func (e *ClampError) Error() string {
+	if e.Wrapped != nil {
+		return fmt.Sprintf("dcr clamp: %s: %s (%v)", e.Code, e.Description, e.Wrapped)
+	}
+	return fmt.Sprintf("dcr clamp: %s: %s", e.Code, e.Description)
+}
+
+func (e *ClampError) Unwrap() error { return e.Wrapped }
+
+func newClampError(code, fieldName, reason, dcrID string) *ClampError {
+	desc := fieldName + ": " + reason
+	return &ClampError{
+		Code:        code,
+		Description: desc,
+		Wrapped:     zerrors.ThrowInvalidArgument(nil, dcrID, "Errors.DCR.InvalidClientMetadata"),
+	}
+}
+
+// ValidateAndClampMetadata enforces cavekit-register-handler.md R4
+// (T-034) on a defaulted [RFC7591Metadata]. Returns a clamped *copy*
+// (the input is not mutated) plus a *ClampError on the first failure.
 //
-// Intended exports (introduced incrementally by later tasks):
+// `supportedIDTokenSigAlgs` is the server's id_token_signing_alg_values_supported
+// list (sourced from `supportedSigningAlgs()` in op.go) — needed to
+// validate the per-client `id_token_signed_response_alg` against the
+// server's actual capabilities (R4 AC).
 //
-//   - ValidateAndClampMetadata(cfg DCRConfig, in *RFC7591Metadata) (*RFC7591Metadata, error)
-//       Applies grant_types / response_types / token_endpoint_auth_method /
-//       application_type / redirect_uris / subject_type / id_token_alg /
-//       request_object_* / software_statement / MaxRedirectURIs /
-//       client_name#<lang> rules. Returns a clamped copy plus a
-//       zerrors-typed error using `DCR-<5 alphanumeric>` IDs.
+// `softwareStatementEnabled` mirrors `DCR.SoftwareStatement.Enabled`
+// from `cavekit-config.md` R1; when false, any non-empty
+// `software_statement` is rejected with the RFC 7591 code
+// `unapproved_software_statement` per R4.
+func ValidateAndClampMetadata(
+	cfg DCRConfigSubset,
+	in *RFC7591Metadata,
+	supportedIDTokenSigAlgs []string,
+	softwareStatementEnabled bool,
+) (*RFC7591Metadata, error) {
+	if in == nil {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "request", "empty body", "DCR-Vt001")
+	}
+	out := *in // shallow copy; intersected slices are reassigned below.
+
+	// software_statement — present + feature off → unapproved.
+	// Done first so the JTI-extraction audit hook (T-040) can fire on
+	// this code path before any other rejection.
+	if strings.TrimSpace(out.SoftwareStatement) != "" && !softwareStatementEnabled {
+		return nil, &ClampError{
+			Code:        ErrCodeUnapprovedSoftwareStatement,
+			Description: "software_statement: feature disabled — see DCR.SoftwareStatement.Enabled",
+			Wrapped:     zerrors.ThrowInvalidArgument(nil, "DCR-Vt002", "Errors.DCR.UnapprovedSoftwareStatement"),
+		}
+	}
+
+	// grant_types — empty after defaulting is a 400.
+	if len(out.GrantTypes) == 0 {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "grant_types", "must not be empty", "DCR-Vt003")
+	}
+	clampedGrants := intersectStringSlice(out.GrantTypes, cfg.AllowedGrantTypes())
+	if len(clampedGrants) == 0 {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "grant_types",
+			"none of the requested values are allowed by DCR.AllowedGrantTypes", "DCR-Vt004")
+	}
+	out.GrantTypes = clampedGrants
+
+	// response_types — empty after defaulting is a 400.
+	if len(out.ResponseTypes) == 0 {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "response_types", "must not be empty", "DCR-Vt005")
+	}
+	clampedRT := intersectStringSlice(out.ResponseTypes, cfg.AllowedResponseTypes())
+	if len(clampedRT) == 0 {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "response_types",
+			"none of the requested values are allowed by DCR.AllowedResponseTypes", "DCR-Vt006")
+	}
+	out.ResponseTypes = clampedRT
+
+	// token_endpoint_auth_method — special-case `client_secret_jwt`
+	// rejection so the error_description names the policy reason rather
+	// than just "not in allow-list".
+	if out.TokenEndpointAuthMethod == "client_secret_jwt" {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "token_endpoint_auth_method",
+			"client_secret_jwt is not supported", "DCR-Vt007")
+	}
+	if !slices.Contains(cfg.AllowedAuthMethods(), out.TokenEndpointAuthMethod) {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "token_endpoint_auth_method",
+			"not in DCR.AllowedAuthMethods", "DCR-Vt008")
+	}
+
+	// application_type
+	if !slices.Contains(cfg.AllowedApplicationTypes(), out.ApplicationType) {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "application_type",
+			"not in DCR.AllowedApplicationTypes", "DCR-Vt009")
+	}
+
+	// subject_type — accept "public" or absent; reject "pairwise".
+	if out.SubjectType != "" && out.SubjectType != "public" {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "subject_type",
+			"only 'public' is supported", "DCR-Vt010")
+	}
+
+	// id_token_signed_response_alg — when present must be advertised by
+	// the server.
+	if out.IDTokenSignedResponseAlg != "" &&
+		!slices.Contains(supportedIDTokenSigAlgs, out.IDTokenSignedResponseAlg) {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "id_token_signed_response_alg",
+			"not in id_token_signing_alg_values_supported", "DCR-Vt011")
+	}
+
+	// request_object_* — Phase 1 rejects all three.
+	if out.RequestObjectSigningAlg != "" {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "request_object_signing_alg",
+			"request objects are not supported in Phase 1 DCR", "DCR-Vt012")
+	}
+	if out.RequestObjectEncryptionAlg != "" {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "request_object_encryption_alg",
+			"request objects are not supported in Phase 1 DCR", "DCR-Vt013")
+	}
+	if out.RequestObjectEncryptionEnc != "" {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "request_object_encryption_enc",
+			"request objects are not supported in Phase 1 DCR", "DCR-Vt014")
+	}
+
+	// redirect_uris count + per-URI compliance.
+	if cfg.MaxRedirectURIs() > 0 && len(out.RedirectURIs) > cfg.MaxRedirectURIs() {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "redirect_uris",
+			fmt.Sprintf("exceeds MaxRedirectURIs (%d)", cfg.MaxRedirectURIs()), "DCR-Vt015")
+	}
+	if err := CheckRedirectURIs(cfg, out.ApplicationType, out.GrantTypes, out.TokenEndpointAuthMethod, out.RedirectURIs); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// CheckRedirectURIs runs the redirect-URI compliance + host-pattern
+// checks per cavekit-register-handler.md R4. Loopback HTTP URIs are
+// accepted for `application_type=native` per the kit's "Loopback HTTP
+// redirect URIs are accepted for native" AC (also covers T-035's
+// `domain.GetOIDCV1Compliance` integration in the same code path).
 //
-//   - ApplyDefaultsRFC7591(in *RFC7591Metadata)
-//       RFC 7591 §2 + OIDC Reg 1.0 §2 default population (grant_types,
-//       response_types, token_endpoint_auth_method, application_type,
-//       client_name synthesis).
-//
-//   - CheckRedirectURIs(cfg DCRConfig, appType string, uris []string) error
-//       GetOIDCV1Compliance + AllowedRedirectURIHostPatterns + loopback
-//       acceptance for native (cavekit-register-handler.md R4 / T-035).
-//
-// Until those functions land, validate.go intentionally contains no
-// executable code — keeping the file present reserves the import path
-// referenced by handler bodies and prevents a downstream task from
-// re-litigating the package layout.
+// Returns *ClampError on failure; nil on success.
+func CheckRedirectURIs(cfg DCRConfigSubset, appType string, grantTypes []string, authMethod string, uris []string) error {
+	if len(uris) == 0 {
+		// Empty redirect_uris is acceptable for grant types that don't
+		// use them (e.g. device_code, client_credentials). The
+		// per-grant compliance call below catches the cases where
+		// redirect_uris is mandatory.
+		return runOIDCV1Compliance(appType, grantTypes, authMethod, uris)
+	}
+
+	for _, u := range uris {
+		if strings.TrimSpace(u) == "" {
+			return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
+				"contains an empty entry", "DCR-Vt020")
+		}
+		if isLoopbackHTTP(u) && appType == "native" {
+			// Loopback HTTP is allowed for native per RFC 8252 §7.3 and
+			// the kit's R4 AC. Skip the host-pattern check for loopback
+			// since the host is fixed by spec.
+			continue
+		}
+		if patterns := cfg.AllowedRedirectURIHostPatterns(); len(patterns) > 0 {
+			if !matchesAnyHostPattern(u, patterns) {
+				return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
+					"does not match DCR.AllowedRedirectURIHostPatterns: "+u, "DCR-Vt021")
+			}
+		}
+	}
+
+	return runOIDCV1Compliance(appType, grantTypes, authMethod, uris)
+}
+
+// runOIDCV1Compliance invokes domain.GetOIDCV1Compliance on the
+// converted enums and converts a non-compliant result into the RFC
+// 7591 `invalid_redirect_uri` envelope. Per kit R4 AC: "Each
+// redirect_uris entry passes domain.GetOIDCV1Compliance".
+func runOIDCV1Compliance(appType string, grantTypes []string, authMethod string, uris []string) error {
+	at := mapApplicationType(appType)
+	gts := mapGrantTypes(grantTypes)
+	am := mapAuthMethod(authMethod)
+	c := domain.GetOIDCV1Compliance(at, gts, am, uris)
+	if c == nil || !c.NoneCompliant {
+		return nil
+	}
+	return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
+		"OIDC v1 compliance failed: "+strings.Join(c.Problems, ", "), "DCR-Vt022")
+}
+
+// DCRConfigSubset is the slice of [DCRConfig] used by the DCR clamp
+// path. Defined as an interface so unit tests can stub it without
+// pulling in the full Server config tree, and so cavekit-manage-handler
+// (T-054) can pass a different config source if/when per-org overrides
+// land in Phase 2.
+type DCRConfigSubset interface {
+	AllowedGrantTypes() []string
+	AllowedResponseTypes() []string
+	AllowedAuthMethods() []string
+	AllowedApplicationTypes() []string
+	AllowedRedirectURIHostPatterns() []string
+	MaxRedirectURIs() int
+}
+
+// helpers ----------------------------------------------------------
+
+func intersectStringSlice(requested, allowed []string) []string {
+	if len(allowed) == 0 {
+		return nil // empty allow-list is interpreted as "deny all" here;
+		// callers that want "unrestricted" pass a non-empty list. The
+		// cmd/defaults.yaml DCRConfig sets defaults for every clamp list
+		// so this branch never fires in production.
+	}
+	out := make([]string, 0, len(requested))
+	for _, r := range requested {
+		if slices.Contains(allowed, r) && !slices.Contains(out, r) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// isLoopbackHTTP returns true for `http://localhost[:port]/...`,
+// `http://127.0.0.1[:port]/...`, `http://[::1][:port]/...` (RFC 8252
+// §7.3 loopback IPs).
+func isLoopbackHTTP(u string) bool {
+	if !strings.HasPrefix(u, "http://") {
+		return false
+	}
+	rest := strings.TrimPrefix(u, "http://")
+	host, _, _ := strings.Cut(rest, "/")
+	host, _, _ = strings.Cut(host, "?")
+	// Strip optional :port. IPv6 must be in brackets.
+	if strings.HasPrefix(host, "[") {
+		closing := strings.Index(host, "]")
+		if closing < 0 {
+			return false
+		}
+		hostOnly := host[1:closing]
+		return hostOnly == "::1"
+	}
+	hostOnly, _, _ := strings.Cut(host, ":")
+	return hostOnly == "localhost" || hostOnly == "127.0.0.1"
+}
+
+// matchesAnyHostPattern checks whether the URL's host matches one of
+// the configured patterns. Patterns support `*` as a single-label
+// wildcard (e.g. `*.example.com` matches `app.example.com` but NOT
+// `deep.app.example.com`) and exact-match for non-wildcard entries.
+// This mirrors the convention used by Zitadel's existing
+// `AllowedRedirectURIHostPatterns` consumers.
+func matchesAnyHostPattern(rawURL string, patterns []string) bool {
+	host := extractHost(rawURL)
+	if host == "" {
+		return false
+	}
+	for _, p := range patterns {
+		if hostMatches(host, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func extractHost(rawURL string) string {
+	// Strip scheme.
+	idx := strings.Index(rawURL, "://")
+	if idx < 0 {
+		return ""
+	}
+	rest := rawURL[idx+3:]
+	host, _, _ := strings.Cut(rest, "/")
+	host, _, _ = strings.Cut(host, "?")
+	host, _, _ = strings.Cut(host, "#")
+	// Strip port (IPv6 brackets handled by Cut on `]`).
+	if strings.HasPrefix(host, "[") {
+		closing := strings.Index(host, "]")
+		if closing < 0 {
+			return ""
+		}
+		return host[1:closing]
+	}
+	host, _, _ = strings.Cut(host, ":")
+	return host
+}
+
+func hostMatches(host, pattern string) bool {
+	if pattern == "" {
+		return false
+	}
+	if pattern == host {
+		return true
+	}
+	if strings.HasPrefix(pattern, "*.") {
+		suffix := pattern[1:] // ".example.com"
+		// Single-label wildcard: host must end with suffix and have
+		// exactly one extra label.
+		if !strings.HasSuffix(host, suffix) {
+			return false
+		}
+		left := strings.TrimSuffix(host, suffix)
+		return left != "" && !strings.Contains(left, ".")
+	}
+	return false
+}
+
+// mapApplicationType / mapGrantTypes / mapAuthMethod convert the
+// wire-string forms (RFC 7591 §2 vocabulary) to domain.OIDC*
+// pointers/values for the existing compliance call. Unknown values
+// map to nil so the compliance code-path can decide whether to
+// require a specific value.
+func mapApplicationType(s string) *domain.OIDCApplicationType {
+	switch s {
+	case "web":
+		v := domain.OIDCApplicationTypeWeb
+		return &v
+	case "native":
+		v := domain.OIDCApplicationTypeNative
+		return &v
+	case "browser", "user_agent":
+		v := domain.OIDCApplicationTypeUserAgent
+		return &v
+	}
+	return nil
+}
+
+func mapGrantTypes(ss []string) []domain.OIDCGrantType {
+	out := make([]domain.OIDCGrantType, 0, len(ss))
+	for _, s := range ss {
+		switch s {
+		case "authorization_code":
+			out = append(out, domain.OIDCGrantTypeAuthorizationCode)
+		case "implicit":
+			out = append(out, domain.OIDCGrantTypeImplicit)
+		case "refresh_token":
+			out = append(out, domain.OIDCGrantTypeRefreshToken)
+		case "urn:ietf:params:oauth:grant-type:device_code":
+			out = append(out, domain.OIDCGrantTypeDeviceCode)
+		case "urn:ietf:params:oauth:grant-type:token-exchange":
+			out = append(out, domain.OIDCGrantTypeTokenExchange)
+		}
+	}
+	return out
+}
+
+func mapAuthMethod(s string) *domain.OIDCAuthMethodType {
+	switch s {
+	case "client_secret_basic":
+		v := domain.OIDCAuthMethodTypeBasic
+		return &v
+	case "client_secret_post":
+		v := domain.OIDCAuthMethodTypePost
+		return &v
+	case "none":
+		v := domain.OIDCAuthMethodTypeNone
+		return &v
+	case "private_key_jwt":
+		v := domain.OIDCAuthMethodTypePrivateKeyJWT
+		return &v
+	}
+	return nil
+}
+
+// IsClampError reports whether err is a [*ClampError]. Convenience
+// for HTTP handler bodies that need the RFC 7591 envelope code.
+func IsClampError(err error) (*ClampError, bool) {
+	var ce *ClampError
+	if errors.As(err, &ce) {
+		return ce, true
+	}
+	return nil, false
+}
