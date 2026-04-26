@@ -30,6 +30,12 @@ type Server struct {
 	assetsAPIDomain   func(context.Context) string
 	userCodeAlg       crypto.EncryptionAlgorithm
 	auditLogRetention time.Duration
+
+	// dcrYAMLEnabled mirrors config.OIDC.DCR.Enabled at startup. When
+	// false, the IAT admin RPCs return gRPC UNIMPLEMENTED — symmetric
+	// to the HTTP-side "yaml off → not mounted" semantics
+	// (cavekit-iat.md R6 last AC / T-024).
+	dcrYAMLEnabled bool
 }
 
 type Config struct {
@@ -42,6 +48,7 @@ func CreateServer(
 	query *query.Queries,
 	userCodeAlg crypto.EncryptionAlgorithm,
 	auditLogRetention time.Duration,
+	dcrYAMLEnabled bool,
 ) *Server {
 	return &Server{
 		database:          database,
@@ -50,6 +57,7 @@ func CreateServer(
 		assetsAPIDomain:   assets.AssetAPI(),
 		userCodeAlg:       userCodeAlg,
 		auditLogRetention: auditLogRetention,
+		dcrYAMLEnabled:    dcrYAMLEnabled,
 	}
 }
 

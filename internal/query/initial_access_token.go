@@ -48,6 +48,9 @@ var initialAccessTokenByIDQuery string
 //go:embed initial_access_token_by_hash.sql
 var initialAccessTokenByHashQuery string
 
+//go:embed initial_access_tokens_search.sql
+var initialAccessTokensSearchQuery string
+
 // InitialAccessTokenByID looks up an IAT by its ID, scoped to the
 // caller's instance and (optionally) resource owner.
 //
@@ -73,6 +76,33 @@ func (q *Queries) InitialAccessTokenByID(ctx context.Context, id, resourceOwner 
 		return nil, zerrors.ThrowInternal(err, "QUERY-IAT02", "Errors.Internal")
 	}
 	return iat, nil
+}
+
+// SearchInitialAccessTokens lists IAT rows for the caller's instance
+// optionally narrowed by projectID (empty = all projects). Plaintext
+// is never available in the projection, so the result is structurally
+// safe for the admin gRPC ListInitialAccessTokens RPC (T-023).
+//
+// Sorted newest-first by created_at. Pagination is not yet wired —
+// the kit (R6) declares the proto carries a ListQuery for future
+// pagination, but the current admin UI surface returns a single page.
+func (q *Queries) SearchInitialAccessTokens(ctx context.Context, projectID string) (iats []*InitialAccessToken, err error) {
+	ctx, span := tracing.NewSpan(ctx)
+	defer func() { span.EndWithError(err) }()
+
+	list, err := database.QueryJSONObject[[]*InitialAccessToken](ctx, q.client, initialAccessTokensSearchQuery,
+		authz.GetInstance(ctx).InstanceID(), projectID,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, zerrors.ThrowInternal(err, "QUERY-IAT05", "Errors.Internal")
+	}
+	if list == nil {
+		return nil, nil
+	}
+	return *list, nil
 }
 
 // InitialAccessTokenByHash looks up an IAT by its Passwap-encoded
