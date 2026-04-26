@@ -120,6 +120,10 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
         },
         {
             name: "ZITADEL Administrators"
+        },
+        {
+            name: "Initial Access Tokens",
+            description: "Issue, list, and revoke OIDC Dynamic Client Registration (RFC 7591) Initial Access Tokens. IATs are required when DCR is configured for IAT-mode (cavekit-config.md R4)."
         }
     ];
     schemes: HTTPS;
@@ -4456,6 +4460,89 @@ service AdminService {
                     description: "The status 200 is also returned if no restrictions were ever set. In this case, all feature restrictions are undefined.";
                 };
             };
+        };
+    }
+
+    // Create Initial Access Token (RFC 7591 IAT)
+    //
+    // Issue an Initial Access Token for OIDC Dynamic Client Registration.
+    // The plaintext token is returned ONLY in this response and is hashed
+    // (Passwap) for storage. Subsequent ListInitialAccessTokens calls
+    // will not return the plaintext.
+    //
+    // Cavekit: cavekit-iat.md R6 (T-022). Dual-gated by OIDC.DCR.Enabled
+    // (yaml) AND the runtime feature flag DynamicClientRegistration; when
+    // either is off the RPC returns FAILED_PRECONDITION (runtime off) or
+    // UNIMPLEMENTED (yaml off — endpoint not registered).
+    rpc CreateInitialAccessToken(CreateInitialAccessTokenRequest) returns (CreateInitialAccessTokenResponse) {
+        option (google.api.http) = {
+            post: "/initial_access_tokens"
+            body: "*"
+        };
+
+        option (zitadel.v1.auth_option) = {
+            permission: "iam.write";
+        };
+
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            tags: "Initial Access Tokens";
+            summary: "Create Initial Access Token";
+            description: "Issues a new IAT for the given project. The plaintext token is returned exactly once and must be treated as a credential.";
+            responses: {
+                key: "200";
+                value: {
+                    description: "Token issued; plaintext present in response.";
+                };
+            };
+        };
+    }
+
+    // List Initial Access Tokens
+    //
+    // Return metadata for IATs the caller can administer. Plaintext is
+    // never returned — only the hash-derived metadata + administrative
+    // fields. Useful for revocation workflows and consumption auditing.
+    //
+    // Cavekit: cavekit-iat.md R6 (T-022).
+    rpc ListInitialAccessTokens(ListInitialAccessTokensRequest) returns (ListInitialAccessTokensResponse) {
+        option (google.api.http) = {
+            post: "/initial_access_tokens/_search"
+            body: "*"
+        };
+
+        option (zitadel.v1.auth_option) = {
+            permission: "iam.read";
+        };
+
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            tags: "Initial Access Tokens";
+            summary: "List Initial Access Tokens";
+            description: "Returns IAT metadata. Plaintext is never returned — only the projection-side fields.";
+        };
+    }
+
+    // Revoke Initial Access Token
+    //
+    // Mark an IAT as revoked. Subsequent consume attempts (whether from
+    // a queued client registration or a parallel admin) will fail before
+    // pushing a Consumed event (cavekit-iat.md R2 AC2). Revocation is
+    // idempotent at the projection.
+    //
+    // Cavekit: cavekit-iat.md R6 (T-022).
+    rpc RevokeInitialAccessToken(RevokeInitialAccessTokenRequest) returns (RevokeInitialAccessTokenResponse) {
+        option (google.api.http) = {
+            post: "/initial_access_tokens/{iat_id}/_revoke"
+            body: "*"
+        };
+
+        option (zitadel.v1.auth_option) = {
+            permission: "iam.write";
+        };
+
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            tags: "Initial Access Tokens";
+            summary: "Revoke Initial Access Token";
+            description: "Marks the IAT as revoked. Idempotent at the projection — repeated revokes do not error.";
         };
     }
 }
@@ -9553,5 +9640,101 @@ message GetRestrictionsResponse {
             description: "defines the allowed languages. If allowed_languages has one or more entries, only these languages are allowed. If it has no entries, all supported languages are allowed";
         }
     ];
+}
+
+// IAT (Initial Access Token) admin RPCs — cavekit-iat.md R6 / T-022.
+
+message CreateInitialAccessTokenRequest {
+    // ID of the project the IAT applies to. Required.
+    string project_id = 1 [
+        (validate.rules).string = {min_len: 1, max_len: 200},
+        (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+            description: "Project this IAT authorizes DCR registrations into.";
+        }
+    ];
+    // How long the IAT remains valid. Empty / zero → server applies
+    // OIDC.DCR.InitialAccessToken.DefaultLifetime (cavekit-config.md R1).
+    google.protobuf.Duration lifetime = 2 [
+        (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+            description: "Validity window. Zero / unset uses the server default lifetime.";
+        }
+    ];
+    // Maximum number of consumes. 0 = unlimited (no per-slot uniqueness
+    // enforcement). Negative values are rejected as InvalidArgument.
+    int32 max_uses = 3 [
+        (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+            description: "Slot count. 0 means unlimited; otherwise each consume reserves one slot.";
+        }
+    ];
+    // Optional grant_types allow-list applied at registration; empty
+    // means no IAT-side restriction (the global DCR.AllowedGrantTypes
+    // still applies).
+    repeated string allowed_grant_types = 4;
+    // Optional redirect_uri host pattern allow-list applied at
+    // registration; empty means no IAT-side restriction (the global
+    // DCR.AllowedRedirectURIHostPatterns still applies).
+    repeated string allowed_redirect_uri_patterns = 5;
+    // Free-form description visible in admin listings. Not persisted in
+    // any client-facing surface.
+    string description = 6 [
+        (validate.rules).string = {max_len: 500}
+    ];
+}
+
+message CreateInitialAccessTokenResponse {
+    zitadel.v1.ObjectDetails details = 1;
+    // The opaque IAT identifier — used for revocation and audit.
+    string iat_id = 2;
+    // The plaintext IAT token. Returned EXACTLY ONCE; not recoverable
+    // afterwards. Treat as a credential.
+    string token = 3 [
+        (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+            description: "Plaintext token, returned exactly once. Format: zdiat_<48-byte-base64url>.";
+        }
+    ];
+    // Computed expiry timestamp (now + lifetime). Empty when lifetime
+    // resolved to no-expiry (admin override).
+    google.protobuf.Timestamp expires_at = 4;
+}
+
+message ListInitialAccessTokensRequest {
+    zitadel.v1.ListQuery query = 1;
+    // Optional filter by project. Empty returns IATs across all
+    // projects the caller can administer.
+    string project_id = 2;
+}
+
+message ListInitialAccessTokensResponse {
+    zitadel.v1.ListDetails details = 1;
+    repeated InitialAccessTokenView result = 2;
+}
+
+// InitialAccessTokenView is the projection-side view of an IAT — never
+// includes the plaintext token.
+message InitialAccessTokenView {
+    string id = 1;
+    string project_id = 2;
+    string description = 3;
+    int32 max_uses = 4;
+    int32 uses_consumed = 5;
+    bool revoked = 6;
+    google.protobuf.Timestamp expires_at = 7;
+    google.protobuf.Timestamp created_at = 8;
+    google.protobuf.Timestamp change_date = 9;
+    repeated string allowed_grant_types = 10;
+    repeated string allowed_redirect_uri_patterns = 11;
+}
+
+message RevokeInitialAccessTokenRequest {
+    string iat_id = 1 [
+        (validate.rules).string = {min_len: 1, max_len: 200}
+    ];
+    string project_id = 2 [
+        (validate.rules).string = {min_len: 1, max_len: 200}
+    ];
+}
+
+message RevokeInitialAccessTokenResponse {
+    zitadel.v1.ObjectDetails details = 1;
 }
 
