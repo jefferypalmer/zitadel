@@ -78,6 +78,7 @@ import (
 	"github.com/zitadel/zitadel/internal/api/http/middleware"
 	"github.com/zitadel/zitadel/internal/api/idp"
 	"github.com/zitadel/zitadel/internal/api/oidc"
+	"github.com/zitadel/zitadel/internal/api/oidc/as_metadata"
 	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/api/robots_txt"
 	"github.com/zitadel/zitadel/internal/api/saml"
@@ -690,6 +691,13 @@ func startAPIs(
 	// feature-flag half lives inside dcr.Handler.
 	if config.OIDC.DCR.Enabled {
 		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcr.Handler())
+		// RFC 8414 AS metadata (cavekit-discovery-and-as-metadata.md
+		// R2 / T-030). Mounted on the yaml gate; the runtime feature
+		// flag still governs whether `registration_endpoint` appears
+		// in the body so the document tracks the discovery doc (R3).
+		// When yaml=false the handler is unmounted and the request
+		// gets the mux-level 404 (R2 AC: "DCR.Enabled=false → 404").
+		apis.RegisterHandlerOnPrefix(as_metadata.HandlerPath, as_metadata.NewHandler(oidcServer.AsMetadata))
 	}
 	apis.RegisterHandlerPrefixes(oidcServer, oidcPrefixes...)
 

@@ -12,6 +12,7 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/op"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
+	"github.com/zitadel/zitadel/internal/api/oidc/as_metadata"
 	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/auth/repository"
 	"github.com/zitadel/zitadel/internal/command"
@@ -207,6 +208,44 @@ func (s *Server) registrationEndpointURL(ctx context.Context) string {
 		return ""
 	}
 	return strings.TrimRight(issuer, "/") + dcr.HandlerPrefix
+}
+
+// AsMetadata builds the RFC 8414 OAuth 2.0 Authorization Server Metadata
+// document. Implements the [as_metadata.MetadataBuilder] signature so
+// the AS metadata HTTP handler (cavekit-discovery-and-as-metadata.md R2
+// / T-030) can call it once per request. Endpoint values are sourced
+// from the same Server.Endpoints() / op.IssuerFromContext path that
+// createDiscoveryConfig uses, so the two well-known documents cannot
+// diverge for shared fields (R3).
+func (s *Server) AsMetadata(ctx context.Context) *as_metadata.Metadata {
+	issuer := op.IssuerFromContext(ctx)
+	gtSupported := op.GrantTypes(s.Provider())
+	gtStrings := make([]oidc.GrantType, 0, len(gtSupported))
+	gtStrings = append(gtStrings, gtSupported...)
+
+	rtRaw := op.ResponseTypes(s.Provider())
+	rt := make([]string, len(rtRaw))
+	copy(rt, rtRaw)
+
+	return &as_metadata.Metadata{
+		Issuer:                            issuer,
+		AuthorizationEndpoint:             s.Endpoints().Authorization.Absolute(issuer),
+		TokenEndpoint:                     s.Endpoints().Token.Absolute(issuer),
+		JwksURI:                           s.Endpoints().JwksURI.Absolute(issuer),
+		RegistrationEndpoint:              s.registrationEndpointURL(ctx),
+		ResponseTypesSupported:            rt,
+		ResponseModesSupported: []string{
+			string(oidc.ResponseModeQuery),
+			string(oidc.ResponseModeFragment),
+			string(oidc.ResponseModeFormPost),
+		},
+		GrantTypesSupported:               gtStrings,
+		TokenEndpointAuthMethodsSupported: op.AuthMethodsTokenEndpoint(s.Provider()),
+		ScopesSupported:                   op.Scopes(s.Provider()),
+		CodeChallengeMethodsSupported:     op.CodeChallengeMethods(s.Provider()),
+		RevocationEndpoint:                s.Endpoints().Revocation.Absolute(issuer),
+		IntrospectionEndpoint:             s.Endpoints().Introspection.Absolute(issuer),
+	}
 }
 
 func (s *Server) createDiscoveryConfig(ctx context.Context, supportedUILocales oidc.Locales) *oidc.DiscoveryConfiguration {
