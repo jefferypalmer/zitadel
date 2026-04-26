@@ -35,7 +35,7 @@ fix, and pattern category so cross-iteration trends become visible.
   Failed to compile pre-fix (functions `GenerateIATPlaintextForID` /
   `ParseIATPlaintext` did not exist). Pass post-fix.
 - **Test commit:** `ae2290c83`
-- **Fix commit:** (next commit — recorded after this entry lands)
+- **Fix commit:** `1f37adf1e`
 - **Pattern category:** `kit-internal-inconsistency`
 - **Security review:** Performed before approval. Option 1
   (embed-ID-in-plaintext) selected over options 2 (HMAC column +
