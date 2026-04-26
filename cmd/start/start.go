@@ -78,6 +78,7 @@ import (
 	"github.com/zitadel/zitadel/internal/api/http/middleware"
 	"github.com/zitadel/zitadel/internal/api/idp"
 	"github.com/zitadel/zitadel/internal/api/oidc"
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/api/robots_txt"
 	"github.com/zitadel/zitadel/internal/api/saml"
 	"github.com/zitadel/zitadel/internal/api/scim"
@@ -678,6 +679,17 @@ func startAPIs(
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to start oidc provider: %w", err)
+	}
+	// DCR yaml gate (cavekit-config.md R3 / T-008): mount the
+	// /oidc/v1/register{/*} handler ONLY when OIDC.DCR.Enabled=true.
+	// Must register BEFORE oidcPrefixes so gorilla mux routes the more
+	// specific /oidc/v1/register prefix to the DCR handler instead of
+	// falling through to the OIDC server's /oidc/v1 catch-all. When
+	// disabled, the prefix is unmounted and requests get the mux-level
+	// 404 (the "yaml off → 404" half of the dual-gate). The runtime
+	// feature-flag half lives inside dcr.Handler.
+	if config.OIDC.DCR.Enabled {
+		apis.RegisterHandlerOnPrefix("/oidc/v1/register", dcr.Handler())
 	}
 	apis.RegisterHandlerPrefixes(oidcServer, oidcPrefixes...)
 
