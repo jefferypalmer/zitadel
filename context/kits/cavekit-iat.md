@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-26T22:30:00Z"
 complexity: complex
 ---
 
@@ -53,7 +53,7 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 **Acceptance Criteria:**
 - [ ] `internal/query/projection/initial_access_token.go` defines a projection registered in `internal/query/projection/projection.go`.
 - [ ] The projected table schema contains exactly: `id TEXT PK`, `instance_id TEXT NOT NULL`, `resource_owner TEXT NOT NULL`, `project_id TEXT NOT NULL`, `token_hash TEXT NOT NULL`, `expires_at TIMESTAMPTZ NULL`, `max_uses INT NOT NULL`, `uses_consumed INT NOT NULL DEFAULT 0`, `consumed_slots INT[] NOT NULL DEFAULT '{}'`, `allowed_grant_types TEXT[] NULL`, `allowed_redirect_uri_patterns TEXT[] NULL`, `revoked BOOL NOT NULL DEFAULT FALSE`, `created_at TIMESTAMPTZ NOT NULL`, `change_date TIMESTAMPTZ NOT NULL`, `sequence BIGINT NOT NULL`.
-- [ ] Indices `(instance_id, project_id)` and `(token_hash)` are present.
+- [ ] Index `(instance_id, project_id)` is present. (No `token_hash` index — the Passwap-encoded hash is non-deterministic and is therefore never a lookup key. Lookup is by `id` only; see R4 amendment 2026-04-26.)
 - [ ] Reducer for `InitialAccessTokenAddedEvent` INSERTs a row.
 - [ ] Reducer for `InitialAccessTokenConsumedEvent` increments `uses_consumed` and appends to `consumed_slots`.
 - [ ] Reducer for `InitialAccessTokenRevokedEvent` sets `revoked = TRUE`.
@@ -61,27 +61,31 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 **Dependencies:** R1
 
 ### R4: Query helpers
-**Description:** A typed query helper retrieves an IAT row by ID or by token-hash for verification at registration time.
+**Description:** A typed query helper retrieves an IAT row by `id` for verification at registration time. The plaintext format (R5) embeds the IAT row's PK so the registration handler can extract it directly from a presented Bearer — no hash-based lookup is possible because the persisted `token_hash` is the non-deterministic Passwap encoding.
 
 **Acceptance Criteria:**
-- [ ] `internal/query/initial_access_token.go` exposes a `InitialAccessTokenByID(ctx, id)` function returning the projected row or a not-found error.
-- [ ] An `InitialAccessTokenByHash` (or equivalent) lookup exists for the registration-handler verification path.
+- [ ] `internal/query/initial_access_token.go` exposes `InitialAccessTokenByID(ctx, id, resourceOwner)` returning the projected row or a not-found error.
+- [ ] No `InitialAccessTokenByHash` helper exists. Hash-based lookup is structurally impossible against a non-deterministic Passwap hash; the registration handler instead parses the Bearer plaintext (`zdiat_<id>.<random>` per R5), extracts `<id>`, calls this lookup, then runs `VerifyIATPlaintext(presented, row.TokenHash)` to verify the random portion.
 - [ ] SQL is embedded via `//go:embed initial_access_token_by_id.sql` next to the Go file (matches `internal/query/oidc_client.go:70-97` pattern).
 - [ ] Cross-instance and cross-org IATs return not-found relative to the calling instance/org context.
+- [ ] **Anti-enumeration timing.** When `InitialAccessTokenByID` returns `ThrowNotFound`, the registration handler MUST run a dummy `VerifyIATPlaintext` against a fixed throwaway Passwap hash before responding 401 `invalid_token`, so the response time of an unknown ID matches the response time of a known ID with a wrong random within typical Passwap variance. Mirrors the anti-enumeration pattern in `cavekit-manage-handler.md` R3 / `cavekit-security-hardening.md` R4 for unknown `client_id`.
 
 **Dependencies:** R3
 
 ### R5: IAT plaintext format and storage
-**Description:** IAT plaintext is a 48-byte random base64url string prefixed `zdiat_`. Only the Passwap-encoded hash is persisted; plaintext is returned exactly once at issue time.
+**Description:** IAT plaintext encodes the row's primary-key ID alongside a 48-byte CSPRNG random portion so the registration handler can look up the row in O(1) without a deterministic-hash index. Format: `zdiat_<id>.<random>`. Only the Passwap-encoded hash of the full plaintext is persisted; plaintext is returned exactly once at issue time. The secret of the credential is the `<random>` portion; the `<id>` is public-equivalent (predictable, monotonic Sonyflake) and is treated as such by all log-redaction / audit code.
 
 **Acceptance Criteria:**
-- [ ] `CreateInitialAccessToken` returns a plaintext token whose decoded random portion is 48 bytes.
-- [ ] The plaintext begins with the literal prefix `zdiat_`.
-- [ ] The persisted projection column `token_hash` is a Passwap-encoded string (NOT plaintext).
-- [ ] Subsequent `ListInitialAccessTokens` responses do NOT include plaintext for any token (only metadata + hash-derived ID).
+- [ ] `CreateInitialAccessToken` returns a plaintext of the form `zdiat_<id>.<random>` where `<id>` is the IAT row's primary-key ID and `<random>` is `base64url(48 random bytes)` (`crypto/rand`).
+- [ ] The plaintext begins with the literal prefix `zdiat_`; the literal `.` separator delimits the ID from the random portion.
+- [ ] The ID alphabet is restricted to `[A-Za-z0-9_-]+` (Sonyflake's URL-safe set); generation of a plaintext with any other character in the `<id>` position is a programmer error caught at test-time.
+- [ ] `ParseIATPlaintext(s string) (id, random string, ok bool)` parses a presented Bearer using `strings.Cut(s[len("zdiat_"):], ".")` — splits on the **first** `.` only, so an attacker cannot smuggle dots into either portion to confuse the parser. Returns `ok=false` for missing prefix, missing separator, empty ID, empty random, or invalid ID alphabet.
+- [ ] The persisted projection column `token_hash` is a Passwap-encoded string of the full plaintext (NOT just the random portion, NOT the plaintext itself). Storing the hash of the full plaintext means an attacker who learns the ID alone cannot reduce the verification problem.
+- [ ] Subsequent `ListInitialAccessTokens` responses do NOT include plaintext for any token (only metadata; the plaintext is irrecoverable from the projection by design).
 - [ ] M1 verifies (via grep) that `zdiat_` does not collide with any existing Zitadel token prefix; if it does, a new distinct prefix is chosen.
+- [ ] **Log redaction (cross-ref `cavekit-security-hardening.md` R3).** Redaction patterns MUST match the entire token `zdiat_[^\s"',]+` (greedy through the `.` separator). Half-redacting (e.g. masking only the random portion) is unsafe — combining a log-leaked ID with a separately-leaked random reconstructs the credential.
 
-**Dependencies:** R6
+**Dependencies:** R6, R3 (the projection schema this amendment de-indexes), `cavekit-security-hardening.md` R3 (log-redaction wrappers must match the full-token regex above).
 
 ### R6: Admin gRPC surface
 **Description:** Three RPCs are added to the existing `zitadel.admin.v1.AdminService` in the single monolithic `proto/zitadel/admin.proto` file.
@@ -132,3 +136,9 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 
 ## Changelog
 - 2026-04-24: Initial draft from `dcr-plan.md`.
+
+### 2026-04-26 — Revision (DE-001 / `--trace`)
+- **Affected:** R3, R4, R5
+- **Summary:** R3/R4/R5 originally described mutually inconsistent contracts: R5 specified a non-deterministic Passwap-encoded plaintext, R3 indexed `token_hash`, R4 declared an `InitialAccessTokenByHash` lookup. Passwap hashes are non-deterministic by design; the registration handler cannot derive the lookup key from a presented Bearer. Amendment moves to ID-embedded plaintext (`zdiat_<id>.<random>`), drops the unusable hash index from R3, drops `InitialAccessTokenByHash` from R4, and adds three security ACs: dummy-Verify-on-not-found anti-enum (R4), parser contract via `strings.Cut` first-dot split with restricted ID alphabet (R5), and full-token log-redaction regex `zdiat_[^\s"',]+` cross-ref to security R3 (R5).
+- **Commits:** 52210faa4 (T-021 originally) / 78b8f520a (T-019) / c53263536 (T-020) — original drift commits being corrected. Regression test + fix commits to follow.
+- **Pattern category:** kit-internal-inconsistency (cross-requirement contract mismatch).

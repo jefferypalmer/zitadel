@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-26T22:30:00Z"
 complexity: complex
 ---
 
@@ -53,8 +53,9 @@ Cross-cutting security hardening required by the DCR feature: (a) `jwks_uri` SSR
 - [ ] `internal/logstore/` HTTP access-logging subsystem is verified to NOT leak IATs.
 - [ ] Integration test `dcr_log_redaction_test.go` captures handler logs and asserts no `client_secret` / RAT / IAT plaintext substrings appear.
 - [ ] Integration test `dcr_grpc_iat_logging_redaction_test.go` (NEW) captures gRPC log output for `CreateInitialAccessToken` and asserts no plaintext `token` field appears.
+- [ ] **IAT-token regex (added 2026-04-26 / cross-ref `cavekit-iat.md` R5).** The redaction pattern for IAT plaintext MUST match `zdiat_[^\s"',]+` (greedy through the `.` separator that delimits ID from random). Half-redacting (e.g. masking only the random portion) is unsafe — combining a log-leaked ID with a separately-leaked random reconstructs the credential. The integration test `dcr_grpc_iat_logging_redaction_test.go` MUST include a case for a plaintext containing a literal `.` and assert the entire token is masked.
 
-**Dependencies:** `cavekit-iat.md` R6; `cavekit-register-handler.md` R7; `cavekit-manage-handler.md` R5.
+**Dependencies:** `cavekit-iat.md` R5, R6; `cavekit-register-handler.md` R7; `cavekit-manage-handler.md` R5.
 
 ### R4: Timing side-channel mitigation (T12)
 **Description:** RFC 7592 unknown-`client_id` MUST take indistinguishable time from wrong-RAT-on-known-`client_id` so an attacker cannot enumerate `client_id`s by response-time observation. Achieved via constant-time Passwap `Verify` against a stored hash for known IDs and against a static dummy hash for unknown IDs.
