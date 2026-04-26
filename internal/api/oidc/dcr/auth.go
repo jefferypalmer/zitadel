@@ -128,28 +128,130 @@ func ResolveAnonymous(ctx context.Context, cfg AnonymousConfig) (*RegistrationCo
 	}, nil
 }
 
-// IATAuthNotImplemented is the error returned by [ResolveIAT] until
-// T-037 lands. Surfaced as 401 invalid_token to keep the handler's
-// response shape stable for early integration probes.
+// IATLookupQueries is the projection-read seam the IAT auth path
+// needs from query.Queries. Defined as an interface so unit tests can
+// stub it without spinning up the full DB harness.
+type IATLookupQueries interface {
+	InitialAccessTokenByID(ctx context.Context, id, resourceOwner string) (*queryIATRow, error)
+}
+
+// queryIATRow mirrors the subset of [query.InitialAccessToken] the
+// auth path consumes. Defined as a local alias-shaped struct so this
+// package does not have to import the full query package (avoids the
+// import cycle between dcr → query and query → dcr that would arise
+// once T-040 lands).
 //
-// T-037 implementation requires either:
+// Fields kept aligned with the order in
+// `internal/query/initial_access_token.go::InitialAccessToken` so a
+// type-converter is a 1:1 field copy.
+type queryIATRow struct {
+	ID            string
+	InstanceID    string
+	ResourceOwner string
+	ProjectID     string
+	TokenHash     string
+}
+
+// IATVerifier is the verification + consume seam. The auth path calls
+// VerifyIATPlaintext on a successful byID lookup, then ConsumeOneSlot
+// to atomically reserve a slot via the eventstore UniqueConstraint.
+type IATVerifier interface {
+	VerifyIATPlaintext(presented, encodedHash string) error
+}
+
+// PlaintextParser is the single-method seam the auth path uses to
+// extract the IAT row PK from a presented Bearer string. Stubbed to
+// command.ParseIATPlaintext at the start.go wiring site.
+type PlaintextParser func(presented string) (id, random string, ok bool)
+
+// dummyPassWapHash is a fixed precomputed Passwap-encoded hash used
+// for the anti-enumeration timing path per cavekit-iat.md R4
+// amendment 2026-04-26. The contents do not matter — only that
+// VerifyIATPlaintext takes constant-ish-time computing an unsuccessful
+// match against it. Generated once at package init and cached.
 //
-//  1. A deterministic lookup index for IATs (HMAC-of-plaintext column
-//     on the projection) so InitialAccessTokenByHash works as the
-//     existing SQL implies, or
-//  2. Embedding the IAT ID into the plaintext format
-//     (`zdiat_<id>.<random>`) so the handler can extract the ID from
-//     the Bearer and look up by ID, or
-//  3. An "all IATs in instance" query + per-row Verify — O(n) per
-//     request but works without schema changes.
+// The handler MUST run a Verify against this fixed hash on every
+// not-found / invalid-format / wrong-instance code path so unknown-ID
+// timing matches known-ID-wrong-random timing within typical Passwap
+// variance. This mirrors the same defence cavekit-manage-handler.md
+// R3 / cavekit-security-hardening.md R4 spec for unknown client_id.
+var dummyPassWapHash = "$argon2id$v=19$m=65536,t=2,p=1$ZHVtbXktc2FsdC1mb3ItYW50aS1lbnVtZXJh$ZHVtbXktaGFzaC1mb3ItYW50aS1lbnVtZXJhdGlvbi1uZXZlci1tYXRjaGVz"
+
+// ResolveIAT implements cavekit-register-handler.md R3 AC2-AC3, AC6
+// (T-037 — the post-DE-001 implementation). Steps:
 //
-// The current T-021 plaintext (`zdiat_<48-byte-random>`, no embedded
-// ID) plus the T-019 projection schema (Passwap-encoded `token_hash`,
-// non-deterministic) cannot satisfy InitialAccessTokenByHash without
-// one of the three above. /ck:revise should pick an option before
-// T-037 implementation lands.
-var IATAuthNotImplemented = &ClampError{
-	Code:        ErrCodeInvalidToken,
-	Description: "IAT-mode DCR is not yet implemented; T-037 awaits a /ck:revise pass on the IAT lookup design",
-	Wrapped:     zerrors.ThrowUnimplemented(nil, "DCR-Au003", "Errors.DCR.IAT.LookupNotImplemented"),
+//  1. Parse the Bearer plaintext via the supplied parser into
+//     (id, random). Malformed input → dummy-Verify + 401.
+//  2. Look up the IAT row by id (instance-scoped via authz ctx).
+//     Not-found / cross-instance → dummy-Verify + 401.
+//  3. Verify the presented plaintext against the row's stored
+//     Passwap hash. Mismatch → 401 (no dummy-Verify needed; we
+//     already paid the Verify cost).
+//  4. Return the [RegistrationContext] with InstanceID/OrgID/
+//     ProjectID resolved from the IAT row's claims and IATID set
+//     to the row's PK. Caller (T-040 RegisterClient) is responsible
+//     for the slot-consume push via Commands.ConsumeInitialAccessToken.
+//
+// The function does NOT consume the slot — it stops at verification.
+// The split lets T-040 bundle slot-consume into the same eventstore
+// transaction as the application-creation events for atomicity.
+func ResolveIAT(
+	ctx context.Context,
+	queries IATLookupQueries,
+	verifier IATVerifier,
+	parse PlaintextParser,
+	presented string,
+) (*RegistrationContext, error) {
+	id, _, ok := parse(presented)
+	if !ok {
+		// Bad shape. Anti-enum: still pay one Verify so timing matches
+		// the wrong-random case.
+		_ = verifier.VerifyIATPlaintext(presented, dummyPassWapHash)
+		return nil, &ClampError{
+			Code:        ErrCodeInvalidToken,
+			Description: "Authorization Bearer is not a recognised IAT plaintext",
+			Wrapped:     zerrors.ThrowInvalidArgument(nil, "DCR-Au003", "Errors.DCR.IAT.InvalidToken"),
+		}
+	}
+
+	row, err := queries.InitialAccessTokenByID(ctx, id, "")
+	if err != nil {
+		// Not-found / cross-instance / DB error — uniform Verify-then-401
+		// to suppress the unknown-ID-vs-wrong-random timing oracle.
+		_ = verifier.VerifyIATPlaintext(presented, dummyPassWapHash)
+		return nil, &ClampError{
+			Code:        ErrCodeInvalidToken,
+			Description: "the presented Initial Access Token is not valid for this instance",
+			Wrapped:     zerrors.ThrowInvalidArgument(err, "DCR-Au004", "Errors.DCR.IAT.InvalidToken"),
+		}
+	}
+
+	// Defensive: the byID query already filters by instance_id in the
+	// WHERE clause, but a misconfigured authz interceptor that left the
+	// ctx instance empty would surface a row from any instance. Verify
+	// the binding here so the auth boundary is explicit.
+	if row.InstanceID != authz.GetInstance(ctx).InstanceID() {
+		_ = verifier.VerifyIATPlaintext(presented, dummyPassWapHash)
+		return nil, &ClampError{
+			Code:        ErrCodeInvalidToken,
+			Description: "the presented Initial Access Token is not valid for this instance",
+			Wrapped:     zerrors.ThrowInvalidArgument(nil, "DCR-Au005", "Errors.DCR.IAT.InvalidToken"),
+		}
+	}
+
+	if err := verifier.VerifyIATPlaintext(presented, row.TokenHash); err != nil {
+		// Wrong random — Verify already paid the timing cost.
+		return nil, &ClampError{
+			Code:        ErrCodeInvalidToken,
+			Description: "the presented Initial Access Token is not valid for this instance",
+			Wrapped:     zerrors.ThrowInvalidArgument(err, "DCR-Au006", "Errors.DCR.IAT.InvalidToken"),
+		}
+	}
+
+	return &RegistrationContext{
+		InstanceID: row.InstanceID,
+		OrgID:      row.ResourceOwner,
+		ProjectID:  row.ProjectID,
+		IATID:      row.ID,
+	}, nil
 }

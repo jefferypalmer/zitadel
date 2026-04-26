@@ -55,12 +55,27 @@ lookup") cannot work with the T-021 plaintext + T-019 hash combination.
 server secret, no scaling concern. Cost is a one-time format change
 that hasn't shipped to any user yet (T-021 just landed mid-build).
 
-**Status:** T-037 implementation **PARTIAL**. The handler's auth
-dispatcher (T-038, iter 14) returns `IATAuthNotImplemented` for the
-Bearer branch with a deliberate 401 invalid_token + descriptive error
-message naming T-037. `/ck:revise` should pick an option above before
-T-037 actually wires the IAT path.
+**Status:** **RESOLVED 2026-04-26** via `/ck:revise --trace`. Option 1
+(embed IAT ID in plaintext) selected after a security review found it
+strictly more secure than the alternatives (no list-iteration timing
+oracle, no new server secret in breach blast radius).
 
-**Test coverage:** `TestIATAuthNotImplemented_T037` pins the placeholder
-so a future contributor cannot silently flip the toggle without
-touching the test (and therefore seeing this dead-end note).
+Resolution commits:
+- `ae2290c83` — kit amendments (R3/R4/R5 of cavekit-iat.md +
+  redaction-regex AC on cavekit-security-hardening.md R3) + regression
+  test that fails to compile pre-fix.
+- T-037 fix commit (next) — `GenerateIATPlaintextForID` /
+  `ParseIATPlaintext` / `ResolveIAT` with anti-enum dummy-Verify;
+  remove `InitialAccessTokenByHash` + SQL + `token_hash` index +
+  `IATAuthNotImplemented` placeholder.
+
+Security additions baked into the kit amendment (beyond the bare
+"embed-ID" idea):
+- Anti-enum dummy-Verify on parse-failure / not-found / wrong-instance
+  branches (cavekit-iat.md R4 amendment + ResolveIAT impl).
+- Parser contract via `strings.Cut` first-dot split + ID-alphabet
+  restriction `[A-Za-z0-9_-]+` (cavekit-iat.md R5 amendment +
+  `ParseIATPlaintext` impl).
+- Full-token log-redaction regex `zdiat_[^\s"',]+`
+  (cavekit-security-hardening.md R3 amendment + cross-ref from
+  cavekit-iat.md R5).

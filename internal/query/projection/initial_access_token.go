@@ -85,7 +85,11 @@ func (*initialAccessTokenProjection) Init() *old_handler.Check {
 			// id collisions cannot occur.
 			handler.NewPrimaryKey(InitialAccessTokenColumnInstanceID, InitialAccessTokenColumnID),
 			handler.WithIndex(handler.NewIndex("instance_project", []string{InitialAccessTokenColumnInstanceID, InitialAccessTokenColumnProjectID})),
-			handler.WithIndex(handler.NewIndex("token_hash", []string{InitialAccessTokenColumnTokenHash})),
+			// (token_hash index removed 2026-04-26 / DE-001 — Passwap is
+			// non-deterministic so token_hash can never serve as a lookup
+			// key; the handler now resolves rows by PK via
+			// InitialAccessTokenByID after parsing the IAT plaintext per
+			// cavekit-iat.md R5 amendment.)
 		),
 	)
 }

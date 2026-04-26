@@ -22,8 +22,9 @@ import (
 //
 // The consume command (cavekit-iat.md R2 / T-017) reads this row on
 // every retry; the registration handler (cavekit-register-handler.md
-// R3 / T-037) reads it via InitialAccessTokenByHash to verify a
-// Bearer-presented IAT.
+// R3 / T-037) reads it via InitialAccessTokenByID after parsing the
+// IAT row's PK out of the presented Bearer plaintext per the R5
+// `zdiat_<id>.<random>` format (kit amendment 2026-04-26 / DE-001).
 type InitialAccessToken struct {
 	ID                         string                       `json:"id"`
 	InstanceID                 string                       `json:"instance_id"`
@@ -44,9 +45,6 @@ type InitialAccessToken struct {
 
 //go:embed initial_access_token_by_id.sql
 var initialAccessTokenByIDQuery string
-
-//go:embed initial_access_token_by_hash.sql
-var initialAccessTokenByHashQuery string
 
 //go:embed initial_access_tokens_search.sql
 var initialAccessTokensSearchQuery string
@@ -105,28 +103,8 @@ func (q *Queries) SearchInitialAccessTokens(ctx context.Context, projectID strin
 	return *list, nil
 }
 
-// InitialAccessTokenByHash looks up an IAT by its Passwap-encoded
-// token hash, scoped to the caller's instance. Used by the
-// registration handler's IAT verification path (cavekit-register-handler.md
-// R3 / T-037): the handler hashes the presented plaintext token then
-// calls this lookup. Cross-instance IATs return not-found.
-//
-// Note: the hash IS the encoded Passwap string, NOT a raw byte digest.
-// Verification of a presented plaintext against this hash uses
-// passwap.Hasher.Verify (see T-037 + T-051) — the lookup is just an
-// indexed retrieval.
-func (q *Queries) InitialAccessTokenByHash(ctx context.Context, tokenHash string) (iat *InitialAccessToken, err error) {
-	ctx, span := tracing.NewSpan(ctx)
-	defer func() { span.EndWithError(err) }()
-
-	iat, err = database.QueryJSONObject[InitialAccessToken](ctx, q.client, initialAccessTokenByHashQuery,
-		authz.GetInstance(ctx).InstanceID(), tokenHash,
-	)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, zerrors.ThrowNotFound(err, "QUERY-IAT03", "Errors.DCR.IAT.NotFound")
-	}
-	if err != nil {
-		return nil, zerrors.ThrowInternal(err, "QUERY-IAT04", "Errors.Internal")
-	}
-	return iat, nil
-}
+// (InitialAccessTokenByHash removed 2026-04-26 / DE-001 — Passwap
+// hashes are non-deterministic and cannot serve as lookup keys. The
+// registration handler now parses the IAT row's PK out of the
+// presented Bearer plaintext per cavekit-iat.md R5 amendment and
+// uses InitialAccessTokenByID instead.)

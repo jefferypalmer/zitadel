@@ -153,20 +153,153 @@ func TestResolveAnonymous_R3_DefensiveDefaultsCheck(t *testing.T) {
 	}
 }
 
-// TestIATAuthNotImplemented_T037 documents the placeholder: T-037
-// IAT-mode auth is awaiting a /ck:revise pass on the IAT lookup
-// design. Pinned here so a future contributor flipping the toggle has
-// to touch this test (and therefore see the documented options).
-func TestIATAuthNotImplemented_T037(t *testing.T) {
-	require.NotNil(t, IATAuthNotImplemented)
-	ce, ok := IsClampError(IATAuthNotImplemented)
+// stubIATQueries / stubIATVerifier are the test seams for ResolveIAT.
+
+type stubIATQueries struct {
+	row *queryIATRow
+	err error
+}
+
+func (s stubIATQueries) InitialAccessTokenByID(ctx context.Context, id, ro string) (*queryIATRow, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	if s.row == nil || s.row.ID != id {
+		return nil, errors.New("not found")
+	}
+	return s.row, nil
+}
+
+type stubIATVerifier struct {
+	verifyCalls int
+	matchHash   string // when row.TokenHash equals this, return nil; else error
+}
+
+func (s *stubIATVerifier) VerifyIATPlaintext(presented, encoded string) error {
+	s.verifyCalls++
+	if encoded == s.matchHash {
+		return nil
+	}
+	return errors.New("wrong random")
+}
+
+func parseStub(presented string) (string, string, bool) {
+	const prefix = "zdiat_"
+	if len(presented) < len(prefix)+3 || presented[:len(prefix)] != prefix {
+		return "", "", false
+	}
+	body := presented[len(prefix):]
+	for i := 0; i < len(body); i++ {
+		if body[i] == '.' {
+			if i == 0 || i == len(body)-1 {
+				return "", "", false
+			}
+			return body[:i], body[i+1:], true
+		}
+	}
+	return "", "", false
+}
+
+// TestResolveIAT_R3_HappyPath pins the success path: parse → byID →
+// Verify → RegistrationContext{IATID=row.ID, etc.}.
+func TestResolveIAT_R3_HappyPath(t *testing.T) {
+	ctx := authz.WithInstanceID(context.Background(), "inst-1")
+	row := &queryIATRow{
+		ID:            "iat-row-1",
+		InstanceID:    "inst-1",
+		ResourceOwner: "org-from-iat",
+		ProjectID:     "proj-from-iat",
+		TokenHash:     "stored-hash-XYZ",
+	}
+	q := stubIATQueries{row: row}
+	v := &stubIATVerifier{matchHash: "stored-hash-XYZ"}
+
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-row-1.somerandom")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, "inst-1", got.InstanceID)
+	assert.Equal(t, "org-from-iat", got.OrgID)
+	assert.Equal(t, "proj-from-iat", got.ProjectID)
+	assert.Equal(t, "iat-row-1", got.IATID, "IATID must be the row PK so audit events record it per R3 AC3")
+	assert.Equal(t, 1, v.verifyCalls, "happy path: exactly one Verify call (no dummy-verify)")
+}
+
+// TestResolveIAT_R4_DummyVerifyOnNotFound pins the anti-enumeration
+// timing AC: byID not-found MUST trigger a dummy Verify so unknown-ID
+// timing matches known-ID-wrong-random timing.
+func TestResolveIAT_R4_DummyVerifyOnNotFound(t *testing.T) {
+	ctx := authz.WithInstanceID(context.Background(), "inst-1")
+	q := stubIATQueries{err: errors.New("not found")}
+	v := &stubIATVerifier{matchHash: "never-matches"}
+
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_unknown-id.somerandom")
+	assert.Nil(t, got)
+	ce, ok := IsClampError(err)
 	require.True(t, ok)
 	assert.Equal(t, ErrCodeInvalidToken, ce.Code)
-	assert.Contains(t, ce.Description, "T-037")
-	// The wrapped error is a zerrors with the DCR-Au0XX prefix per the
-	// T-032 convention. We don't assert the exact ID — just that it is
-	// the expected zerrors family.
-	require.NotNil(t, ce.Wrapped)
-	assert.True(t, errors.Is(ce.Wrapped, ce.Wrapped),
-		"wrapped error chain must be intact")
+	assert.Equal(t, 1, v.verifyCalls, "anti-enum: dummy Verify must be called even though byID errored")
+}
+
+// TestResolveIAT_R5_DummyVerifyOnMalformed pins the parser-failure
+// path: malformed plaintext also runs dummy Verify so an attacker
+// cannot distinguish "ID parsed OK but unknown" from "couldn't parse"
+// by timing.
+func TestResolveIAT_R5_DummyVerifyOnMalformed(t *testing.T) {
+	ctx := authz.WithInstanceID(context.Background(), "inst-1")
+	q := stubIATQueries{}
+	v := &stubIATVerifier{matchHash: "never-matches"}
+
+	got, err := ResolveIAT(ctx, q, v, parseStub, "garbage-not-a-zdiat-token")
+	assert.Nil(t, got)
+	ce, ok := IsClampError(err)
+	require.True(t, ok)
+	assert.Equal(t, ErrCodeInvalidToken, ce.Code)
+	assert.Equal(t, 1, v.verifyCalls, "anti-enum: dummy Verify must be called on parse failure")
+}
+
+// TestResolveIAT_R3_WrongInstanceRejected pins the cross-instance
+// abuse boundary (R3 AC6): a row whose instance_id differs from the
+// authz context is rejected with 401 + dummy Verify (defence-in-depth
+// over the SQL WHERE clause).
+func TestResolveIAT_R3_WrongInstanceRejected(t *testing.T) {
+	ctx := authz.WithInstanceID(context.Background(), "inst-1")
+	row := &queryIATRow{
+		ID:            "iat-1",
+		InstanceID:    "inst-OTHER", // mismatch — would only happen if SQL filter is misconfigured
+		ResourceOwner: "org-x",
+		ProjectID:     "proj-x",
+		TokenHash:     "hash-x",
+	}
+	q := stubIATQueries{row: row}
+	v := &stubIATVerifier{matchHash: "hash-x"} // would have matched if we let it through
+
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-1.somerandom")
+	assert.Nil(t, got)
+	ce, ok := IsClampError(err)
+	require.True(t, ok)
+	assert.Equal(t, ErrCodeInvalidToken, ce.Code)
+	assert.Equal(t, 1, v.verifyCalls, "anti-enum: cross-instance rejection still pays Verify cost")
+}
+
+// TestResolveIAT_R3_WrongRandomRejected pins the per-credential
+// failure: byID succeeds, but the random portion doesn't match the
+// stored Passwap encoding.
+func TestResolveIAT_R3_WrongRandomRejected(t *testing.T) {
+	ctx := authz.WithInstanceID(context.Background(), "inst-1")
+	row := &queryIATRow{
+		ID:            "iat-1",
+		InstanceID:    "inst-1",
+		ResourceOwner: "org-x",
+		ProjectID:     "proj-x",
+		TokenHash:     "stored-hash-XYZ",
+	}
+	q := stubIATQueries{row: row}
+	v := &stubIATVerifier{matchHash: "different-hash"} // forces Verify to fail
+
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-1.wrongrandom")
+	assert.Nil(t, got)
+	ce, ok := IsClampError(err)
+	require.True(t, ok)
+	assert.Equal(t, ErrCodeInvalidToken, ce.Code)
+	assert.Equal(t, 1, v.verifyCalls, "wrong-random path: exactly one real Verify call (no extra dummy)")
 }

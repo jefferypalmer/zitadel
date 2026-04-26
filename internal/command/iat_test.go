@@ -9,39 +9,41 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestGenerateIATPlaintext pins cavekit-iat.md R5 acceptance:
-//   - plaintext begins with literal `zdiat_`
+// TestGenerateIATPlaintextForID pins cavekit-iat.md R5 acceptance
+// (amendment 2026-04-26 / DE-001):
+//   - plaintext format `zdiat_<id>.<random>`
 //   - decoded random portion is exactly 48 bytes
-//   - base64url (no padding) encoding produces a fixed length string
+//   - base64url (no padding) encoding produces a fixed length random portion
 //   - successive calls produce distinct values (cryptographic randomness)
-func TestGenerateIATPlaintext(t *testing.T) {
+//   - same ID across two calls produces distinct plaintexts (random differs)
+func TestGenerateIATPlaintextForID(t *testing.T) {
 	const expectedRandomBytes = 48
-	// 48 bytes → ceil(48 * 4 / 3) chars without padding = 64.
 	const expectedEncodedLen = 64
+	const id = "abc123"
 
-	tok, err := GenerateIATPlaintext()
+	tok, err := GenerateIATPlaintextForID(id)
 	require.NoError(t, err)
 
-	assert.True(t, strings.HasPrefix(tok, IATPlaintextPrefix), "must start with %q, got %q", IATPlaintextPrefix, tok)
-	suffix := strings.TrimPrefix(tok, IATPlaintextPrefix)
-	assert.Len(t, suffix, expectedEncodedLen, "encoded random portion length")
+	require.True(t, strings.HasPrefix(tok, IATPlaintextPrefix), "must start with %q, got %q", IATPlaintextPrefix, tok)
+	body := strings.TrimPrefix(tok, IATPlaintextPrefix)
+	idPart, randomPart, ok := strings.Cut(body, ".")
+	require.True(t, ok, "must contain literal `.` separator")
+	assert.Equal(t, id, idPart)
+	assert.Len(t, randomPart, expectedEncodedLen, "encoded random portion length")
 
-	decoded, err := base64.RawURLEncoding.DecodeString(suffix)
-	require.NoError(t, err, "suffix must be valid base64url (no padding)")
+	decoded, err := base64.RawURLEncoding.DecodeString(randomPart)
+	require.NoError(t, err, "random portion must be valid base64url (no padding)")
 	assert.Len(t, decoded, expectedRandomBytes, "decoded random byte count")
 
-	// Distinctness across two calls — collision probability with 384
-	// bits of entropy is astronomically low; if this ever flakes the
-	// CSPRNG itself is broken.
-	other, err := GenerateIATPlaintext()
+	other, err := GenerateIATPlaintextForID(id)
 	require.NoError(t, err)
-	assert.NotEqual(t, tok, other, "two consecutive generations must produce distinct plaintext")
+	assert.NotEqual(t, tok, other, "two generations with the same id must still differ in random portion")
 }
 
 // TestIsIATPlaintext_PrefixDiscriminator covers the cheap structural
 // check used by the registration handler before calling Passwap.Verify.
 func TestIsIATPlaintext_PrefixDiscriminator(t *testing.T) {
-	gen, err := GenerateIATPlaintext()
+	gen, err := GenerateIATPlaintextForID("test-id")
 	require.NoError(t, err)
 
 	tests := []struct {

@@ -33,18 +33,61 @@ const IATPlaintextPrefix = "zdiat_"
 // padding) → entropy of 384 bits, well above 128-bit collision floor.
 const iatRandomBytes = 48
 
-// GenerateIATPlaintext produces a fresh IAT plaintext token in the
-// form `zdiat_` + base64url(48 random bytes). The entropy comes from
-// crypto/rand. Returns (plaintext, error). The plaintext is the ONLY
-// representation that can later be presented as the Bearer token; the
-// caller MUST hash it (HashIATPlaintext) before persistence and MUST
-// surface plaintext exactly once (issue-time response).
-func GenerateIATPlaintext() (string, error) {
+// iatIDSeparator is the literal byte that delimits the IAT row ID
+// from the random portion in the plaintext (cavekit-iat.md R5
+// amendment 2026-04-26). The parser splits on the FIRST occurrence
+// only, so additional `.` characters in the random suffix do not
+// confuse the split.
+const iatIDSeparator = "."
+
+// iatIDAlphabet bounds the characters allowed in the `<id>` portion
+// of the plaintext to the URL-safe set Sonyflake produces. Stricter
+// than RFC 7591 needs but defensive against ID-shape weirdness
+// reaching the SQL layer (parameterized queries already protect; this
+// is belt + suspenders).
+func iatIDAlphabetOK(id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, r := range id {
+		switch {
+		case r >= 'a' && r <= 'z',
+			r >= 'A' && r <= 'Z',
+			r >= '0' && r <= '9',
+			r == '_', r == '-':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// GenerateIATPlaintextForID produces a fresh IAT plaintext token in
+// the form `zdiat_<id>.<random>` per cavekit-iat.md R5 (amended
+// 2026-04-26 / DE-001). `<id>` is the IAT row's primary-key ID — the
+// caller MUST allocate it before calling this function so the
+// returned plaintext, the persisted hash, and the projection row all
+// reference the same ID. `<random>` is base64url(48 random bytes) =
+// 384 bits of crypto/rand entropy.
+//
+// The plaintext is the ONLY representation that can later be
+// presented as the Bearer token; the caller MUST hash the entire
+// returned string (not just the random portion) before persistence
+// and MUST surface plaintext exactly once at issue time.
+//
+// Returns an error if the id violates the iatIDAlphabet contract —
+// programmer error, caught at test-time.
+func GenerateIATPlaintextForID(id string) (string, error) {
+	if !iatIDAlphabetOK(id) {
+		return "", zerrors.ThrowInternal(nil, "COMMA-IAT01b",
+			"IAT id must be non-empty URL-safe alphanumerics + `_-`; got "+id)
+	}
 	buf := make([]byte, iatRandomBytes)
 	if _, err := rand.Read(buf); err != nil {
 		return "", zerrors.ThrowInternal(err, "COMMA-IAT01", "Errors.Internal")
 	}
-	return IATPlaintextPrefix + base64.RawURLEncoding.EncodeToString(buf), nil
+	return IATPlaintextPrefix + id + iatIDSeparator + base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
 // IsIATPlaintext reports whether s carries the IAT plaintext prefix.
@@ -52,6 +95,40 @@ func GenerateIATPlaintext() (string, error) {
 // before invoking the slow Passwap verify path on a presented Bearer.
 func IsIATPlaintext(s string) bool {
 	return strings.HasPrefix(s, IATPlaintextPrefix)
+}
+
+// ParseIATPlaintext parses a presented Bearer IAT plaintext into its
+// (id, random) parts per cavekit-iat.md R5. Returns ok=false on:
+//   - missing or wrong prefix (case-sensitive)
+//   - missing `.` separator
+//   - empty `<id>` portion
+//   - empty `<random>` portion
+//   - `<id>` characters outside [A-Za-z0-9_-]
+//
+// The split uses strings.Cut on the FIRST `.` so an attacker who
+// places extra `.` characters in the random portion cannot smuggle
+// values into the id portion or vice versa.
+//
+// The returned (id, random) values are ONLY suitable for lookup
+// (id) and verification-substrate (random) — the caller MUST still
+// run VerifyIATPlaintext against the full original presented string
+// to authenticate.
+func ParseIATPlaintext(presented string) (id, random string, ok bool) {
+	if !strings.HasPrefix(presented, IATPlaintextPrefix) {
+		return "", "", false
+	}
+	body := presented[len(IATPlaintextPrefix):]
+	idPart, randomPart, found := strings.Cut(body, iatIDSeparator)
+	if !found {
+		return "", "", false
+	}
+	if randomPart == "" {
+		return "", "", false
+	}
+	if !iatIDAlphabetOK(idPart) {
+		return "", "", false
+	}
+	return idPart, randomPart, true
 }
 
 // CreateInitialAccessToken issues a new IAT under the given project.
@@ -94,18 +171,22 @@ func (c *Commands) CreateInitialAccessToken(
 		return "", "", err
 	}
 
-	plaintext, err = GenerateIATPlaintext()
+	// Allocate IAT row ID FIRST so it can be embedded in the plaintext
+	// (cavekit-iat.md R5 amendment 2026-04-26 / DE-001). The plaintext
+	// shape `zdiat_<id>.<random>` lets the registration handler
+	// resolve the row by ID without needing a deterministic hash index.
+	iatID, err = c.idGenerator.Next()
+	if err != nil {
+		return "", "", err
+	}
+
+	plaintext, err = GenerateIATPlaintextForID(iatID)
 	if err != nil {
 		return "", "", err
 	}
 	hash, err := c.secretHasher.Hash(plaintext)
 	if err != nil {
 		return "", "", zerrors.ThrowInternal(err, "COMMA-IAT04", "Errors.Internal")
-	}
-
-	iatID, err = c.idGenerator.Next()
-	if err != nil {
-		return "", "", err
 	}
 
 	var expiresAt *time.Time

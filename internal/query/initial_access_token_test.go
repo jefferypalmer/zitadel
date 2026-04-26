@@ -124,73 +124,8 @@ func TestQueries_InitialAccessTokenByID(t *testing.T) {
 	}
 }
 
-// TestQueries_InitialAccessTokenByHash covers cavekit-iat.md R4 lookup
-// path used by the registration handler (T-037). Cross-instance
-// hashes return not-found via the WHERE clause.
-func TestQueries_InitialAccessTokenByHash(t *testing.T) {
-	expQuery := regexp.QuoteMeta(initialAccessTokenByHashQuery)
-	cols := []string{"row_to_json"}
-	hash := "$argon2id$v=19$...specifichash"
-	row := `{
-		"id": "iat-2",
-		"instance_id": "instanceID",
-		"resource_owner": "ro-1",
-		"project_id": "proj-1",
-		"token_hash": "` + hash + `",
-		"max_uses": 0,
-		"uses_consumed": 0,
-		"consumed_slots": [],
-		"revoked": false,
-		"created_at": "2026-04-26T10:00:00Z",
-		"change_date": "2026-04-26T10:00:00Z",
-		"sequence": 1
-	}`
-
-	tests := []struct {
-		name    string
-		mock    sqlExpectation
-		want    *InitialAccessToken
-		wantErr error
-	}{
-		{
-			name:    "not found → ThrowNotFound",
-			mock:    mockQueryErr(expQuery, sql.ErrNoRows, "instanceID", hash),
-			wantErr: zerrors.ThrowNotFound(sql.ErrNoRows, "QUERY-IAT03", "Errors.DCR.IAT.NotFound"),
-		},
-		{
-			name: "happy path: nullable expires_at left empty (max_uses=0 unlimited IAT)",
-			mock: mockQuery(expQuery, cols, []driver.Value{row}, "instanceID", hash),
-			want: &InitialAccessToken{
-				ID:            "iat-2",
-				InstanceID:    "instanceID",
-				ResourceOwner: "ro-1",
-				ProjectID:     "proj-1",
-				TokenHash:     hash,
-				ExpiresAt:     nil,
-				MaxUses:       0,
-				UsesConsumed:  0,
-				ConsumedSlots: database.NumberArray[int16]{},
-				Revoked:       false,
-				CreatedAt:     time.Date(2026, 4, 26, 10, 0, 0, 0, time.UTC),
-				ChangeDate:    time.Date(2026, 4, 26, 10, 0, 0, 0, time.UTC),
-				Sequence:      1,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			execMock(t, tt.mock, func(db *sql.DB) {
-				q := &Queries{client: &database.DB{DB: db}}
-				ctx := authz.NewMockContext("instanceID", "orgID", "loginClient")
-				got, err := q.InitialAccessTokenByHash(ctx, hash)
-				if tt.wantErr != nil {
-					require.ErrorIs(t, err, tt.wantErr)
-					return
-				}
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, got)
-			})
-		})
-	}
-}
+// (TestQueries_InitialAccessTokenByHash removed 2026-04-26 / DE-001
+// — see cavekit-iat.md R4 amendment. The handler now uses
+// InitialAccessTokenByID after parsing the row's PK out of the
+// presented Bearer plaintext; the by-hash query was structurally
+// impossible against a non-deterministic Passwap hash and is gone.)
