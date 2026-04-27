@@ -497,3 +497,73 @@ This recommendation is the second cross-kit-amendment trigger from this build (t
    **Recommended skill amendment**: every config field whose value is interpreted as a sentinel (0, -1, "" etc) MUST have its semantics pinned in the kit AC AND validated at startup. Default-fallback substitution that hides operator intent is FORBIDDEN.
 
 This is now the FOURTH cross-kit amendment recommendation in this build (the third was the meta-pattern `fix-introduces-its-own-regression` flagged in the 3rd /ck:check finding log). All four target the cavekit-writing skill, not individual project kits, and should be addressed via `/ck:design` before any more Tier 4 work.
+
+---
+
+## Entry #21 — F-400 (gofmt re-broken, 3rd time)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 4th pass — 049e3c042 imports added at top of import block instead of alphabetically ordered.
+- **Classification:** style-only (no kit, no test).
+- **Fix commit:** `a0f13777e`. `gofmt -w` on dcr_config.go + dcr_config_test.go.
+- **Pattern category:** ci-style-defect (3 entries — F-400 is its own line; the prior two were N-2 + N-3 captured under a single F-id).
+
+## Entry #22 — F-401 (N-5 migration incomplete, 1 of 5 sites)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 4th pass — kit AC R3 enumerated 4 paths but commit migrated only the auth-first short-circuit. ResolveIAT 4 sites + ConsumeIAT closure still emitted bespoke strings (3 distinct), partially defeating anti-enumeration design.
+- **Classification:** `partial-fix-coverage` (no kit gap — kit AC was correct, diff didn't match commit message claim).
+- **Kit amendment:** NONE (R3 AC already correct; the impl was the gap).
+- **Regression test:** `internal/api/oidc/dcr/auth_test.go::TestResolveIAT_F401_All401PathsUseCanonicalDescription` — 4 subtests covering bad-shape / unknown-id / cross-instance / wrong-random, asserts byte-equal Description.
+- **Fix commit:** `77b5ba554`. sed-replace at 4 sites in auth.go + manual edit at start.go.
+- **Pattern category:** **`partial-fix-coverage` — 2nd entry.** First was F-301c-test (this pass) where AC code shipped without a test.
+
+## Entry #23 — F-402 (silent clamp-down on positive > ceiling)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 4th pass — F-301 fix added runtime clamp for `max > AbsoluteMaxBodyBytes` instead of refusing at startup. Operator who configures 500 MiB gets 413 envelope citing 100 MiB they never set.
+- **Classification:** `incomplete_criterion` (pattern: **`unspecified-config-sentinel` — 4th entry**).
+- **Kit amendment:** cavekit-config.md R1 — added "positive > ceiling refusal" AC. Mirrors F-204 precedent.
+- **Regression test:** `internal/api/oidc/dcr_config_test.go::TestDCRConfig_Validate_R1_F402_PositiveExceedsCeiling` — 4 cases (at-ceiling accept, just-under accept, just-over reject, 1 GB reject).
+- **Fix commit:** `77b5ba554`. DCRConfig.Validate now refuses positive > 100 MiB. Runtime clamp in decode.go is now defence-in-depth only.
+
+## Entry #24 — F-301c-test (missing WARN regression test)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 4th pass — F-301 startup-WARN code shipped without a regression test. Verifier flagged as "code present, behaviour unguarded".
+- **Classification:** `untested-AC` (pattern: `partial-fix-coverage`).
+- **Kit amendment:** NONE (R1 AC already requires the WARN).
+- **Regression test:** `internal/api/oidc/dcr_config_test.go::TestDCRConfig_Validate_R1_F301_StartupWARN_OnNoCap` — 2 cases (`-1` emits WARN with field name + ceiling + F-301 ref; positive value does not emit).
+- **Fix commit:** `77b5ba554`.
+
+---
+
+## Pattern category summary (cumulative across 24 entries)
+| Category | Count |
+|----------|-------|
+| **unspecified-parser-contract** | **4** 🚨 (F-100/F-101/F-103/F-218) — open since #6 |
+| **unspecified-handler-contract** | **4** 🚨 (F-101/F-200/F-219/N-6) — open since #15 |
+| **unspecified-config-sentinel** | **4** 🚨 (F-204/F-300/F-301/F-402) — **NEW 4th instance this pass** |
+| **partial-fix-coverage** | **2** 🚨 (F-401, F-301c-test) — **NEW pattern this pass** |
+| **ci-style-defect** | **3** 🚨 (gofmt 3×: 21187afa0 + the 2 prior wave breaks) |
+| unspecified-config-plumbing | 1 (F-201) |
+| unspecified-error-envelope-redaction | 1 (F-202) |
+| unspecified-error-vocabulary | 1 (N-5) |
+| ambiguous-handler-scope | 1 (F-203) |
+| unspecified-mount-contract | 1 (F-217) |
+| kit-internal-inconsistency | 1 (DE-001) |
+| infrastructural-transient (no-op) | 1 (F-102) |
+| closed-by-bundled-fix (no-op) | 1 |
+| test-method-defect | 1 (F-205) |
+| observability-defect | 1 (N-4) |
+
+## 🚨 FIVE open cross-kit amendment thresholds
+
+This pass crossed two more thresholds and added a 4th instance to the third:
+
+1. **`unspecified-parser-contract`** (4) — open since #6.
+2. **`unspecified-handler-contract`** (4) — open since #15.
+3. **`unspecified-config-sentinel`** (4) — **NEW 4th instance F-402**. Open since previous pass.
+4. **`partial-fix-coverage`** (2) — **NEW PATTERN** this pass. Both instances are "kit AC was right but the diff/test didn't match the commit message's claim of coverage". Recommended skill amendment: every `/ck:revise --trace` MUST verify the diff against the kit AC's enumerated requirements (e.g. grep for each enumerated path in the diff). If a third instance lands, escalate to a hard pre-commit gate.
+5. **`ci-style-defect`** (3) — **NEW PATTERN this pass**. Three consecutive waves have broken `gofmt`. Recommended skill amendment: install a pre-commit / pre-trace `gofmt -l` smoke at the wire level so the loop physically cannot ship gofmt-dirty trees.
+
+The cumulative meta-recommendation: the `/ck:revise --trace` protocol needs three additional automated gates before its commit step:
+- **gofmt gate** (run `gofmt -l` on staged files; refuse to commit if non-empty)
+- **kit-AC enumeration gate** (parse the kit AC for "MUST cover X, Y, Z" lists and grep the diff for each named path)
+- **claim-vs-diff gate** (parse the proposed commit message for "all sites" / "every path" claims and verify the diff actually touched ≥ N sites where N matches the kit AC count)
