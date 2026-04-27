@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 50 — 2026-04-27 (Tier 6 — T-082 CHANGELOG.md)
+- T-082: DONE. New top-level `/CHANGELOG.md` (zitadel had no central CHANGELOG before — semantic-release-driven; kit explicitly named this file so created it as the canonical home for cross-cutting release narratives going forward). Unreleased section leads with kit-pinned headline "Works with Claude Code out-of-the-box" + 5 operator-must-know bullets: hostname-root issuer requirement, DELETE token-revocation note (path-(a) RevokeApplicationTokens per T-007 M4 decision), anon-by-default hardening + T16 CDN/WAF residual-risk pointer, `registration_endpoint` omit-not-null discovery contract, PUT non-idempotency caveat. Cross-refs to T-079 API ref, T-080 MCP guide, T-083 SECURITY.md, T-085 ADR. Tier 6 status: 14/21. T-086 (deployment hostname-root note) now unblocked.
+
 ### Iteration 49 — 2026-04-27 (Tier 6 — T-080 Claude Code MCP MDX)
 - T-080: DONE. New file `apps/docs/content/guides/integrate/tools/claude-code-mcp.mdx`. Walkthrough sections: prerequisites (hostname-root + DCR-on + anon mode + Claude Code installed), `claude mcp add --transport http` invocation, 5-step Claude Code DCR flow narrative, hardening-applied-automatically summary, RFC 8707 resource-narrowing pointer, troubleshooting matrix (404/403/400/401/subpath), see-also footer. 5 cross-refs into T-079 API reference. Validates (frontmatter + balanced fences). Tier 6 status: 13/21.
 
