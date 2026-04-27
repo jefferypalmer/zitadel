@@ -16,6 +16,39 @@ import (
 	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 )
 
+// metricsResponseWriter is a thin http.ResponseWriter wrapper that
+// captures the response status code for the registration-result
+// classification (success / client_error / server_error) used by
+// [recordRegistration]. It MUST stay minimal — the OIDC server is on
+// the hot path, and any extra method this struct overrides changes
+// observable handler behavior.
+type metricsResponseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (m *metricsResponseWriter) WriteHeader(code int) {
+	m.status = code
+	m.ResponseWriter.WriteHeader(code)
+}
+
+// resultFromStatus maps an HTTP status code to the
+// [MetricRegistrationsTotal] result label per R8 AC1. Status 0 (no
+// WriteHeader call) is treated as 200 per Go's net/http semantics.
+func resultFromStatus(code int) string {
+	if code == 0 {
+		code = http.StatusOK
+	}
+	switch {
+	case code >= 500:
+		return MetricResultServerError
+	case code >= 400:
+		return MetricResultClientError
+	default:
+		return MetricResultSuccess
+	}
+}
+
 // IATHasher is the subset of [internal/crypto.Hasher] (which embeds
 // `*passwap.Swapper`) the DCR registration handler needs at the
 // wiring site. Defined as an interface so unit tests can stub it
@@ -323,6 +356,27 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 		defer span.End()
 		r = r.WithContext(ctx)
 
+		// T-067 / R8 AC1+AC2 — capture the response status + duration so
+		// we can emit `zitadel.dcr.registrations_total` and
+		// `zitadel.dcr.request_duration_seconds` on the way out. The
+		// auth-method + application_type labels are populated as the
+		// pipeline progresses (they're unknown at the point of an
+		// early 401/415/413 short-circuit).
+		mrw := &metricsResponseWriter{ResponseWriter: w}
+		w = mrw
+		started := time.Now()
+		var (
+			labelAuthMethod      = MetricAuthMethodAnonymous
+			labelApplicationType = ""
+		)
+		defer func() {
+			recordRequestDuration(ctx, time.Since(started))
+			recordRegistration(ctx,
+				resultFromStatus(mrw.status),
+				labelAuthMethod,
+				labelApplicationType)
+		}()
+
 		// 1. Auth-first short-circuit (R3 amendment 2026-04-27 / F-219).
 		// When RequireInitialAccessToken=true and no Bearer is present,
 		// short-circuit with 401 BEFORE the decoder runs. The body cap,
@@ -330,8 +384,14 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 		// would otherwise leak server config to anonymous attackers
 		// fingerprinting the deployment.
 		mode, bearer := ClassifyAuthMode(r)
+		if mode == AuthModeIAT {
+			labelAuthMethod = MetricAuthMethodIAT
+		}
 		if mode == AuthModeAnonymous && deps.AnonConfig.RequireInitialAccessToken() {
 			w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+			// R8 AC3 — F-219 short-circuit still counts as an error
+			// emission for ops dashboards.
+			recordError(ctx, ErrCodeInvalidToken)
 			WriteError(w, http.StatusUnauthorized, ErrCodeInvalidToken,
 				MissingOrInvalidAccessTokenDescription)
 			return
@@ -364,6 +424,10 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			writeDispatchError(ctx, w, err)
 			return
 		}
+		// Populate application_type label now that clamp succeeded —
+		// metric label cardinality is bounded by the
+		// [DCRConfigSubset.AllowedApplicationTypes] config (R8 AC1).
+		labelApplicationType = clamped.ApplicationType
 
 		// 3b. Consume IAT slot (R6 amendments 2026-04-27 / F-200 + N-6).
 		// MUST run AFTER clamp succeeds — clamp errors are not metadata-
@@ -383,9 +447,17 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			cErr := deps.ConsumeIAT(consumeCtx, regCtx)
 			consumeSpan.EndWithError(cErr)
 			if cErr != nil {
+				// R8 AC5 — Exhausted is a distinct counter from the
+				// generic errors_total. Match by the kit-mandated
+				// description string in the ClampError; everything
+				// else falls through to the generic auth-error path.
+				if isExhaustedConsumeError(cErr) {
+					recordIATExhausted(ctx)
+				}
 				writeAuthError(ctx, w, cErr)
 				return
 			}
+			recordIATConsumed(ctx)
 		}
 
 		// 4. Persist (R6)
@@ -488,11 +560,16 @@ func chooseDELETEHandler(deps ManageDeps) http.HandlerFunc {
 func writeDispatchError(ctx context.Context, w http.ResponseWriter, err error) {
 	var ce *ClampError
 	if errors.As(err, &ce) {
+		// T-067 / R8 AC3 — increment errors_total with the RFC 7591
+		// envelope code label. ClampErrors carry the canonical
+		// invalid_client_metadata / invalid_redirect_uri / etc. codes.
+		recordError(ctx, ce.Code)
 		WriteError(w, ce.HTTPStatus(), ce.Code, ce.Description)
 		return
 	}
 	slog.WarnContext(ctx, "dcr: dispatcher internal error",
 		slog.Any("err", err))
+	recordError(ctx, ErrCodeServerError)
 	WriteError(w, http.StatusInternalServerError, ErrCodeServerError,
 		"internal server error")
 }
@@ -504,6 +581,9 @@ func writeAuthError(ctx context.Context, w http.ResponseWriter, err error) {
 	var ce *ClampError
 	if errors.As(err, &ce) && ce.Code == ErrCodeInvalidToken {
 		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+		// T-067 / R8 AC3 — record the 401 envelope code on errors_total
+		// before emitting the response.
+		recordError(ctx, ce.Code)
 		WriteError(w, http.StatusUnauthorized, ce.Code, ce.Description)
 		return
 	}

@@ -84,6 +84,9 @@ func putClientHandler(deps ManageDeps) http.HandlerFunc {
 		// cavekit-console-ui-docs-and-observability.md R7 AC3 (T-066).
 		ctx, span := tracing.NewNamedSpan(r.Context(), "oidc.dcr.update")
 		defer span.End()
+		// T-067 / R8 AC2 — request duration histogram.
+		started := time.Now()
+		defer func() { recordRequestDuration(ctx, time.Since(started)) }()
 		mctx := ManageFromContext(ctx)
 		if mctx == nil {
 			// Defensive: dispatch wrapper sets this; missing means the

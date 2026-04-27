@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 )
@@ -99,6 +100,10 @@ func getClientHandler(deps ManageDeps) http.HandlerFunc {
 		// AC6 (no client_secret / RAT in span data) holds structurally.
 		ctx, span := tracing.NewNamedSpan(r.Context(), "oidc.dcr.read")
 		defer span.End()
+		// T-067 / R8 AC2 — request duration histogram covers all DCR
+		// HTTP handlers, not just POST.
+		started := time.Now()
+		defer func() { recordRequestDuration(ctx, time.Since(started)) }()
 		mctx := ManageFromContext(ctx)
 		if mctx == nil {
 			// Defensive: the dispatch wrapper sets this; missing means
