@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 43 — 2026-04-27 (Tier 6 — T-083)
+- T-083: DONE. SECURITY.md threat-model T1-T20 subsection (R5). Appended new section to `/SECURITY.md` between Reporting and Disclosure Process. Three subsections: (a) T1-T20 compressed table (id × threat × one-line mitigation summary) — full engineering detail at `context/impl/m_t084_threat_model_evidence.md` cross-referenced; (b) XFF trust-boundary note pinning the "no CF-Connecting-IP / X-Real-IP / RFC 7239 Forwarded parsing" contract (operators MUST rewrite at ingress); (c) T16 rotating-IP product sign-off cross-referencing ADR (T-085). Audience-aware split: public SECURITY.md gets the one-line-per-threat summary; engineering map carries source paths + test files. Build P (no code change). Tier 6 status: 7/21 done. T-085 (ADR) and T-082 (CHANGELOG) remain in scope.
+
 ### Iteration 42 — 2026-04-27 (Tier 6 — T-084)
 - T-084: DONE. T1-T20 threat-model evidence map. New artifact: `context/impl/m_t084_threat_model_evidence.md`. Rows: threat-id × short threat × mitigation type (config/code/docs/mixed) × source paths × test evidence × build-site task. All 14 dependency tasks (T-001/T-016/T-018/T-040/T-042/T-052/T-055/T-057/T-058/T-060/T-061/T-062/T-064/T-065) DONE. Notable carryovers documented in-file: T9 (XSS) blocked on frontend tier (T-070 ← T-069 human); T16 (rotating-IP) intentionally docs-only — ADR T-085 captures product sign-off; T19 (burst) deferred to runtime observability (zitadel.dcr.* metrics from T-067). Unblocks T-083 (SECURITY.md) + T-085 (ADR). No code change. Tier 6 status: 6/21 done.
 

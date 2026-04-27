@@ -45,6 +45,61 @@ If you haven't received a response within 48 hours, or you didn't get a reply fr
 Please inform us in your report whether we should mention your contribution.
 We will not publish this information by default to protect your privacy.
 
+## Threat Model — Dynamic Client Registration (DCR) Phase 1
+
+OAuth 2.0 Dynamic Client Registration (RFC 7591 / 7592 / 8414) ships
+disabled-by-default and is gated behind a per-instance feature flag
+plus a YAML-level kill switch. The threat model below enumerates the
+twenty residual concerns the implementation deliberately addresses.
+Detailed mitigation evidence — source paths, test files, and
+deferred-mitigation notes — lives in the engineering artifact at
+`context/impl/m_t084_threat_model_evidence.md`.
+
+| #   | Threat                                                 | Mitigation summary                                                                                                                              |
+| --- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | Unauthenticated registration spam (anonymous mode)     | Inherited instance access quota + `MaxRequestBodyBytes` cap; IAT-required mode is the operator escape hatch.                                    |
+| T2  | Phishing-grade `redirect_uri` registration             | Per-project isolation; consent flow; `AllowedRedirectURIHostPatterns` allow-list; audit log records source IP (SHA-256) + User-Agent.           |
+| T3  | Public-client downgrade (`auth_method=none` no PKCE)   | Server enforces PKCE S256 when `auth_method=none`; `client_secret_jwt` rejected; `private_key_jwt` requires `jwks_uri`.                         |
+| T4  | RAT leakage at rest or in transit                      | Plaintext emitted exactly once at registration / rotation; persisted as Passwap hash; rotated atomically on every PUT; silent rehash event.     |
+| T5  | IAT replay beyond `max_uses`                           | Eventstore `UniqueConstraint` per slot at commit-time; 3-retry consume loop; admin revoke; expiry.                                              |
+| T6  | `software_statement` algorithm confusion               | Feature off by default; statement supplied while disabled rejected with `unapproved_software_statement`.                                        |
+| T7  | RFC 7592 manage-endpoint enumeration via 404           | Anti-enumeration dummy-Verify on unknown `client_id`; uniform 401 with `WWW-Authenticate`; `Cache-Control: no-store` on the 401.                |
+| T8  | SSRF via `jwks_uri` fetch                              | Deny-list (RFC 1918, loopback, link-local, IPv6 ULA); DNS-rebind defense (single-resolve + pinned-IP dial); 3-hop redirect cap; 1 MiB body cap. |
+| T9  | Stored XSS via `client_name` / `logo_uri`              | Untrusted display-only contract; console template-escapes; `logo_uri` is NOT auto-fetched.                                                      |
+| T10 | Over-broad grant types via registration                | Server-side intersection with operator-configured allow-lists for grant / response / auth method / application type.                            |
+| T11 | Cross-tenant escalation via IAT replay                 | IAT is bound to `{instance_id, org_id, project_id}`; cross-instance / cross-org abuse rejected with anti-enum dummy-Verify timing match.        |
+| T12 | Timing side-channel — known vs unknown `client_id`     | Both branches run a real Passwap `Verify` (against stored hash or precomputed dummy); algorithm-mismatch panic at boot guards F-101 regression. |
+| T13 | CSRF on DCR endpoints                                  | Existing CORS interceptor reused (no DCR-specific knob); never `Allow-Origin: *` together with `Allow-Credentials: true`.                       |
+| T14 | Proxy / CDN secret caching of registration responses   | `Cache-Control: no-store` and `Pragma: no-cache` on every DCR response (POST 201, GET 200, PUT 200, 401 anti-enum).                             |
+| T15 | Logs leak secrets                                      | Defensive `RedactSecrets` utility; HTTP + gRPC middleware do not log bodies; `internal/logstore/` audited; existing access-log Authorization redaction extended for IAT / RAT shapes. |
+| T16 | Rotating-IP flood (botnet IP rotation bypassing per-IP rate-limits) | Operational-tier mitigation only — addressed via CDN / WAF and per-instance quotas; no DCR-specific test. Residual risk acknowledged in the architecture decision record (see ADR §T16). |
+| T17 | Discovery emits `"registration_endpoint": null`        | `omitempty` JSON tag drops the key when the dual-gate is off; `as_metadata` mirrors the same field; both unit and integration tests pin the dual-state contract. |
+| T18 | Projection lag on IAT consume                          | Eventstore-level `UniqueConstraint` is authoritative (commit-time, not projection-time); 3-retry loop re-fetches projection between attempts; Monte Carlo lag test asserts ≥95% retry success. |
+| T19 | Eventstore flood from a registration burst             | Inherited instance access quota; `MaxRequestBodyBytes` cap. Burst signal surfaces via the `zitadel.dcr.errors_total` and `zitadel.dcr.request_duration_seconds` metrics. |
+| T20 | Claude Code CLI changes registration payload shape     | Literal Claude Code MCP body is locked in `dcr_claude_code_compat_test.go` with an authorisation_code + PKCE S256 follow-up flow; quarterly CI re-run.    |
+
+### XFF trust boundary
+
+The DCR audit-log row stores `remote_addr_sha256` derived from
+`internal/api/http.RemoteIPStringFromRequest`, which honours the
+`X-Forwarded-For` first hop with a fallback to `r.RemoteAddr`.
+ZITADEL deliberately does NOT parse `CF-Connecting-IP`, `X-Real-IP`,
+or RFC 7239 `Forwarded` — operators that terminate TLS in front of
+ZITADEL must rewrite those headers into `X-Forwarded-For` at the
+ingress (or accept that the audit row records the load-balancer IP
+hash). Misconfigured ingress ⇒ XFF spoofing, since DCR is reachable
+without a per-request session.
+
+### T16 product sign-off
+
+The rotating-IP-flood residual risk for the anonymous-mode DCR
+endpoint is acknowledged and product-signed-off in the ADR for
+Dynamic Client Registration (`docs/adr/ADR-XXXX-dynamic-client-registration.md`).
+Operators that disable IAT-required mode must front the endpoint
+with a CDN or WAF capable of distributed-IP rate-limiting; the
+ZITADEL access quota alone is per-instance and cannot defend
+against a botnet that distributes one request per source IP.
+
 ## Disclosure Process
 
 Our security team will follow the disclosure process:
