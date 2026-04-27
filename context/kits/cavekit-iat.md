@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-26T22:30:00Z"
+last_edited: "2026-04-27T00:30:00Z"
 complexity: complex
 ---
 
@@ -68,7 +68,9 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 - [ ] No `InitialAccessTokenByHash` helper exists. Hash-based lookup is structurally impossible against a non-deterministic Passwap hash; the registration handler instead parses the Bearer plaintext (`zdiat_<id>.<random>` per R5), extracts `<id>`, calls this lookup, then runs `VerifyIATPlaintext(presented, row.TokenHash)` to verify the random portion.
 - [ ] SQL is embedded via `//go:embed initial_access_token_by_id.sql` next to the Go file (matches `internal/query/oidc_client.go:70-97` pattern).
 - [ ] Cross-instance and cross-org IATs return not-found relative to the calling instance/org context.
-- [ ] **Anti-enumeration timing.** When `InitialAccessTokenByID` returns `ThrowNotFound`, the registration handler MUST run a dummy `VerifyIATPlaintext` against a fixed throwaway Passwap hash before responding 401 `invalid_token`, so the response time of an unknown ID matches the response time of a known ID with a wrong random within typical Passwap variance. Mirrors the anti-enumeration pattern in `cavekit-manage-handler.md` R3 / `cavekit-security-hardening.md` R4 for unknown `client_id`.
+- [ ] **Anti-enumeration dummy-hash provenance (added 2026-04-27 / F-101).** When `InitialAccessTokenByID` returns `ThrowNotFound`, the registration handler MUST run a dummy `VerifyIATPlaintext` against a precomputed dummy Passwap hash before responding 401 `invalid_token`, so the response time of an unknown ID matches the response time of a known ID with a wrong random within typical Passwap variance. The dummy hash MUST be produced by calling `secretHasher.Hash(<sentinel plaintext>)` exactly once at startup and cached in the wiring layer. Hand-written hash literals (e.g. `$argon2id$v=19$m=65536,t=2,p=1$...`) are FORBIDDEN — the encoded algorithm prefix MUST match the configured `SecretHasher.Algorithm` so `passwap.Swapper.Verify` runs the same crypto path real IATs do. A static literal can return `passwap.ErrNoVerifier` instantly when the deployment configures a different algorithm (`bcrypt` is the cmd/defaults.yaml default), inverting the oracle: not-found becomes MEASURABLY FASTER than wrong-random.
+- [ ] **Startup probe (added 2026-04-27 / F-101).** The wiring code that builds the dummy hash MUST call `secretHasher.Verify(dummy, <wrong-plaintext>)` exactly once and panic if the returned error wraps `passwap.ErrNoVerifier`. Any other Verify error is the expected "wrong plaintext" outcome and is acceptable. This fail-fast probe makes a misconfigured deployment crash at boot rather than silently leak timing for the lifetime of the process. Mirrors the anti-enumeration pattern in `cavekit-manage-handler.md` R3 / `cavekit-security-hardening.md` R4 for unknown `client_id`.
+- [ ] **Real-Passwap timing test (added 2026-04-27 / F-101).** A unit test MUST exercise the dummy-Verify path via the live `passwap.Swapper` (configured the same way the production hasher is, with bcrypt-cost-4 acceptable for test speed) — NOT a stub that short-circuits on string equality. The test MUST run N≥50 iterations each of (a) the not-found path and (b) the wrong-random path through `ResolveIAT`, and MUST assert that `mean-not-found / mean-wrong-random` falls in `[0.5, 2.0]`. A test using a stub verifier that bypasses real Passwap work — like the one F-101 slipped past — does NOT satisfy this AC.
 
 **Dependencies:** R3
 
@@ -136,6 +138,12 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 
 ## Changelog
 - 2026-04-24: Initial draft from `dcr-plan.md`.
+
+### 2026-04-27 — Revision (F-101 / `--trace`)
+- **Affected:** R4
+- **Summary:** The original anti-enum dummy-Verify AC (added 2026-04-26 in the DE-001 amendment) was permissive about *provenance* of the dummy hash. T-038 implementer hardcoded a `$argon2id$` literal in source; production cmd/defaults.yaml ships `Algorithm: bcrypt` with empty `Verifiers`, so `passwap.Swapper.Verify` returned `ErrNoVerifier` instantly on the dummy — the not-found path became MEASURABLY FASTER than the wrong-random path. Inverted oracle: worse than no defence. Amendment splits the single AC into three: (1) provenance — dummy MUST come from `secretHasher.Hash(sentinel)` at startup, hardcoded literals FORBIDDEN; (2) startup probe — wiring code MUST `Verify(dummy, "x")` once at boot and panic on `ErrNoVerifier`; (3) real-Passwap timing test — N≥50 iterations through the live hasher, ratio mean-not-found / mean-wrong-random ∈ [0.5, 2.0]. Stub-only tests (which is how F-101 slipped past) do NOT satisfy AC3.
+- **Commits:** 9e90d30b3 (T-038 originally landed the static literal). Regression tests + fix commits to follow.
+- **Pattern category:** unspecified-parser-contract (same family as F-100 — kit permissive about provenance/derivation rule, implementer filled with ineffective artifact). With this entry the category counter reaches 2; one more triggers a cross-kit amendment recommendation.
 
 ### 2026-04-26 — Revision (DE-001 / `--trace`)
 - **Affected:** R3, R4, R5
