@@ -162,3 +162,60 @@ The Tier 3 work shipped with passing tests and clean kits because the test scaff
 2. **F-202, F-204, F-205, F-219** — fix in same batch; these are all dispatcher / decode hardening.
 3. **Defer F-206..F-216, F-220..F-226** — log + revisit at Tier 4 boundary; not blocking but should be addressed before Phase 2.
 4. **Downgrade T-040 + T-043 status** — flip from DONE to PARTIAL until F-200 + F-201 fixes land. The dispatcher composition is correct (verifier approved) but the production wiring is incomplete.
+
+
+---
+
+# /ck:check Findings — 2026-04-27 (post-revise verification, third pass)
+
+Build site: context/plans/build-site.md
+Reviewed window: 4f1d72016..HEAD (9 fix commits + 2 backprop log commits)
+Base ref: 4f1d72016 (previous /ck:check REJECT — F-200/201/202/203/204/205/217/218/219 all RESOLVED in this window)
+Reviewers: ck:inspector (opus, code) + ck:inspector (opus, security audit). Verifier dispatched but crashed mid-run (API error); inspectors converged on the same conclusions independently.
+Review date: 2026-04-27
+
+## NEW findings (introduced by the fixes themselves)
+
+| ID | Severity | Vector | File | Description | Status |
+|----|----------|--------|------|-------------|--------|
+| F-301 | **P0** | dos/oom | internal/api/oidc/dcr/decode.go:113-117 + dcr_config.go | **Unbounded body DoS via `MaxRequestBodyBytes=-1` sentinel.** F-204 added `-1 = no cap`. Decoder skips `http.MaxBytesReader` entirely when max ≤ -1 → `io.ReadAll(r.Body)` with NO upper bound. An anonymous attacker (DCR is anonymous-by-default in non-IAT mode) can POST a multi-GB body and pin one goroutine + RAM until OOM. No defence-in-depth ceiling. F-204's kit AC said "no cap" but real systems always need a hard ceiling. | NEW |
+| F-300 | P1 | secret/persistence | internal/api/oidc/dcr_config.go:24-103 + response.go:177-180 | **`ClientSecretExpiresIn` not bounded — negative values produce past-timestamp on issue.** F-201 plumbed the lifetime through but DCRConfig.Validate has no clause for ClientSecretExpiresIn. A misconfigured `-24h` flows unchecked into `ClientIDIssuedAt.Add(-24h).Unix()` — handler advertises a freshly-issued secret as already expired. RFC 7591 §3.2.1 sentinel for "no expiry" is `0`; past values are out-of-spec. | NEW |
+| N-2 | P1 | ci/build-break | internal/api/oidc/dcr/validate.go:520-529 | **gofmt-dirty after F-218.** `hardRejectedSchemes` map literal not gofmt-clean — `ms-browser-extension` key triggers struct{}{} re-alignment. CI gofmt gates fail. Verified via `gofmt -d`. | NEW |
+| N-3 | P1 | ci/build-break | internal/api/oidc/dcr/wire.go:189-196,203-204 | **gofmt-dirty after F-201.** `RegisterRequest` and `RegisterResult` struct field alignment broken by added `ClientSecretExpiresIn` field. Verified via `gofmt -d`. | NEW |
+| N-4 | P1 | observability | internal/api/oidc/dcr/wire.go:403-413 | **F-202 logs via `slog.WarnContext(context.Background(), ...)`.** Background context loses tracing IDs / instance ID / request correlation — operator gets a structured 500 log line they cannot correlate to the failed request. Defeats the entire point of `*Context` slog variants. All 5 call sites already have ctx in scope. | NEW |
+| N-5 | P1 | rfc-vocabulary | internal/api/oidc/dcr/wire.go:309-314 | **F-219 401 description "Authorization Bearer header is required"** doesn't follow RFC 6750 §3 phrasing ("missing access token"). Inconsistent error vocabulary across the trace pass — F-202's R8 amendment dictates fixed strings ("internal server error"); F-219 invented a different one. | NEW |
+| N-6 | P1 | iat/dos-amplification | internal/api/oidc/dcr/wire.go:337-345 (F-200 placement) | **IAT slot consumed BEFORE clamp.** If clamp rejects (invalid metadata, bad redirect URI), the IAT slot is burned but no app registered. With MaxUses=1, an attacker who steals one valid IAT can burn N slots by sending N bad bodies. F-200's kit AC didn't address consume-vs-clamp ordering — the dispatcher chose consume-first which optimises for the race window but creates a DoS amplification. | NEW |
+| F-302 | P2 | dos/quota-drain | cmd/start/start.go:792 + internal/api/http/middleware/access_interceptor.go:127-152 | **F-217 wrap order drains tenant quota on feature-disabled probes.** Chain is `instanceInterceptor → limitingAccessInterceptor → featureGateMiddleware → mux`. Rate limiter consumes quota BEFORE the feature gate's 403. An attacker who finds a tenant with `DynamicClientRegistration=false` can spam /oidc/v1/register to drain that tenant's quota. No refund path. | NEW |
+| F-303 | P2 | xss/scheme-bypass | internal/api/oidc/dcr/validate.go:520-563 | **F-218 deny-list is suffix-blind.** `intent.action:`, `data.evil:`, `file.app:`, `javascript.foo:` all pass the reverse-domain check (alphanumeric + dot) and bypass the literal deny-list. The headline Android XSS family `intent:` is rejected (no dot) but `intent.foo:` slips through. | NEW |
+| F-304 | P2 | iat/race-window | cmd/start/start.go:749-780 | **F-200 IAT row read TWICE (auth.go::ResolveIAT + start.go::ConsumeIAT closure).** Not transactional; an admin revoke between reads produces a stale snapshot for the consume validation. Only the eventstore aggregate-version check protects against double-spend. The contract that "lookup-then-consume is safe" is not pinned. | NEW |
+| N-9 | P2 | response-correctness | internal/api/oidc/dcr/response.go:176-181 | **`client_secret_expires_at` advertised when no secret was issued.** `clientSecretExpiresAtFor` only checks `ClientSecretExpiresIn==0`. With auth_method=none + ClientSecretExpiresIn=24h, response says `client_secret_expires_at = issued_at + 24h` for a non-existent secret. RFC 7591 §3.2.1 says the field describes the issued secret. | NEW |
+| N-10 | P2 | dead-code | internal/api/oidc/dcr/decode.go:107-112 | **F-204 left a `case max == 0: max = DefaultMaxBodyBytes` fallback** "for the test path". Future maintainers see "0 → 64 KiB" semantics that contradict the kit ("0 is INVALID"). Either delete (force tests to set explicit value) or `panic("unreachable")`. | NEW |
+| F-305 / N-11 | P2 | encoding-corruption | internal/api/oidc/dcr/errors.go:87-99 | **`SanitiseErrorDescription` truncates by byte count, not rune count.** A multi-byte UTF-8 sequence split mid-byte produces invalid UTF-8 → json.Marshal silently substitutes U+FFFD. User-facing description ends in `�`; downstream log aggregators may emit warnings or drop the line. | NEW |
+| N-7 | P2 | brittle-test | internal/api/oidc/dcr/dispatcher_test.go:480 | **F-200 source-inspection test asserts the literal substring `deps.ConsumeIAT(ctx, regCtx)`.** Any refactor (variable extraction, formatter switch) silently breaks the regression guard while the contract is still satisfied. Should be a behavioural test (instrument a recording closure, assert call count). | NEW |
+| N-8 | P2 | brittle-test | cmd/start/dcr_mount_test.go:44 | **F-217 mount test depends on exact `\n\t\t` indentation** for `apis.RegisterHandlerOnPrefix`. If start.go is refactored or indentation changes, test reports false-negative. | NEW |
+| N-13 | P3 | wasted-compute | internal/api/oidc/dcr/validate.go:543 | F-218's `s := strings.ToLower(scheme)` is redundant — `net/url.Parse` already lowercases `URL.Scheme` per RFC 3986 §3.1. | NEW |
+| N-12 | P3 | size-guard-incomplete | internal/query/projection/dcr_rollback_test.go:50-61 | **F-205 init() guard compares only sizes.** Two structs with identical total size but reordered fields would pass. Should also check `unsafe.Offsetof` for each mirrored field. | NEW |
+| N-14 / F-306 | P3 | dual-source-of-truth | internal/api/oidc/token_refresh.go:31-37 | **F-203 response-only narrowing creates persisted-vs-JWT audience divergence.** Persisted access_token event records audience X (broad); JWT `aud` claim is X∩resources (narrow). Introspection / token-info / replay queries return a different audience than the JWT itself for the same token. v2 amplifies this because v2 sessions are longer-lived than v1. | NEW |
+| F-307 | P3 | log-injection | internal/api/oidc/dcr/errors.go:94 + decode.go:93,149 | **`SanitiseErrorDescription` keeps `\t` (tab).** Tab-separated log formats can be confused by attacker-supplied `Content-Type: "application/json\t<faked_log_line>"`. Should drop `\t` exception or escape it. | NEW |
+
+## Verdict
+
+**REVISE** — 1 P0 + 6 P1 + 8 P2 + 5 P3.
+
+The 9 originally-reported findings (F-200..F-205, F-217..F-219) ARE resolved. But the fixes themselves introduced fresh issues — most notably F-301, where F-204's `-1 = no cap` sentinel removed the `MaxBytesReader` wrap entirely, exposing the endpoint to unbounded-body DoS. Two CI-breaking gofmt issues (N-2, N-3) would block merge immediately on any project with a gofmt gate.
+
+This is the second time in this build window that a "fix" has shipped without exercising the production wiring path end-to-end. The pattern is clear: source-inspection tests + unit-level coverage are insufficient — the loop needs an integration smoke that boots the dispatcher with the real start.go closure once per /ck:make wave.
+
+## Pattern observation (meta)
+The previous /ck:check flagged that the cavekit-writing skill should pin "every defensive call's producer + consumer + sequencing constraint" (3rd `unspecified-handler-contract` entry triggered the recommendation). This /ck:check adds a fresh meta-pattern:
+
+> **`fix-introduces-its-own-regression`** — F-204 (no-cap), F-201 (no-secret-but-expires-at), F-200 (consume-before-clamp). All three fixes shipped passing tests + clean kits because the test scaffolding never exercised the production-wired cmd/start/start.go path end-to-end. The Tier 3 close-out had the SAME pattern (F-200 IAT consume was non-existent in production despite passing tests).
+
+Recommended skill amendment: any /ck:revise --trace fix that touches the dispatcher pipeline (decode/auth/clamp/register/respond) MUST add at least one test that constructs `RegistrationDeps` matching the production start.go shape and exercises the full pipeline end-to-end via `httptest.NewRecorder`. Stub-driven unit tests are necessary but not sufficient.
+
+## Recommended next actions
+
+1. **Block on F-301** — unbounded body DoS is a live regression. Either remove the `-1` sentinel OR impose a hard ceiling (e.g. 100 MiB) even when "uncapped".
+2. **`gofmt -w internal/api/oidc/dcr/validate.go internal/api/oidc/dcr/wire.go`** — fix the CI breakers immediately. (Could be done now, NOT through `/ck:revise --trace` since it's no kit gap.)
+3. **Bundle F-300, N-4, N-5, N-6 into one `/ck:revise --trace --from-finding F-301,F-300,N-4,N-5,N-6`** — they all touch the same dispatcher / config layer.
+4. **Defer P2/P3 to a later cycle** — they're real but not urgent.
