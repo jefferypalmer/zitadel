@@ -101,7 +101,7 @@ fix, and pattern category so cross-iteration trends become visible.
   shape (`https://victim.example.com:443@evil.com/cb` was fully
   accepted); passes all 4 post-fix.
 - **Test commit:** `191a54d46`
-- **Fix commit:** (next commit after this log entry)
+- **Fix commit:** `ab233a8a2`
 - **Pattern category:** `unspecified-parser-contract` — the kit was
   permissive about parsing semantics (a different shape from DE-001's
   `kit-internal-inconsistency`, where the kit was internally
