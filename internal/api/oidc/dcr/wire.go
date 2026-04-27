@@ -416,9 +416,13 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 // T-051) — full RAT verification + silent rehash + expiry check.
 // Otherwise they fall back to the bearer-presence-only gate (T-050)
 // so deployments mid-rollout still emit 401 instead of 500.
+//
+// GET body landed in T-053 (getClientHandler). PUT / DELETE bodies
+// land in T-054 / T-056; for now those stubs return 501 after the
+// dispatch chain proves the caller is authorised.
 func manageRoutes(deps RegistrationDeps) (get, put, del http.HandlerFunc) {
 	if deps.Manage != nil {
-		return manageVerifyDispatch(*deps.Manage, getClientStub),
+		return manageVerifyDispatch(*deps.Manage, getClientHandler(*deps.Manage)),
 			manageVerifyDispatch(*deps.Manage, putClientStub),
 			manageVerifyDispatch(*deps.Manage, deleteClientStub)
 	}

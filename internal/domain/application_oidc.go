@@ -554,3 +554,83 @@ func rfc7591ApplicationType(s string) *OIDCApplicationType {
 	}
 	return &v
 }
+
+// RFC7591GrantTypeStrings is the inverse of [rfc7591GrantTypes] —
+// maps the stored domain.OIDCGrantType enums back to the RFC 7591
+// wire strings the GET / PUT manage handlers
+// (cavekit-manage-handler.md R4 / R5 — T-053 / T-054) echo to clients.
+//
+// Unknown enum values are skipped (defensive — a future grant_type
+// added to the enum without a wire mapping should not appear as a
+// blank string in the response).
+func RFC7591GrantTypeStrings(in []OIDCGrantType) []string {
+	out := make([]string, 0, len(in))
+	for _, g := range in {
+		switch g {
+		case OIDCGrantTypeAuthorizationCode:
+			out = append(out, "authorization_code")
+		case OIDCGrantTypeImplicit:
+			out = append(out, "implicit")
+		case OIDCGrantTypeRefreshToken:
+			out = append(out, "refresh_token")
+		case OIDCGrantTypeDeviceCode:
+			out = append(out, "urn:ietf:params:oauth:grant-type:device_code")
+		case OIDCGrantTypeTokenExchange:
+			out = append(out, "urn:ietf:params:oauth:grant-type:token-exchange")
+		}
+	}
+	return out
+}
+
+// RFC7591ResponseTypeStrings is the inverse of [rfc7591ResponseTypes].
+func RFC7591ResponseTypeStrings(in []OIDCResponseType) []string {
+	out := make([]string, 0, len(in))
+	for _, r := range in {
+		switch r {
+		case OIDCResponseTypeCode:
+			out = append(out, "code")
+		case OIDCResponseTypeIDToken:
+			out = append(out, "id_token")
+		case OIDCResponseTypeIDTokenToken:
+			out = append(out, "id_token token")
+		}
+	}
+	return out
+}
+
+// RFC7591AuthMethodString is the inverse of [rfc7591AuthMethod].
+// Returns "" when the input is nil so an absent column emits an
+// absent JSON field (response struct uses `omitempty`).
+func RFC7591AuthMethodString(in *OIDCAuthMethodType) string {
+	if in == nil {
+		return ""
+	}
+	switch *in {
+	case OIDCAuthMethodTypeBasic:
+		return "client_secret_basic"
+	case OIDCAuthMethodTypePost:
+		return "client_secret_post"
+	case OIDCAuthMethodTypeNone:
+		return "none"
+	case OIDCAuthMethodTypePrivateKeyJWT:
+		return "private_key_jwt"
+	}
+	return ""
+}
+
+// RFC7591ApplicationTypeString is the inverse of
+// [rfc7591ApplicationType]. Returns "" for nil input (omitempty).
+func RFC7591ApplicationTypeString(in *OIDCApplicationType) string {
+	if in == nil {
+		return ""
+	}
+	switch *in {
+	case OIDCApplicationTypeWeb:
+		return "web"
+	case OIDCApplicationTypeNative:
+		return "native"
+	case OIDCApplicationTypeUserAgent:
+		return "browser"
+	}
+	return ""
+}

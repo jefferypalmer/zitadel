@@ -749,11 +749,13 @@ func startAPIs(
 			Manage: &dcr.ManageDeps{
 				// dcrManageQueriesAdapter bridges *query.Queries to
 				// dcr.ManageQueries. The dcr struct is intentionally
-				// narrow — only the five fields VerifyRAT consumes.
-				Queries:           &dcrManageQueriesAdapter{q: queries},
-				RATVerifier:       commands.SecretHasher(), // *crypto.Hasher embeds *passwap.Swapper
-				Rehasher:          commands.RehashRegistrationAccessToken,
-				AntiEnumDummyHash: dcrDummyHash, // reuse — same Swapper, same algorithm prefix
+				// narrow — only the fields VerifyRAT + getClientHandler
+				// consume.
+				Queries:               &dcrManageQueriesAdapter{q: queries},
+				RATVerifier:           commands.SecretHasher(), // *crypto.Hasher embeds *passwap.Swapper
+				Rehasher:              commands.RehashRegistrationAccessToken,
+				AntiEnumDummyHash:     dcrDummyHash, // reuse — same Swapper, same algorithm prefix
+				ClientSecretExpiresIn: config.OIDC.DCR.ClientSecretExpiresIn,
 			},
 			ConsumeIAT: func(ctx context.Context, regCtx *dcr.RegistrationContext) error {
 				lookup := func(ctx context.Context) (*command.IATSnapshot, error) {
@@ -1002,5 +1004,23 @@ func (a *dcrManageQueriesAdapter) DCRRATLookupByClientID(ctx context.Context, cl
 		ResourceOwner: row.ResourceOwner,
 		TokenHash:     row.TokenHash,
 		ExpiresAt:     row.ExpiresAt,
+	}, nil
+}
+
+func (a *dcrManageQueriesAdapter) DCRMetadataByClientID(ctx context.Context, clientID string) (*dcr.ManageMetaRow, error) {
+	row, err := a.q.DCRMetadataByClientID(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+	return &dcr.ManageMetaRow{
+		AppID:            row.AppID,
+		ClientName:       row.ClientName,
+		ClientIDIssuedAt: row.ClientIDIssuedAt,
+		RedirectURIs:     []string(row.RedirectURIs),
+		GrantTypes:       domain.RFC7591GrantTypeStrings([]domain.OIDCGrantType(row.GrantTypes)),
+		ResponseTypes:    domain.RFC7591ResponseTypeStrings([]domain.OIDCResponseType(row.ResponseTypes)),
+		ApplicationType:  domain.RFC7591ApplicationTypeString(row.ApplicationType),
+		AuthMethodType:   domain.RFC7591AuthMethodString(row.AuthMethodType),
+		DCRMeta:          []byte(row.DCRMeta),
 	}, nil
 }

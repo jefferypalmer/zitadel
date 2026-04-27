@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"time"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
 	"github.com/zitadel/zitadel/internal/database"
+	"github.com/zitadel/zitadel/internal/domain"
 	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 	"github.com/zitadel/zitadel/internal/zerrors"
 )
@@ -62,4 +64,60 @@ func (q *Queries) DCRRATLookupByClientID(ctx context.Context, clientID string) (
 		return nil, zerrors.ThrowInternal(err, "QUERY-DCR02", "Errors.Internal")
 	}
 	return lookup, nil
+}
+
+// DCRGetMetadata is the projected view of one DCR-registered
+// application's full metadata surface for the RFC 7592 GET handler
+// (cavekit-manage-handler.md R4 / T-053). Carries everything the
+// response body needs that is NOT already on the dispatcher's
+// resolved [dcr.ManageContext].
+//
+// Field types match the projection columns: enum int arrays for
+// grant_types/response_types/auth_method_type/application_type
+// (the dcr-side adapter converts these back to RFC 7591 wire strings
+// via the [domain.RFC7591*Strings] helpers). DCRMeta is the raw
+// JSONB blob stamped at registration time (T-041); the response
+// writer unpacks it into the RFC 7591 §2 pass-through fields.
+type DCRGetMetadata struct {
+	AppID             string                                  `json:"app_id"`
+	ClientName        string                                  `json:"client_name,omitempty"`
+	ClientIDIssuedAt  time.Time                               `json:"client_id_issued_at"`
+	RedirectURIs      database.TextArray[string]              `json:"redirect_uris"`
+	GrantTypes        database.NumberArray[domain.OIDCGrantType]    `json:"grant_types"`
+	ResponseTypes     database.NumberArray[domain.OIDCResponseType] `json:"response_types"`
+	ApplicationType   *domain.OIDCApplicationType             `json:"application_type,omitempty"`
+	AuthMethodType    *domain.OIDCAuthMethodType              `json:"auth_method_type,omitempty"`
+	DCRMeta           json.RawMessage                         `json:"dcr_meta,omitempty"`
+}
+
+//go:embed dcr_metadata_by_client_id.sql
+var dcrMetadataByClientIDQuery string
+
+// DCRMetadataByClientID fetches the full DCR app metadata for the
+// RFC 7592 GET handler (cavekit-manage-handler.md R4 / T-053).
+//
+//   - Cross-instance lookups return ThrowNotFound (instance_id WHERE).
+//   - Non-DCR apps return ThrowNotFound (registration_access_token_hash
+//     IS NOT NULL filter).
+//   - Apps in non-active state return ThrowNotFound (apps7.state = 1).
+//
+// The caller (dcr.GetClient) bridges ThrowNotFound to a 500 — this
+// query is invoked AFTER VerifyRAT succeeds, so a NotFound on this
+// path indicates a race between RAT verify and metadata lookup
+// (the projection had the RAT row but lost the app between the two
+// queries; structurally impossible under normal projection lag).
+func (q *Queries) DCRMetadataByClientID(ctx context.Context, clientID string) (meta *DCRGetMetadata, err error) {
+	ctx, span := tracing.NewSpan(ctx)
+	defer func() { span.EndWithError(err) }()
+
+	meta, err = database.QueryJSONObject[DCRGetMetadata](ctx, q.client, dcrMetadataByClientIDQuery,
+		authz.GetInstance(ctx).InstanceID(), clientID,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, zerrors.ThrowNotFound(err, "QUERY-DCR03", "Errors.DCR.Client.NotFound")
+	}
+	if err != nil {
+		return nil, zerrors.ThrowInternal(err, "QUERY-DCR04", "Errors.Internal")
+	}
+	return meta, nil
 }

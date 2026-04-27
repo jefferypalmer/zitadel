@@ -15,8 +15,35 @@ import (
 // (cavekit-manage-handler.md R2 / T-051) needs from query.Queries.
 // Defined as an interface so unit tests can stub it without spinning
 // up the full DB harness, mirroring the [IATLookupQueries] pattern.
+//
+// DCRMetadataByClientID was added in T-053 — the GET handler reads the
+// full metadata row AFTER the dispatcher's VerifyRAT proves the
+// caller is authorised. NotFound on this path is unexpected (the
+// VerifyRAT lookup just succeeded) and returns 500.
 type ManageQueries interface {
 	DCRRATLookupByClientID(ctx context.Context, clientID string) (*ManageRATRow, error)
+	DCRMetadataByClientID(ctx context.Context, clientID string) (*ManageMetaRow, error)
+}
+
+// ManageMetaRow mirrors the subset of [query.DCRGetMetadata] the GET
+// handler consumes. Same alias-shaped layering pattern as
+// [ManageRATRow] / [QueryIATRow] — the dcr package does not import
+// the full query package, so the wiring layer translates field-by-
+// field.
+//
+// DCRMeta is the raw JSONB blob stamped at registration time
+// (T-041). The GET writer unpacks it into the RFC 7591 §2 pass-
+// through fields on the response body.
+type ManageMetaRow struct {
+	AppID            string
+	ClientName       string
+	ClientIDIssuedAt time.Time
+	RedirectURIs     []string
+	GrantTypes       []string
+	ResponseTypes    []string
+	ApplicationType  string
+	AuthMethodType   string
+	DCRMeta          []byte
 }
 
 // ManageRATRow mirrors the subset of [query.DCRRATLookup] the manage
@@ -93,6 +120,15 @@ type ManageDeps struct {
 	// auth path uses keeps the algorithm prefix consistent with the
 	// configured passwap.Swapper.
 	AntiEnumDummyHash string
+
+	// ClientSecretExpiresIn echoes config.OIDC.DCR.ClientSecretExpiresIn
+	// so the GET / PUT manage responses (T-053 / T-055) can compute
+	// `client_secret_expires_at` per RFC 7591 §3.2.1. Zero = "no expiry"
+	// MUST-emit sentinel — same convention as the register response
+	// writer's [clientSecretExpiresAtFor]. The projection does not
+	// store a per-secret expires_at column; the field is derived from
+	// the issued-at + this lifetime at response build time.
+	ClientSecretExpiresIn time.Duration
 }
 
 // Validate enforces non-nil/non-empty deps at boot. Called by

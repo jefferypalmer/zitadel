@@ -15,9 +15,13 @@ import (
 
 // fakeManageQueries lets the verify-path tests stub the projection-read
 // without spinning up the DB harness. err overrides row when set.
+// metaRow / metaErr are independent — the GET handler reads them after
+// VerifyRAT succeeds, so the two seams need separate stubs.
 type fakeManageQueries struct {
-	row *ManageRATRow
-	err error
+	row     *ManageRATRow
+	err     error
+	metaRow *ManageMetaRow
+	metaErr error
 }
 
 func (f *fakeManageQueries) DCRRATLookupByClientID(_ context.Context, _ string) (*ManageRATRow, error) {
@@ -25,6 +29,13 @@ func (f *fakeManageQueries) DCRRATLookupByClientID(_ context.Context, _ string) 
 		return nil, f.err
 	}
 	return f.row, nil
+}
+
+func (f *fakeManageQueries) DCRMetadataByClientID(_ context.Context, _ string) (*ManageMetaRow, error) {
+	if f.metaErr != nil {
+		return nil, f.metaErr
+	}
+	return f.metaRow, nil
 }
 
 // fakeRATVerifier captures (encoded, presented) per call and returns
