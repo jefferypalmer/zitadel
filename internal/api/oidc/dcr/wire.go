@@ -158,6 +158,13 @@ type RegistrationDeps struct {
 	// (cavekit-config.md R1 / R2 AC). Zero falls back to
 	// `DefaultMaxBodyBytes` (64 KiB).
 	MaxBodyBytes int64
+
+	// Manage drives the RFC 7592 GET/PUT/DELETE manage handlers
+	// (cavekit-manage-handler.md R2 / T-051). Optional — when nil,
+	// [NewHandler] mounts the bearer-presence-only gate (T-050) on
+	// the manage routes so deployments still in mid-rollout return
+	// 401 instead of 500. Production wiring sets every field.
+	Manage *ManageDeps
 }
 
 // ConsumeIATFn is the function-shaped seam for invoking
@@ -244,6 +251,14 @@ func (d RegistrationDeps) Validate() error {
 	if d.ConsumeIAT == nil {
 		return errors.New("dcr: RegistrationDeps.ConsumeIAT is required (wire to command.Commands.ConsumeInitialAccessToken). F-200 — without this, IAT replay protection is non-existent in production.")
 	}
+	// Manage is intentionally optional — see field godoc. When set,
+	// validate it; otherwise the manage routes fall back to the
+	// bearer-presence-only gate.
+	if d.Manage != nil {
+		if err := d.Manage.Validate(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -267,9 +282,10 @@ func NewHandler(deps RegistrationDeps) http.Handler {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 	r.HandleFunc("/", postRegisterDispatch(deps)).Methods(http.MethodPost)
-	r.HandleFunc("/{client_id}", manageBearerGate(getClientStub)).Methods(http.MethodGet)
-	r.HandleFunc("/{client_id}", manageBearerGate(putClientStub)).Methods(http.MethodPut)
-	r.HandleFunc("/{client_id}", manageBearerGate(deleteClientStub)).Methods(http.MethodDelete)
+	getH, putH, delH := manageRoutes(deps)
+	r.HandleFunc("/{client_id}", getH).Methods(http.MethodGet)
+	r.HandleFunc("/{client_id}", putH).Methods(http.MethodPut)
+	r.HandleFunc("/{client_id}", delH).Methods(http.MethodDelete)
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		WriteError(w, http.StatusMethodNotAllowed, ErrCodeInvalidRequest,
 			"this DCR endpoint does not support the requested HTTP method.")
@@ -392,6 +408,23 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 		}
 		_ = WriteRegistrationResponse(ctx, w, out)
 	}
+}
+
+// manageRoutes returns the GET / PUT / DELETE handlers for the RFC
+// 7592 manage path. When [RegistrationDeps.Manage] is configured the
+// handlers run [manageVerifyDispatch] (cavekit-manage-handler.md R2 /
+// T-051) — full RAT verification + silent rehash + expiry check.
+// Otherwise they fall back to the bearer-presence-only gate (T-050)
+// so deployments mid-rollout still emit 401 instead of 500.
+func manageRoutes(deps RegistrationDeps) (get, put, del http.HandlerFunc) {
+	if deps.Manage != nil {
+		return manageVerifyDispatch(*deps.Manage, getClientStub),
+			manageVerifyDispatch(*deps.Manage, putClientStub),
+			manageVerifyDispatch(*deps.Manage, deleteClientStub)
+	}
+	return manageBearerGate(getClientStub),
+		manageBearerGate(putClientStub),
+		manageBearerGate(deleteClientStub)
 }
 
 // writeDispatchError emits the RFC 7591 envelope for any error

@@ -294,3 +294,39 @@ func IsRATPlaintext(s string) bool {
 // GET handler reads instance from context). Keeping it here avoids a
 // churn diff once T-053 lands.
 var _ = authz.GetInstance
+
+// RehashRegistrationAccessToken pushes a single
+// ApplicationRegistrationAccessTokenRehashedEvent on the project
+// aggregate (cavekit-manage-handler.md R2 / T-051). Called by the dcr
+// manage-handler verify path when Passwap's two-return Verify reports
+// a non-empty `updatedHash` — the configured hash algorithm rotated
+// since the RAT was last stored, and the new encoded form must be
+// persisted so the next verification doesn't re-encode unnecessarily.
+//
+// The plaintext RAT is unchanged and the operation is invisible to the
+// client. Lifetime is intentionally untouched (the projection reducer
+// for the rehashed event omits the expires_at column).
+//
+// projectID, orgID, and appID MUST be the values the manage handler
+// resolved via [query.Queries.DCRRATLookupByClientID] — silent rehash
+// MUST route to the same aggregate the original RAT lives on. orgID
+// is the project's resource owner; the manage handler does NOT use
+// authz.GetCtxData here because RFC 7592 RAT-only requests have no
+// user CtxData (the Bearer is the RAT, not a user session token).
+func (c *Commands) RehashRegistrationAccessToken(ctx context.Context, projectID, orgID, appID, newEncodedHash string) error {
+	ctx, span := tracing.NewSpan(ctx)
+	defer func() { span.End() }()
+
+	if projectID == "" || orgID == "" || appID == "" || newEncodedHash == "" {
+		return zerrors.ThrowInvalidArgument(nil, "DCR-RAT02", "Errors.Internal")
+	}
+	projectAgg := project_repo.NewAggregate(projectID, orgID).Aggregate
+	_, err := c.eventstore.Push(ctx,
+		project_repo.NewApplicationRegistrationAccessTokenRehashedEvent(ctx,
+			&projectAgg,
+			appID,
+			newEncodedHash,
+		),
+	)
+	return err
+}

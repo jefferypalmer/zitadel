@@ -1012,6 +1012,36 @@ func TestAppProjection_reduces(t *testing.T) {
 				},
 			},
 		}, {
+			// T-051 — Rehashed event updates ONLY the hash column.
+			// Lifetime is not touched on a silent rehash per
+			// cavekit-manage-handler.md R2.
+			name: "project reduceApplicationRegistrationAccessTokenRehashed",
+			args: args{
+				event: getEvent(
+					testEvent(
+						project.ApplicationRegistrationAccessTokenRehashedType,
+						project.AggregateType,
+						[]byte(`{"appId":"app-1","hashedToken":"$argon2id$rotated"}`),
+					), project.ApplicationRegistrationAccessTokenRehashedEventMapper),
+			},
+			reduce: (&appProjection{}).reduceApplicationRegistrationAccessTokenRehashed,
+			want: wantReduce{
+				aggregateType: project.AggregateType,
+				sequence:      15,
+				executer: &testExecuter{
+					executions: []execution{
+						{
+							expectedStmt: "UPDATE projections.apps7_oidc_configs SET registration_access_token_hash = $1 WHERE (app_id = $2) AND (instance_id = $3)",
+							expectedArgs: []interface{}{
+								"$argon2id$rotated",
+								"app-1",
+								"instance-id",
+							},
+						},
+					},
+				},
+			},
+		}, {
 			name: "project.reduceOwnerRemoved",
 			args: args{
 				event: getEvent(

@@ -746,6 +746,15 @@ func startAPIs(
 			// per cavekit-register-handler.md R6 amendment / F-200.
 			// Without this closure the IAT slot is never reserved,
 			// turning any valid IAT into an unbounded-replay token.
+			Manage: &dcr.ManageDeps{
+				// dcrManageQueriesAdapter bridges *query.Queries to
+				// dcr.ManageQueries. The dcr struct is intentionally
+				// narrow — only the five fields VerifyRAT consumes.
+				Queries:           &dcrManageQueriesAdapter{q: queries},
+				RATVerifier:       commands.SecretHasher(), // *crypto.Hasher embeds *passwap.Swapper
+				Rehasher:          commands.RehashRegistrationAccessToken,
+				AntiEnumDummyHash: dcrDummyHash, // reuse — same Swapper, same algorithm prefix
+			},
 			ConsumeIAT: func(ctx context.Context, regCtx *dcr.RegistrationContext) error {
 				lookup := func(ctx context.Context) (*command.IATSnapshot, error) {
 					row, err := queries.InitialAccessTokenByID(ctx, regCtx.IATID, regCtx.OrgID)
@@ -971,5 +980,27 @@ func (a *dcrQueriesAdapter) InitialAccessTokenByID(ctx context.Context, id, reso
 		ResourceOwner: row.ResourceOwner,
 		ProjectID:     row.ProjectID,
 		TokenHash:     row.TokenHash,
+	}, nil
+}
+
+// dcrManageQueriesAdapter bridges *query.Queries to dcr.ManageQueries
+// (cavekit-manage-handler.md R2 / T-051). Same layering pattern as
+// dcrQueriesAdapter — the dcr-side struct is narrow and the adapter
+// translates field-by-field from the projection-shaped *query.DCRRATLookup.
+type dcrManageQueriesAdapter struct {
+	q *query.Queries
+}
+
+func (a *dcrManageQueriesAdapter) DCRRATLookupByClientID(ctx context.Context, clientID string) (*dcr.ManageRATRow, error) {
+	row, err := a.q.DCRRATLookupByClientID(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+	return &dcr.ManageRATRow{
+		AppID:         row.AppID,
+		ProjectID:     row.ProjectID,
+		ResourceOwner: row.ResourceOwner,
+		TokenHash:     row.TokenHash,
+		ExpiresAt:     row.ExpiresAt,
 	}, nil
 }

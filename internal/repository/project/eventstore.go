@@ -48,6 +48,7 @@ func init() {
 	// Dynamic Client Registration (cavekit-register-handler.md R6 / T-040)
 	eventstore.RegisterFilterEventMapper(AggregateType, ApplicationDynamicallyRegisteredType, ApplicationDynamicallyRegisteredEventMapper)
 	eventstore.RegisterFilterEventMapper(AggregateType, ApplicationRegistrationAccessTokenSetType, ApplicationRegistrationAccessTokenSetEventMapper)
+	eventstore.RegisterFilterEventMapper(AggregateType, ApplicationRegistrationAccessTokenRehashedType, ApplicationRegistrationAccessTokenRehashedEventMapper)
 	eventstore.RegisterFilterEventMapper(AggregateType, ApplicationKeyAddedEventType, ApplicationKeyAddedEventMapper)
 	eventstore.RegisterFilterEventMapper(AggregateType, ApplicationKeyRemovedEventType, ApplicationKeyRemovedEventMapper)
 	eventstore.RegisterFilterEventMapper(AggregateType, SAMLConfigAddedType, SAMLConfigAddedEventMapper)

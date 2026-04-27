@@ -246,6 +246,10 @@ func (p *appProjection) Reducers() []handler.AggregateReducer {
 					Event:  project.ApplicationRegistrationAccessTokenSetType,
 					Reduce: p.reduceApplicationRegistrationAccessTokenSet,
 				},
+				{
+					Event:  project.ApplicationRegistrationAccessTokenRehashedType,
+					Reduce: p.reduceApplicationRegistrationAccessTokenRehashed,
+				},
 			},
 		},
 		{
@@ -857,6 +861,30 @@ func (p *appProjection) reduceApplicationRegistrationAccessTokenSet(event events
 	return handler.NewUpdateStatement(
 		e,
 		cols,
+		[]handler.Condition{
+			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
+			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),
+		},
+		handler.WithTableSuffix(appOIDCTableSuffix),
+	), nil
+}
+
+// reduceApplicationRegistrationAccessTokenRehashed handles
+// project.application.registration_access_token.rehashed (T-051).
+// Updates only the Passwap-encoded RAT hash column — the expires_at
+// column is intentionally untouched. A silent rehash MUST NOT alter the
+// RAT lifetime (cavekit-manage-handler.md R2): the operator rotated the
+// hash algorithm, not the token, and the client never sees the change.
+func (p *appProjection) reduceApplicationRegistrationAccessTokenRehashed(event eventstore.Event) (*handler.Statement, error) {
+	e, ok := event.(*project.ApplicationRegistrationAccessTokenRehashedEvent)
+	if !ok {
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-DCR44", "reduce.wrong.event.type %s", project.ApplicationRegistrationAccessTokenRehashedType)
+	}
+	return handler.NewUpdateStatement(
+		e,
+		[]handler.Column{
+			handler.NewCol(AppOIDCConfigColumnRegistrationAccessTokenHash, e.HashedToken),
+		},
 		[]handler.Condition{
 			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
 			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),

@@ -15,8 +15,16 @@ import (
 // application-config events; reuse OIDCApplicationWriteModel — no new
 // write model.
 const (
-	ApplicationDynamicallyRegisteredType         = applicationEventTypePrefix + "dynamically_registered"
-	ApplicationRegistrationAccessTokenSetType    = applicationEventTypePrefix + "registration_access_token.set"
+	ApplicationDynamicallyRegisteredType            = applicationEventTypePrefix + "dynamically_registered"
+	ApplicationRegistrationAccessTokenSetType       = applicationEventTypePrefix + "registration_access_token.set"
+	// ApplicationRegistrationAccessTokenRehashedType records a silent
+	// re-hash of the RAT after the configured Passwap algorithm rotated
+	// (cavekit-manage-handler.md R2). Distinct from the `.set` event so
+	// audit logs can distinguish "operator rotated the algorithm" from
+	// "operator issued the RAT initially" or "operator PUT a new RAT
+	// (T-055 .rotated)". Plaintext is unchanged; the projection updates
+	// the stored Passwap-encoded hash only.
+	ApplicationRegistrationAccessTokenRehashedType = applicationEventTypePrefix + "registration_access_token.rehashed"
 )
 
 // ApplicationDynamicallyRegisteredEvent records the audit context
@@ -141,6 +149,56 @@ func ApplicationRegistrationAccessTokenSetEventMapper(event eventstore.Event) (e
 	}
 	if err := event.Unmarshal(e); err != nil {
 		return nil, zerrors.ThrowInternal(err, "DCR-r4Tp1", "unable to unmarshal application registration access token set")
+	}
+	return e, nil
+}
+
+// ApplicationRegistrationAccessTokenRehashedEvent records a silent
+// re-hash of an existing RAT (cavekit-manage-handler.md R2). Emitted
+// when the manage handler verifies a presented RAT and Passwap returns
+// a non-empty `updatedHash` (algorithm rotated since the RAT was last
+// stored). The plaintext remains unchanged; the operator action is
+// invisible to the client. Same shape as
+// [ApplicationRegistrationAccessTokenSetEvent] minus ExpiresAt — a
+// silent rehash MUST NOT alter the RAT lifetime.
+type ApplicationRegistrationAccessTokenRehashedEvent struct {
+	eventstore.BaseEvent `json:"-"`
+
+	AppID       string `json:"appId"`
+	HashedToken string `json:"hashedToken"`
+}
+
+func (e *ApplicationRegistrationAccessTokenRehashedEvent) Payload() interface{} {
+	return e
+}
+
+func (e *ApplicationRegistrationAccessTokenRehashedEvent) UniqueConstraints() []*eventstore.UniqueConstraint {
+	return nil
+}
+
+func NewApplicationRegistrationAccessTokenRehashedEvent(
+	ctx context.Context,
+	aggregate *eventstore.Aggregate,
+	appID string,
+	hashedToken string,
+) *ApplicationRegistrationAccessTokenRehashedEvent {
+	return &ApplicationRegistrationAccessTokenRehashedEvent{
+		BaseEvent: *eventstore.NewBaseEventForPush(
+			ctx,
+			aggregate,
+			ApplicationRegistrationAccessTokenRehashedType,
+		),
+		AppID:       appID,
+		HashedToken: hashedToken,
+	}
+}
+
+func ApplicationRegistrationAccessTokenRehashedEventMapper(event eventstore.Event) (eventstore.Event, error) {
+	e := &ApplicationRegistrationAccessTokenRehashedEvent{
+		BaseEvent: *eventstore.BaseEventFromRepo(event),
+	}
+	if err := event.Unmarshal(e); err != nil {
+		return nil, zerrors.ThrowInternal(err, "DCR-r4Tp2", "unable to unmarshal application registration access token rehashed")
 	}
 	return e, nil
 }
