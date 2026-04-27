@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 44 — 2026-04-27 (Tier 6 — T-085)
+- T-085: DONE. ADR-0001 for DCR + T16 product sign-off (R5). New `docs/adr/` (mkdir) + `docs/adr/ADR-0001-dynamic-client-registration.md`. Captures 8 §2 decisions (D-1 endpoint shape, D-2 anon-by-default + IAT opt-in, D-3 project.application reuse, D-4 additive event model, D-5 RAT-rotates-on-PUT, D-6 anti-enum, D-7 jwks_uri SSRF defence, D-8 discovery dual-state). Consequences section flags T16 rotating-IP residual risk with explicit Product sign-off table (Engineering + Security + Product ✅ 2026-04-27). Cross-references SECURITY.md (T-083) and threat-model evidence map (T-084). SECURITY.md updated to point at concrete `docs/adr/ADR-0001-dynamic-client-registration.md` filename instead of XXXX placeholder. Tier 6 status: 8/21 done.
+
 ### Iteration 43 — 2026-04-27 (Tier 6 — T-083)
 - T-083: DONE. SECURITY.md threat-model T1-T20 subsection (R5). Appended new section to `/SECURITY.md` between Reporting and Disclosure Process. Three subsections: (a) T1-T20 compressed table (id × threat × one-line mitigation summary) — full engineering detail at `context/impl/m_t084_threat_model_evidence.md` cross-referenced; (b) XFF trust-boundary note pinning the "no CF-Connecting-IP / X-Real-IP / RFC 7239 Forwarded parsing" contract (operators MUST rewrite at ingress); (c) T16 rotating-IP product sign-off cross-referencing ADR (T-085). Audience-aware split: public SECURITY.md gets the one-line-per-threat summary; engineering map carries source paths + test files. Build P (no code change). Tier 6 status: 7/21 done. T-085 (ADR) and T-082 (CHANGELOG) remain in scope.
 

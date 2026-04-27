@@ -93,8 +93,8 @@ without a per-request session.
 ### T16 product sign-off
 
 The rotating-IP-flood residual risk for the anonymous-mode DCR
-endpoint is acknowledged and product-signed-off in the ADR for
-Dynamic Client Registration (`docs/adr/ADR-XXXX-dynamic-client-registration.md`).
+endpoint is acknowledged and product-signed-off in
+[ADR-0001 Dynamic Client Registration](docs/adr/ADR-0001-dynamic-client-registration.md).
 Operators that disable IAT-required mode must front the endpoint
 with a CDN or WAF capable of distributed-IP rate-limiting; the
 ZITADEL access quota alone is per-instance and cannot defend
