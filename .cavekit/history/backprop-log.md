@@ -146,7 +146,7 @@ fix, and pattern category so cross-iteration trends become visible.
   fail to compile pre-fix (BuildAntiEnumDummyHash + new ResolveIAT
   signature don't exist); pass post-fix.
 - **Test commit:** `168dc7531`
-- **Fix commit:** (next commit after this log entry)
+- **Fix commit:** `fa34caa56`
 - **T-040 wiring scaffold delivered in same fix** — at user request,
   the F-101 fix included `dcr.RegistrationDeps`, `dcr.NewHandler(deps)`,
   `cmd/start/start.go` wiring (anti-enum dummy hash + queries adapter
