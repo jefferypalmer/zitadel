@@ -1,14 +1,17 @@
 package dcr
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/zitadel/passwap"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
+	http_util "github.com/zitadel/zitadel/internal/api/http"
 )
 
 // IATHasher is the subset of [internal/crypto.Hasher] (which embeds
@@ -129,6 +132,64 @@ type RegistrationDeps struct {
 	// cavekit-iat.md R4 amendment 2026-04-27 and reintroduces the
 	// F-101 inverted-oracle vulnerability.
 	AntiEnumDummyHash string
+
+	// Register is the closure that calls
+	// `command.Commands.RegisterClient` (T-040). Defined as a
+	// function-shaped seam so this package does not have to import
+	// command, and so unit tests can stub the eventstore push without
+	// the full Commands harness. Production wiring (cmd/start/start.go)
+	// builds it as `commands.RegisterClient`-shaped — the input/output
+	// types live in command/ and we use generic `any` here to keep the
+	// import boundary one-way.
+	Register RegisterFn
+
+	// MaxBodyBytes caps the registration request body
+	// (cavekit-config.md R1 / R2 AC). Zero falls back to
+	// `DefaultMaxBodyBytes` (64 KiB).
+	MaxBodyBytes int64
+}
+
+// RegMethod* are the audit-event registration_method enum values
+// the dispatcher passes through to the command layer. Mirror of
+// `command.RegistrationMethod*` consts — duplicated here to keep the
+// dcr → command import boundary one-way.
+const (
+	RegMethodAnonymous = "anonymous"
+	RegMethodIAT       = "iat"
+)
+
+// RegisterFn is the function-shaped seam for invoking the
+// `command.Commands.RegisterClient` command from inside the dcr
+// package without importing command. Production wires this to a
+// closure that translates dcr.RegisterRequest into
+// command.RegisterClientInput and the result back. Tests stub it
+// directly.
+type RegisterFn func(ctx context.Context, req *RegisterRequest) (*RegisterResult, error)
+
+// RegisterRequest is the dcr-internal shape passed to the registered
+// closure. Mirrors the subset of `command.RegisterClientInput` fields
+// the dispatcher controls.
+type RegisterRequest struct {
+	Clamped              *RFC7591Metadata
+	OrgID                string
+	ProjectID            string
+	IATID                string
+	RegistrationMethod   string
+	ClientNameUnclamped  string
+	RemoteIPString       string
+	UserAgent            string
+}
+
+// RegisterResult is the dcr-internal shape returned by the closure.
+// Mirrors the subset of `command.RegisterClientResult` the dispatcher
+// echoes into the 201 response body.
+type RegisterResult struct {
+	ClientID         string
+	ClientSecret     string
+	RATPlaintext     string
+	RATExpiresAt     time.Time
+	ClientIDIssuedAt time.Time
+	PersistedAppName string
 }
 
 // Validate is a defensive runtime check on the deps struct — every
@@ -154,6 +215,9 @@ func (d RegistrationDeps) Validate() error {
 	if d.AntiEnumDummyHash == "" {
 		return errors.New("dcr: RegistrationDeps.AntiEnumDummyHash is required (build via BuildAntiEnumDummyHash)")
 	}
+	if d.Register == nil {
+		return errors.New("dcr: RegistrationDeps.Register is required (wire to command.Commands.RegisterClient)")
+	}
 	return nil
 }
 
@@ -176,9 +240,7 @@ func NewHandler(deps RegistrationDeps) http.Handler {
 	}
 	r := mux.NewRouter()
 	r.StrictSlash(true)
-	// POST stub still 200 + "stub" body for parity with T-008
-	// integration probes. T-040 RegisterClient lands the real body.
-	r.HandleFunc("/", postRegisterStub).Methods(http.MethodPost)
+	r.HandleFunc("/", postRegisterDispatch(deps)).Methods(http.MethodPost)
 	r.HandleFunc("/{client_id}", getClientStub).Methods(http.MethodGet)
 	r.HandleFunc("/{client_id}", putClientStub).Methods(http.MethodPut)
 	r.HandleFunc("/{client_id}", deleteClientStub).Methods(http.MethodDelete)
@@ -192,13 +254,122 @@ func NewHandler(deps RegistrationDeps) http.Handler {
 	return featureGateMiddleware(r)
 }
 
-// _ is here so deps fields are referenced by Validate; staticcheck
-// would otherwise flag unused fields once T-040 wires read-only
-// access from inside the handler bodies.
+// postRegisterDispatch is the assembled POST /oidc/v1/register
+// pipeline (cavekit-register-handler.md R2..R8). Composes:
+//   - Decode (R2): Content-Type / body cap / JSON / defaults
+//   - ClassifyAuthMode + ResolveAnonymous / ResolveIAT (R3)
+//   - ValidateAndClampMetadata (R4 / R5)
+//   - Register (R6 — calls into command.Commands.RegisterClient)
+//   - WriteRegistrationResponse (R7 — 201 RFC 7591 §3.2.1 body)
+//
+// Every error path emits the RFC 7591 §3.2.2 envelope via WriteError
+// at the dispatcher level — sub-stages return *ClampError carrying
+// HTTPStatus + Code so the dispatcher uses one branch per failure
+// shape.
+//
+// 401 paths additionally set `WWW-Authenticate: Bearer error="invalid_token"`
+// per R8 AC.
+func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		// 1. Decode request body (R2)
+		decoded, err := Decode(r, DecodeOptions{MaxBodyBytes: deps.MaxBodyBytes})
+		if err != nil {
+			writeDispatchError(w, err)
+			return
+		}
+
+		// 2. Authenticate (R3)
+		mode, bearer := ClassifyAuthMode(r)
+		var regCtx *RegistrationContext
+		switch mode {
+		case AuthModeIAT:
+			regCtx, err = ResolveIAT(ctx, deps.Queries, deps.Verifier, deps.Parser, bearer, deps.AntiEnumDummyHash)
+		default:
+			regCtx, err = ResolveAnonymous(ctx, deps.AnonConfig)
+		}
+		if err != nil {
+			writeAuthError(w, err)
+			return
+		}
+
+		// 3. Clamp + validate (R4 / R5)
+		clamped, err := ValidateAndClampMetadata(deps.Config, decoded, deps.SupportedSigAlgs, deps.SoftwareStatementEnabled)
+		if err != nil {
+			writeDispatchError(w, err)
+			return
+		}
+
+		// 4. Persist (R6)
+		registrationMethod := RegMethodAnonymous
+		if mode == AuthModeIAT {
+			registrationMethod = RegMethodIAT
+		}
+		req := &RegisterRequest{
+			Clamped:             clamped,
+			OrgID:               regCtx.OrgID,
+			ProjectID:           regCtx.ProjectID,
+			IATID:               regCtx.IATID,
+			RegistrationMethod:  registrationMethod,
+			ClientNameUnclamped: decoded.ClientName,
+			RemoteIPString:      http_util.RemoteIPStringFromRequest(r),
+			UserAgent:           r.UserAgent(),
+		}
+		result, err := deps.Register(ctx, req)
+		if err != nil {
+			writeDispatchError(w, err)
+			return
+		}
+
+		// 5. Echo persisted client_name (R2 synthesis applied at command layer)
+		clamped.ClientName = result.PersistedAppName
+
+		// 6. Respond 201 (R7)
+		out := &RegistrationOutput{
+			ClientID:         result.ClientID,
+			ClientSecret:     result.ClientSecret,
+			RATPlaintext:     result.RATPlaintext,
+			RATExpiresAt:     result.RATExpiresAt,
+			ClientIDIssuedAt: result.ClientIDIssuedAt,
+			Clamped:          clamped,
+		}
+		_ = WriteRegistrationResponse(ctx, w, out)
+	}
+}
+
+// writeDispatchError emits the RFC 7591 envelope for any error
+// returned by the pipeline stages. Maps *ClampError directly via
+// HTTPStatus+Code; falls back to 500/invalid_client_metadata for
+// unexpected errors (the pipeline stages are exhaustive — an unwrapped
+// error here is a programming bug, not a user-input failure).
+func writeDispatchError(w http.ResponseWriter, err error) {
+	var ce *ClampError
+	if errors.As(err, &ce) {
+		WriteError(w, ce.HTTPStatus(), ce.Code, ce.Description)
+		return
+	}
+	WriteError(w, http.StatusInternalServerError, ErrCodeInvalidClientMetadata, err.Error())
+}
+
+// writeAuthError is writeDispatchError + WWW-Authenticate header for
+// 401 invalid_token responses (R8 AC). All ClampErrors with code
+// `invalid_token` get the header; everything else falls through.
+func writeAuthError(w http.ResponseWriter, err error) {
+	var ce *ClampError
+	if errors.As(err, &ce) && ce.Code == ErrCodeInvalidToken {
+		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+		WriteError(w, http.StatusUnauthorized, ce.Code, ce.Description)
+		return
+	}
+	writeDispatchError(w, err)
+}
+
+// _ is here so unused-field guards stay quiet.
 var _ = func() bool {
 	var d RegistrationDeps
 	_ = d.SupportedSigAlgs
 	_ = d.SoftwareStatementEnabled
-	_ = authz.GetInstance // anchored import for future inline use
+	_ = authz.GetInstance
 	return true
 }()

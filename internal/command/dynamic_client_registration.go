@@ -67,6 +67,13 @@ type RegisterClientResult struct {
 	RATPlaintext     string
 	RATExpiresAt     time.Time
 	ClientIDIssuedAt time.Time
+	// PersistedAppName is the AppName actually stored on the
+	// ApplicationAddedEvent — the synthesised
+	// `Dynamically Registered Client <clientID[:8]>` form when the
+	// caller passed empty AppName, otherwise the caller's value
+	// unchanged. The DCR HTTP dispatcher reflects this back into the
+	// 201 response body's client_name (cavekit-register-handler.md R7).
+	PersistedAppName string
 }
 
 // RegisterClient implements the cavekit-register-handler.md R6 contract.
@@ -128,6 +135,20 @@ func (c *Commands) RegisterClient(ctx context.Context, in *RegisterClientInput) 
 	in.App.AppID, err = c.idGenerator.Next()
 	if err != nil {
 		return nil, zerrors.ThrowInternal(err, "DCR-RC005", "Errors.Internal")
+	}
+
+	// cavekit-register-handler.md R2 AC: empty/missing client_name is
+	// replaced with `Dynamically Registered Client <clientID[:8]>`.
+	// Done HERE (not at the dispatcher) because the synthesis needs the
+	// post-mint clientID, and persisting a placeholder then updating
+	// would require an extra event push. Keeping it inside RegisterClient
+	// means the synthesis happens atomically with ApplicationAddedEvent.
+	if strings.TrimSpace(in.App.AppName) == "" {
+		idSuffix := in.App.ClientID
+		if len(idSuffix) > 8 {
+			idSuffix = idSuffix[:8]
+		}
+		in.App.AppName = "Dynamically Registered Client " + idSuffix
 	}
 
 	plainSecret, err := domain.SetNewClientSecretIfNeeded(in.App, func() (string, string, error) {
@@ -207,6 +228,7 @@ func (c *Commands) RegisterClient(ctx context.Context, in *RegisterClientInput) 
 		RATPlaintext:     ratPlain,
 		RATExpiresAt:     ratExpiresAt,
 		ClientIDIssuedAt: now,
+		PersistedAppName: in.App.AppName,
 	}, nil
 }
 
