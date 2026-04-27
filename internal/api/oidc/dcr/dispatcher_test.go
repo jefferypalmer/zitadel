@@ -2,6 +2,7 @@ package dcr
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -353,4 +354,50 @@ func TestDispatch_R2_ClientNameSynthesis_EchoesPersistedName(t *testing.T) {
 
 	assert.Equal(t, 201, w.Code)
 	assert.Contains(t, w.Body.String(), `"client_name":"Dynamically Registered Client snowflak"`)
+}
+
+// TestDispatch_R7_F201_ClientSecretExpiresAt_PlumbedFromConfig pins the
+// /ck:revise --trace --from-finding F-201 amendment to R7. The config
+// `OIDC.DCR.ClientSecretExpiresIn` MUST flow through
+// command.RegisterClientResult → dcr.RegisterResult →
+// RegistrationOutput.ClientSecretExpiresIn → response body
+// `client_secret_expires_at`. Without the plumbing, every issued
+// secret advertises the `0` "no expiry" sentinel regardless of policy
+// (the bug F-201 reported).
+func TestDispatch_R7_F201_ClientSecretExpiresAt_PlumbedFromConfig(t *testing.T) {
+	const lifetime = 24 * time.Hour
+	now := time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC)
+
+	registerFn := func(_ context.Context, req *RegisterRequest) (*RegisterResult, error) {
+		return &RegisterResult{
+			ClientID:              "client-cs",
+			ClientSecret:          "plain-secret",
+			ClientSecretExpiresIn: lifetime, // simulates command.RegisterClient echoing the input lifetime
+			RATPlaintext:          "zdrat_x",
+			ClientIDIssuedAt:      now,
+			PersistedAppName:      req.Clamped.ClientName,
+		}, nil
+	}
+	h := newDispatchHandler(t, registerFn, stubAnonConfig{defaultOrgID: "o", defaultProject: "p"})
+
+	body := `{
+		"client_name": "x",
+		"redirect_uris": ["https://example.com/cb"],
+		"grant_types": ["authorization_code"],
+		"response_types": ["code"],
+		"token_endpoint_auth_method": "client_secret_basic"
+	}`
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, newJSONPostReq(t, body))
+	require.Equal(t, 201, w.Code)
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+
+	expiresAt, ok := got["client_secret_expires_at"].(float64)
+	require.True(t, ok, "client_secret_expires_at MUST be present per RFC 7591 §3.2.1")
+
+	want := float64(now.Add(lifetime).Unix())
+	assert.Equal(t, want, expiresAt,
+		"R7/F-201: client_secret_expires_at MUST equal ClientIDIssuedAt + ClientSecretExpiresIn (unix seconds) when lifetime is non-zero")
 }

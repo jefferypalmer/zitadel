@@ -726,18 +726,20 @@ func startAPIs(
 					RemoteIPString:       req.RemoteIPString,
 					UserAgent:            req.UserAgent,
 					RATLifetime:          config.OIDC.DCR.RegistrationAccessToken.Lifetime,
+					ClientSecretLifetime: config.OIDC.DCR.ClientSecretExpiresIn,
 				}
 				res, err := commands.RegisterClient(ctx, in)
 				if err != nil {
 					return nil, err
 				}
 				return &dcr.RegisterResult{
-					ClientID:         res.ClientID,
-					ClientSecret:     res.ClientSecret,
-					RATPlaintext:     res.RATPlaintext,
-					RATExpiresAt:     res.RATExpiresAt,
-					ClientIDIssuedAt: res.ClientIDIssuedAt,
-					PersistedAppName: res.PersistedAppName,
+					ClientID:              res.ClientID,
+					ClientSecret:          res.ClientSecret,
+					ClientSecretExpiresIn: res.ClientSecretExpiresIn,
+					RATPlaintext:          res.RATPlaintext,
+					RATExpiresAt:          res.RATExpiresAt,
+					ClientIDIssuedAt:      res.ClientIDIssuedAt,
+					PersistedAppName:      res.PersistedAppName,
 				}, nil
 			},
 		}

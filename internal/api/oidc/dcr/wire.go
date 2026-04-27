@@ -184,12 +184,16 @@ type RegisterRequest struct {
 // Mirrors the subset of `command.RegisterClientResult` the dispatcher
 // echoes into the 201 response body.
 type RegisterResult struct {
-	ClientID         string
-	ClientSecret     string
-	RATPlaintext     string
-	RATExpiresAt     time.Time
-	ClientIDIssuedAt time.Time
-	PersistedAppName string
+	ClientID              string
+	ClientSecret          string
+	// ClientSecretExpiresIn echoes config.OIDC.DCR.ClientSecretExpiresIn
+	// so the response writer can compute `client_secret_expires_at`
+	// (R7 / F-201). Zero = "no expiry" sentinel per RFC 7591 §3.2.1.
+	ClientSecretExpiresIn time.Duration
+	RATPlaintext          string
+	RATExpiresAt          time.Time
+	ClientIDIssuedAt      time.Time
+	PersistedAppName      string
 }
 
 // Validate is a defensive runtime check on the deps struct — every
@@ -327,12 +331,13 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 
 		// 6. Respond 201 (R7)
 		out := &RegistrationOutput{
-			ClientID:         result.ClientID,
-			ClientSecret:     result.ClientSecret,
-			RATPlaintext:     result.RATPlaintext,
-			RATExpiresAt:     result.RATExpiresAt,
-			ClientIDIssuedAt: result.ClientIDIssuedAt,
-			Clamped:          clamped,
+			ClientID:              result.ClientID,
+			ClientSecret:          result.ClientSecret,
+			ClientSecretExpiresIn: result.ClientSecretExpiresIn,
+			RATPlaintext:          result.RATPlaintext,
+			RATExpiresAt:          result.RATExpiresAt,
+			ClientIDIssuedAt:      result.ClientIDIssuedAt,
+			Clamped:               clamped,
 		}
 		_ = WriteRegistrationResponse(ctx, w, out)
 	}

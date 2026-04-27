@@ -56,6 +56,11 @@ type RegisterClientInput struct {
 	RemoteIPString       string
 	UserAgent            string
 	RATLifetime          time.Duration
+	// ClientSecretLifetime caps the issued client_secret per
+	// cavekit-register-handler.md R7. Zero = "no expiry" sentinel
+	// (RFC 7591 §3.2.1). Production wiring threads
+	// `OIDC.DCR.ClientSecretExpiresIn` into this slot.
+	ClientSecretLifetime time.Duration
 }
 
 // RegisterClientResult is the post-commit projection of the data the
@@ -64,6 +69,9 @@ type RegisterClientInput struct {
 type RegisterClientResult struct {
 	ClientID         string
 	ClientSecret     string
+	// ClientSecretExpiresIn echoes the input lifetime so the dispatcher
+	// can compute `client_secret_expires_at` per R7. Zero = no expiry.
+	ClientSecretExpiresIn time.Duration
 	RATPlaintext     string
 	RATExpiresAt     time.Time
 	ClientIDIssuedAt time.Time
@@ -223,12 +231,13 @@ func (c *Commands) RegisterClient(ctx context.Context, in *RegisterClientInput) 
 	}
 
 	return &RegisterClientResult{
-		ClientID:         in.App.ClientID,
-		ClientSecret:     plainSecret,
-		RATPlaintext:     ratPlain,
-		RATExpiresAt:     ratExpiresAt,
-		ClientIDIssuedAt: now,
-		PersistedAppName: in.App.AppName,
+		ClientID:              in.App.ClientID,
+		ClientSecret:          plainSecret,
+		ClientSecretExpiresIn: in.ClientSecretLifetime,
+		RATPlaintext:          ratPlain,
+		RATExpiresAt:          ratExpiresAt,
+		ClientIDIssuedAt:      now,
+		PersistedAppName:      in.App.AppName,
 	}, nil
 }
 

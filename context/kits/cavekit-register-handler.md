@@ -118,7 +118,7 @@ Defines the HTTP handler for `POST /oidc/v1/register`: request parsing, RFC 7591
 - [ ] Body includes `client_id` (server-generated).
 - [ ] Body includes `client_secret` when (and only when) `token_endpoint_auth_method` ∈ `{client_secret_basic, client_secret_post}`.
 - [ ] Body includes `client_id_issued_at` (unix seconds).
-- [ ] Body includes `client_secret_expires_at` — value `0` when `ClientSecretExpiresIn=0` (RFC 7591 §3.2.1 sentinel for "no expiry").
+- [ ] Body includes `client_secret_expires_at`: when `OIDC.DCR.ClientSecretExpiresIn=0` → MUST emit `0` (RFC 7591 §3.2.1 sentinel for "no expiry"). When non-zero → MUST emit `ClientIDIssuedAt.Add(ClientSecretExpiresIn).Unix()`. The dispatcher MUST plumb `config.OIDC.DCR.ClientSecretExpiresIn` from the command result through `RegistrationOutput.ClientSecretExpiresIn` into the response writer; `clientSecretExpiresAtFor` is the single source of truth. Pinned by a unit test that sets `ClientSecretExpiresIn=24h` and asserts the response `client_secret_expires_at` ≈ now + 24h ± 5s.
 - [ ] Body includes `registration_access_token` (plaintext, one-time).
 - [ ] Body includes `registration_client_uri` constructed as `fmt.Sprintf("%s/oidc/v1/register/%s", op.IssuerFromContext(ctx), clientID)` (matches `internal/api/oidc/server.go:176`).
 - [ ] All 4xx error bodies use `Content-Type: application/json;charset=UTF-8` with shape `{"error":"<code>","error_description":"<text>"}` per RFC 7591 §3.2.2.
