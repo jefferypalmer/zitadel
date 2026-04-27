@@ -211,7 +211,7 @@ func ResolveIAT(
 		_ = verifier.VerifyIATPlaintext(presented, antiEnumDummyHash)
 		return nil, &ClampError{
 			Code:        ErrCodeInvalidToken,
-			Description: "Authorization Bearer is not a recognised IAT plaintext",
+			Description: MissingOrInvalidAccessTokenDescription,
 			Wrapped:     zerrors.ThrowInvalidArgument(nil, "DCR-Au003", "Errors.DCR.IAT.InvalidToken"),
 		}
 	}
@@ -223,7 +223,7 @@ func ResolveIAT(
 		_ = verifier.VerifyIATPlaintext(presented, antiEnumDummyHash)
 		return nil, &ClampError{
 			Code:        ErrCodeInvalidToken,
-			Description: "the presented Initial Access Token is not valid for this instance",
+			Description: MissingOrInvalidAccessTokenDescription,
 			Wrapped:     zerrors.ThrowInvalidArgument(err, "DCR-Au004", "Errors.DCR.IAT.InvalidToken"),
 		}
 	}
@@ -236,7 +236,7 @@ func ResolveIAT(
 		_ = verifier.VerifyIATPlaintext(presented, antiEnumDummyHash)
 		return nil, &ClampError{
 			Code:        ErrCodeInvalidToken,
-			Description: "the presented Initial Access Token is not valid for this instance",
+			Description: MissingOrInvalidAccessTokenDescription,
 			Wrapped:     zerrors.ThrowInvalidArgument(nil, "DCR-Au005", "Errors.DCR.IAT.InvalidToken"),
 		}
 	}
@@ -245,7 +245,7 @@ func ResolveIAT(
 		// Wrong random — Verify already paid the timing cost.
 		return nil, &ClampError{
 			Code:        ErrCodeInvalidToken,
-			Description: "the presented Initial Access Token is not valid for this instance",
+			Description: MissingOrInvalidAccessTokenDescription,
 			Wrapped:     zerrors.ThrowInvalidArgument(err, "DCR-Au006", "Errors.DCR.IAT.InvalidToken"),
 		}
 	}

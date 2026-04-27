@@ -320,3 +320,91 @@ func TestDCRConfig_Validate_R1_F300_ClientSecretExpiresIn_NonNegative(t *testing
 		})
 	}
 }
+
+// TestDCRConfig_Validate_R1_F402_PositiveExceedsCeiling pins the
+// cavekit-config.md R1 amendment 2026-04-27 / F-402 — positive
+// MaxRequestBodyBytes values that exceed dcr.AbsoluteMaxBodyBytes
+// (100 MiB) MUST refuse at startup, NOT silently runtime-clamp.
+// Mirrors the F-204 precedent: operator-set value the package
+// cannot honour is a startup-refuse condition.
+func TestDCRConfig_Validate_R1_F402_PositiveExceedsCeiling(t *testing.T) {
+	const ceiling int64 = 100 * 1024 * 1024
+	tests := []struct {
+		name    string
+		v       int64
+		wantErr bool
+	}{
+		{"exactly at ceiling — accepted", ceiling, false},
+		{"1 byte under ceiling — accepted", ceiling - 1, false},
+		{"1 byte over ceiling — REJECTED", ceiling + 1, true},
+		{"1 GB — REJECTED", 1024 * 1024 * 1024, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := DCRConfig{
+				Enabled:                   true,
+				RequireInitialAccessToken: true,
+				MaxRequestBodyBytes:       tt.v,
+			}
+			err := cfg.Validate(context.Background(), true, "example.com", 443)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "exceeds the package safety ceiling")
+				assert.Contains(t, err.Error(), "F-402")
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+// TestDCRConfig_Validate_R1_F301_StartupWARN_OnNoCap pins the
+// cavekit-config.md R1 amendment 2026-04-27 / F-301 startup-WARN AC.
+// When MaxRequestBodyBytes=-1 is configured, Validate MUST emit a
+// WARN log naming OIDC.DCR.MaxRequestBodyBytes and the absolute
+// ceiling value, so an operator who set -1 accidentally sees the
+// trade-off at boot. Without this test, F-301c had no regression
+// guard (flagged in the 4th /ck:check pass).
+func TestDCRConfig_Validate_R1_F301_StartupWARN_OnNoCap(t *testing.T) {
+	t.Run("MaxRequestBodyBytes=-1 emits WARN", func(t *testing.T) {
+		cfg := DCRConfig{
+			Enabled:                   true,
+			RequireInitialAccessToken: true,
+			MaxRequestBodyBytes:       -1,
+		}
+		buf := &bytes.Buffer{}
+		logger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+		old := slog.Default()
+		slog.SetDefault(logger)
+		defer slog.SetDefault(old)
+
+		err := cfg.Validate(context.Background(), true, "example.com", 443)
+		require.NoError(t, err)
+
+		got := buf.String()
+		assert.Contains(t, got, "level=WARN", "F-301c: WARN line MUST emit on -1")
+		assert.Contains(t, got, "OIDC.DCR.MaxRequestBodyBytes",
+			"F-301c: WARN MUST name the field for operator triage")
+		assert.Contains(t, got, "absolute_ceiling_bytes=104857600",
+			"F-301c: WARN MUST name the absolute ceiling so operator sees the safety net value")
+		assert.Contains(t, got, "F-301", "F-301c: WARN MUST cross-reference the kit AC")
+	})
+
+	t.Run("positive value (default 65536) does NOT emit WARN", func(t *testing.T) {
+		cfg := DCRConfig{
+			Enabled:                   true,
+			RequireInitialAccessToken: true,
+			MaxRequestBodyBytes:       65536,
+		}
+		buf := &bytes.Buffer{}
+		logger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+		old := slog.Default()
+		slog.SetDefault(logger)
+		defer slog.SetDefault(old)
+
+		err := cfg.Validate(context.Background(), true, "example.com", 443)
+		require.NoError(t, err)
+		assert.False(t, strings.Contains(buf.String(), "MaxRequestBodyBytes"),
+			"WARN MUST NOT fire for normal positive values")
+	})
+}

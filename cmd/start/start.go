@@ -774,7 +774,7 @@ func startAPIs(
 				return &dcr.ClampError{
 					Status:      401,
 					Code:        dcr.ErrCodeInvalidToken,
-					Description: "initial access token cannot be consumed",
+					Description: dcr.MissingOrInvalidAccessTokenDescription,
 					Wrapped:     err,
 				}
 			},

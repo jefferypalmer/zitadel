@@ -303,3 +303,82 @@ func TestResolveIAT_R3_WrongRandomRejected(t *testing.T) {
 	assert.Equal(t, ErrCodeInvalidToken, ce.Code)
 	assert.Equal(t, 1, v.verifyCalls, "wrong-random path: exactly one real Verify call (no extra dummy)")
 }
+
+// TestResolveIAT_F401_All401PathsUseCanonicalDescription pins the
+// cavekit-register-handler.md R3 amendment 2026-04-27 / N-5 — ALL 401
+// paths from the IAT auth flow MUST use the canonical
+// `MissingOrInvalidAccessTokenDescription` string. Three distinct
+// strings would let an attacker distinguish bad-shape vs unknown-id
+// vs wrong-random vs cross-instance, partially defeating the
+// F-Au004/Au005/Au006 anti-enumeration design.
+//
+// F-401 was logged in the 4th /ck:check pass after the original N-5
+// fix migrated only 1 of 5 sites despite the kit AC enumerating 4.
+func TestResolveIAT_F401_All401PathsUseCanonicalDescription(t *testing.T) {
+	// Use the existing &stubIATVerifier{matchHash:"never"} — encoded
+	// arg ("$bcrypt$x" or the dummy hash) never equals "never", so
+	// every Verify returns an error. That covers the bad-shape +
+	// unknown-id + cross-instance + wrong-random branches uniformly.
+	verifier := &stubIATVerifier{matchHash: "never"}
+
+	cases := []struct {
+		name    string
+		queries IATLookupQueries
+		parser  PlaintextParser
+		bearer  string
+		ctxFunc func() context.Context
+	}{
+		{
+			name:    "bad shape — parser rejects",
+			parser:  func(string) (string, string, bool) { return "", "", false },
+			bearer:  "not-a-zdiat",
+			ctxFunc: func() context.Context { return authz.WithInstanceID(context.Background(), "i") },
+		},
+		{
+			name:    "unknown id — queries returns ErrNotFound",
+			parser:  func(string) (string, string, bool) { return "id-x", "rand", true },
+			queries: stubLookupErr{err: errors.New("not found")},
+			bearer:  "zdiat_id-x.rand",
+			ctxFunc: func() context.Context { return authz.WithInstanceID(context.Background(), "i") },
+		},
+		{
+			name:    "cross-instance — row.InstanceID != ctx instance",
+			parser:  func(string) (string, string, bool) { return "id-x", "rand", true },
+			queries: stubLookupRow{row: &QueryIATRow{ID: "id-x", InstanceID: "OTHER", TokenHash: "$bcrypt$x"}},
+			bearer:  "zdiat_id-x.rand",
+			ctxFunc: func() context.Context { return authz.WithInstanceID(context.Background(), "MINE") },
+		},
+		{
+			name:    "wrong random — Verify rejects",
+			parser:  func(string) (string, string, bool) { return "id-x", "rand", true },
+			queries: stubLookupRow{row: &QueryIATRow{ID: "id-x", InstanceID: "MINE", TokenHash: "$bcrypt$x"}},
+			bearer:  "zdiat_id-x.rand",
+			ctxFunc: func() context.Context { return authz.WithInstanceID(context.Background(), "MINE") },
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := ResolveIAT(tc.ctxFunc(), tc.queries,
+				verifier, tc.parser, tc.bearer, "$bcrypt$dummy")
+			require.Error(t, err)
+			var ce *ClampError
+			require.True(t, errors.As(err, &ce), "expected *ClampError, got %T", err)
+			assert.Equal(t, ErrCodeInvalidToken, ce.Code)
+			assert.Equal(t, MissingOrInvalidAccessTokenDescription, ce.Description,
+				"F-401: 401 description MUST be the canonical RFC 6750 §3 string at all 4 paths")
+		})
+	}
+}
+
+type stubLookupErr struct{ err error }
+
+func (s stubLookupErr) InitialAccessTokenByID(_ context.Context, _, _ string) (*QueryIATRow, error) {
+	return nil, s.err
+}
+
+type stubLookupRow struct{ row *QueryIATRow }
+
+func (s stubLookupRow) InitialAccessTokenByID(_ context.Context, _, _ string) (*QueryIATRow, error) {
+	return s.row, nil
+}

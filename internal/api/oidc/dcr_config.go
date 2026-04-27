@@ -63,6 +63,17 @@ func (c DCRConfig) Validate(ctx context.Context, externalSecure bool, externalDo
 			"field", "OIDC.DCR.MaxRequestBodyBytes",
 			"absolute_ceiling_bytes", 100*1024*1024,
 			"reference", "cavekit-config.md R1 / F-301")
+	case c.MaxRequestBodyBytes > 100*1024*1024:
+		// F-402: refuse positive values > AbsoluteMaxBodyBytes at
+		// startup. Mirrors the F-204 precedent — silent runtime
+		// clamping misleads operators when 413 envelopes reference a
+		// value not present in their config.
+		return fmt.Errorf(
+			"OIDC.DCR.MaxRequestBodyBytes=%d exceeds the package safety ceiling "+
+				"dcr.AbsoluteMaxBodyBytes=%d (100 MiB). Refusing to silently clamp; "+
+				"either lower the configured value or accept that requests above "+
+				"100 MiB cannot be honoured. See cavekit-config.md R1 / F-402",
+			c.MaxRequestBodyBytes, 100*1024*1024)
 	}
 
 	if !c.RequireInitialAccessToken {

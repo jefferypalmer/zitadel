@@ -122,9 +122,13 @@ func Decode(r *http.Request, opts DecodeOptions) (*RFC7591Metadata, error) {
 		// The absolute package-level ceiling still applies.
 		max = AbsoluteMaxBodyBytes
 	case max > AbsoluteMaxBodyBytes:
-		// Defensive: even an explicit positive operator-tunable cap
-		// MUST NOT exceed the absolute ceiling. Clamp + log nothing
-		// here (startup warns once per F-301).
+		// F-402: positive values > AbsoluteMaxBodyBytes are refused at
+		// startup by DCRConfig.Validate. This runtime clamp is now a
+		// defence-in-depth path — only reachable from tests that bypass
+		// the startup gate or from a future caller that writes
+		// DecodeOptions{MaxBodyBytes: ...} directly without going
+		// through the config-validate code path. Clamp silently rather
+		// than refusing so the test surface stays usable.
 		max = AbsoluteMaxBodyBytes
 	}
 	body, readErr := io.ReadAll(http.MaxBytesReader(nil, r.Body, max))
