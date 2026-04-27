@@ -1,0 +1,86 @@
+<cnsl-card
+  title="{{ 'DESCRIPTIONS.DCR.IAT.TITLE' | translate }}"
+  description="{{ 'DESCRIPTIONS.DCR.IAT.DESCRIPTION' | translate }}"
+>
+  <div class="iat-admin-actions card-actions" card-actions>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="openIssueDialog()"
+    >
+      <i class="las la-plus"></i>
+      {{ 'DESCRIPTIONS.DCR.IAT.ISSUE_BUTTON' | translate }}
+    </button>
+    <button mat-icon-button type="button" (click)="refresh()" matTooltip="{{ 'ACTIONS.REFRESH' | translate }}">
+      <i class="las la-sync"></i>
+    </button>
+  </div>
+
+  @if ((tokens$ | async)?.length) {
+    <table mat-table [dataSource]="(tokens$ | async) ?? []" class="iat-admin-table">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.IAT.COL_ID' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ row.id }}</td>
+      </ng-container>
+      <ng-container matColumnDef="projectId">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.IAT.COL_PROJECT_ID' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ row.projectId }}</td>
+      </ng-container>
+      <ng-container matColumnDef="expiresAt">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.IAT.COL_EXPIRES_AT' | translate }}</th>
+        <td mat-cell *matCellDef="let row">
+          @if (row.expiresAt) {
+            {{ row.expiresAt | timestampToDate | localizedDate: 'EEE dd. MMM, HH:mm' }}
+          } @else {
+            —
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="maxUses">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.IAT.COL_MAX_USES' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ row.maxUses === 0 ? '∞' : row.maxUses }}</td>
+      </ng-container>
+      <ng-container matColumnDef="usesConsumed">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.IAT.COL_USES_CONSUMED' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ row.usesConsumed }}</td>
+      </ng-container>
+      <ng-container matColumnDef="revoked">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.IAT.COL_STATUS' | translate }}</th>
+        <td mat-cell *matCellDef="let row">
+          @if (row.revoked) {
+            <span class="iat-admin-status iat-admin-status--revoked">{{
+              'DESCRIPTIONS.DCR.IAT.STATUS_REVOKED' | translate
+            }}</span>
+          } @else {
+            <span class="iat-admin-status iat-admin-status--active">{{
+              'DESCRIPTIONS.DCR.IAT.STATUS_ACTIVE' | translate
+            }}</span>
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let row">
+          @if (!row.revoked) {
+            <button
+              mat-icon-button
+              type="button"
+              color="warn"
+              (click)="revoke(row)"
+              matTooltip="{{ 'DESCRIPTIONS.DCR.IAT.REVOKE_BUTTON' | translate }}"
+            >
+              <i class="las la-ban"></i>
+            </button>
+          }
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  } @else {
+    <div class="iat-admin-empty">
+      <p>{{ 'DESCRIPTIONS.DCR.IAT.EMPTY' | translate }}</p>
+    </div>
+  }
+</cnsl-card>

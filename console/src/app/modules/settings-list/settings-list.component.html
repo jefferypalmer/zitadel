@@ -44,6 +44,9 @@
   @if (setting()?.id === 'security' && serviceType === PolicyComponentServiceType.ADMIN) {
     <cnsl-security-policy></cnsl-security-policy>
   }
+  @if (setting()?.id === 'initialaccesstokens' && serviceType === PolicyComponentServiceType.ADMIN) {
+    <cnsl-iat-admin></cnsl-iat-admin>
+  }
   @if (setting()?.id === 'branding') {
     <cnsl-private-labeling-policy [serviceType]="serviceType"></cnsl-private-labeling-policy>
   }

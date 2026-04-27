@@ -1,0 +1,10 @@
+<h2 mat-dialog-title>{{ 'DESCRIPTIONS.DCR.IAT.REVOKE_BUTTON' | translate }}</h2>
+<mat-dialog-content>
+  <p>{{ 'DESCRIPTIONS.DCR.IAT.REVOKE_CONFIRM' | translate }}</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">{{ 'ACTIONS.CANCEL' | translate }}</button>
+  <button mat-raised-button color="warn" type="button" (click)="confirm()">
+    {{ 'DESCRIPTIONS.DCR.IAT.REVOKE_BUTTON' | translate }}
+  </button>
+</mat-dialog-actions>

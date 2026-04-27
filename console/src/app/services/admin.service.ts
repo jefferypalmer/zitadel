@@ -304,6 +304,12 @@ import {
   UpdateSMTPConfigPasswordResponse,
   UpdateSMTPConfigRequest,
   UpdateSMTPConfigResponse,
+  CreateInitialAccessTokenRequest,
+  CreateInitialAccessTokenResponse,
+  ListInitialAccessTokensRequest,
+  ListInitialAccessTokensResponse,
+  RevokeInitialAccessTokenRequest,
+  RevokeInitialAccessTokenResponse,
 } from '../proto/generated/zitadel/admin_pb';
 import {
   ResetCustomDomainClaimedMessageTextToDefaultRequest,
@@ -1144,6 +1150,34 @@ export class AdminService {
   public listSecretGenerators(): Promise<ListSecretGeneratorsResponse.AsObject> {
     const req = new ListSecretGeneratorsRequest();
     return this.grpcService.admin.listSecretGenerators(req, null).then((resp) => resp.toObject());
+  }
+
+  /* Initial Access Tokens (DCR) */
+
+  public createInitialAccessToken(
+    req: CreateInitialAccessTokenRequest,
+  ): Promise<CreateInitialAccessTokenResponse.AsObject> {
+    return this.grpcService.admin.createInitialAccessToken(req, null).then((resp) => resp.toObject());
+  }
+
+  public listInitialAccessTokens(
+    projectId: string | null,
+  ): Promise<ListInitialAccessTokensResponse.AsObject> {
+    const req = new ListInitialAccessTokensRequest();
+    if (projectId) {
+      req.setProjectId(projectId);
+    }
+    return this.grpcService.admin.listInitialAccessTokens(req, null).then((resp) => resp.toObject());
+  }
+
+  public revokeInitialAccessToken(
+    iatId: string,
+    projectId: string,
+  ): Promise<RevokeInitialAccessTokenResponse.AsObject> {
+    const req = new RevokeInitialAccessTokenRequest();
+    req.setIatId(iatId);
+    req.setProjectId(projectId);
+    return this.grpcService.admin.revokeInitialAccessToken(req, null).then((resp) => resp.toObject());
   }
 
   public getSecretGenerator(req: GetSecretGeneratorRequest): Promise<GetSecretGeneratorResponse.AsObject> {

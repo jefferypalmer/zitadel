@@ -334,6 +334,38 @@
         "COL_CREATED_AT": "Registered At",
         "COL_AUDIT": "Audit",
         "VIEW_AUDIT": "View audit events"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) authorize Dynamic Client Registration for specific projects. Issue once, use up to N times, then revoke.",
+        "EMPTY": "No Initial Access Tokens. Issue one to authorize a DCR client registration.",
+        "ISSUE_BUTTON": "Issue Token",
+        "DIALOG_TITLE": "Issue Initial Access Token",
+        "PROJECT_ID_LABEL": "Project ID",
+        "LIFETIME_LABEL": "Lifetime (hours)",
+        "LIFETIME_HINT": "0 uses the server default lifetime.",
+        "MAX_USES_LABEL": "Max Uses",
+        "MAX_USES_HINT": "0 means unlimited.",
+        "GRANT_TYPES_LABEL": "Allowed Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "Allowed Redirect URI Patterns",
+        "REDIRECT_URI_PATTERNS_HINT": "One pattern per line. Empty allows any pattern matching the global DCR allow-list.",
+        "DESCRIPTION_LABEL": "Description",
+        "REVOKE_BUTTON": "Revoke",
+        "REVOKE_CONFIRM": "Revoke this Initial Access Token? Future registration attempts using it will fail. This cannot be undone.",
+        "REVOKED": "Initial Access Token revoked.",
+        "PLAINTEXT_TITLE": "Token Issued",
+        "PLAINTEXT_WARNING": "Copy this token now. It is shown EXACTLY ONCE. After this dialog closes, you cannot retrieve it again — issue a new token if you lose it.",
+        "PLAINTEXT_REVEAL": "Reveal Token",
+        "PLAINTEXT_DONE": "I've Saved It",
+        "COPIED": "Token copied to clipboard.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Project",
+        "COL_EXPIRES_AT": "Expires At",
+        "COL_MAX_USES": "Max Uses",
+        "COL_USES_CONSUMED": "Used",
+        "COL_STATUS": "Status",
+        "STATUS_ACTIVE": "Active",
+        "STATUS_REVOKED": "Revoked"
       }
     }
   },
@@ -1531,7 +1563,8 @@
       "FAILEDEVENTS": "Failed Events",
       "VIEWS": "Views",
       "ACTIONS": "Actions",
-      "TARGETS": "Targets"
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens"
     },
     "GROUPS": {
       "GENERAL": "General Information",

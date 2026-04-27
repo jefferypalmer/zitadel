@@ -334,6 +334,38 @@
         "COL_CREATED_AT": "Registriert am",
         "COL_AUDIT": "Audit",
         "VIEW_AUDIT": "Audit-Ereignisse anzeigen"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) autorisieren Dynamic Client Registration für bestimmte Projekte. Einmal ausstellen, bis zu N-mal verwenden, dann widerrufen.",
+        "EMPTY": "Keine Initial Access Tokens. Stellen Sie einen aus, um eine DCR-Clientregistrierung zu autorisieren.",
+        "ISSUE_BUTTON": "Token ausstellen",
+        "DIALOG_TITLE": "Initial Access Token ausstellen",
+        "PROJECT_ID_LABEL": "Projekt-ID",
+        "LIFETIME_LABEL": "Gültigkeitsdauer (Stunden)",
+        "LIFETIME_HINT": "0 verwendet die Standard-Gültigkeitsdauer des Servers.",
+        "MAX_USES_LABEL": "Maximale Verwendungen",
+        "MAX_USES_HINT": "0 bedeutet unbegrenzt.",
+        "GRANT_TYPES_LABEL": "Erlaubte Grant-Typen",
+        "REDIRECT_URI_PATTERNS_LABEL": "Erlaubte Redirect-URI-Muster",
+        "REDIRECT_URI_PATTERNS_HINT": "Ein Muster pro Zeile. Leer erlaubt jedes Muster, das der globalen DCR-Allow-List entspricht.",
+        "DESCRIPTION_LABEL": "Beschreibung",
+        "REVOKE_BUTTON": "Widerrufen",
+        "REVOKE_CONFIRM": "Diesen Initial Access Token widerrufen? Künftige Registrierungsversuche schlagen fehl. Dies kann nicht rückgängig gemacht werden.",
+        "REVOKED": "Initial Access Token widerrufen.",
+        "PLAINTEXT_TITLE": "Token ausgestellt",
+        "PLAINTEXT_WARNING": "Kopieren Sie diesen Token jetzt. Er wird nur EINMAL angezeigt. Nach Schließen dieses Dialogs ist er nicht mehr abrufbar — stellen Sie einen neuen aus, falls Sie ihn verlieren.",
+        "PLAINTEXT_REVEAL": "Token anzeigen",
+        "PLAINTEXT_DONE": "Ich habe ihn gespeichert",
+        "COPIED": "Token in die Zwischenablage kopiert.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Projekt",
+        "COL_EXPIRES_AT": "Läuft ab",
+        "COL_MAX_USES": "Max. Verwendungen",
+        "COL_USES_CONSUMED": "Verwendet",
+        "COL_STATUS": "Status",
+        "STATUS_ACTIVE": "Aktiv",
+        "STATUS_REVOKED": "Widerrufen"
       }
     }
   },
@@ -1527,7 +1559,8 @@
       "SECURITY": "Sicherheitseinstellungen",
       "EVENTS": "Events",
       "FAILEDEVENTS": "Fehlerhafte Events",
-      "VIEWS": "Views"
+      "VIEWS": "Views",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens"
     },
     "GROUPS": {
       "GENERAL": "Allgemein",

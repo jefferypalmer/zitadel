@@ -34,6 +34,7 @@ import ActionsTwoModule from '../actions-two/actions-two.module';
 import { provideRouter } from '@angular/router';
 import { OidcWebkeysModule } from '../policies/oidc-webkeys/oidc-webkeys.module';
 import { NotificationSMTPProviderComponent } from '../policies/notification-smtp-provider/notification-smtp-provider.component';
+import IatAdminModule from '../iat-admin/iat-admin.module';
 
 @NgModule({
   declarations: [SettingsListComponent],
@@ -71,6 +72,7 @@ import { NotificationSMTPProviderComponent } from '../policies/notification-smtp
     IamViewsModule,
     EventsModule,
     ActionsTwoModule,
+    IatAdminModule,
   ],
   exports: [SettingsListComponent],
 })

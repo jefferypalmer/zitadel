@@ -50,6 +50,14 @@ export const SECURITY: SidenavSetting = {
   },
 };
 
+export const INITIAL_ACCESS_TOKENS: SidenavSetting = {
+  id: 'initialaccesstokens',
+  i18nKey: 'SETTINGS.LIST.INITIAL_ACCESS_TOKENS',
+  requiredRoles: {
+    [PolicyComponentServiceType.ADMIN]: ['iam.policy.read'],
+  },
+};
+
 export const VIEWS: SidenavSetting = {
   id: 'views',
   i18nKey: 'SETTINGS.LIST.VIEWS',

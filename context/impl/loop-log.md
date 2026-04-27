@@ -30,3 +30,12 @@ Dispatching both in parallel via ck:task-builder subagents in isolated worktrees
 - **Kit gap:** App proto lacks DCR marker; predicate stubbed to always-false, documented in component comment + impl tracking. Listing currently always renders empty-state — honest for Phase 1.
 - **Next:** T-071 (IAT admin Angular surface).
 
+### Iteration 2 — 2026-04-27 (Tier 6 — T-071)
+- **Task:** T-071 — IAT admin Angular surface (R2)
+- **Tier:** 6
+- **Status:** DONE
+- **Files:** console/src/app/modules/iat-admin/{iat-admin.module.ts, iat-admin.component.{ts,html,scss}, iat-issue-dialog/iat-issue-dialog.component.{ts,html,scss}, iat-plaintext-dialog/iat-plaintext-dialog.component.{ts,html,scss}, iat-revoke-dialog/iat-revoke-dialog.component.{ts,html}} (new module, 4 components); console/src/app/modules/settings-list/{settings.ts (+INITIAL_ACCESS_TOKENS export), settings-list.component.html (+initialaccesstokens dispatch branch ADMIN-gated), settings-list.module.ts (+IatAdminModule import)}; console/src/app/pages/instance/instance.component.ts (+INITIAL_ACCESS_TOKENS in defaultSettingsList after SECURITY); console/src/app/services/admin.service.ts (+3 IAT methods + 5 proto imports); console/src/assets/i18n/{en,de}.json (+SETTINGS.LIST.INITIAL_ACCESS_TOKENS + DESCRIPTIONS.DCR.IAT.* + ACTIONS.{REFRESH,COPY}).
+- **Validation:** Build (tsc on new files): pre-existing `admin_pb` module-resolution error affects entire admin.service.ts, including unrelated existing methods — resolves in CI after `pnpm generate`. Acceptance: AC1 ✓ (Decision 2 = peer alongside SECURITY, sidenav id `initialaccesstokens`), AC2 ✓ (6 kit-pinned dialog fields), AC3 ✓ (one-time plaintext via `IatPlaintextDialogComponent` with `disableClose: true` + reveal toggle + clipboard + warning), AC4 ✓ (id/projectId/expiresAt/maxUses/usesConsumed/status columns), AC5 ✓ (revoke confirm via `DESCRIPTIONS.DCR.IAT.REVOKE_CONFIRM` then RPC), AC6 ✓ (`requiredRoles[ADMIN]=['iam.policy.read']`).
+- **Next:** T-072 (frontend i18n keys — review and harden the kit-required key set across en.json + de.json + add the column-label keys T-072 owns explicitly).
+
+

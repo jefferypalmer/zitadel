@@ -1,0 +1,27 @@
+.iat-admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.iat-admin-table {
+  width: 100%;
+}
+
+.iat-admin-empty {
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  color: var(--cnsl-text-secondary, rgba(0, 0, 0, 0.54));
+}
+
+.iat-admin-status {
+  font-weight: 500;
+}
+
+.iat-admin-status--revoked {
+  color: var(--warn);
+}
+
+.iat-admin-status--active {
+  color: var(--success, #28a745);
+}

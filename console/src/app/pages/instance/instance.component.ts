@@ -28,6 +28,7 @@ import {
   PRIVACYPOLICY,
   SECRETS,
   SECURITY,
+  INITIAL_ACCESS_TOKENS,
   SMS_PROVIDER,
   SMTP_PROVIDER,
   VIEWS,
@@ -88,6 +89,7 @@ export class InstanceComponent {
     WEBKEYS,
     SECRETS,
     SECURITY,
+    INITIAL_ACCESS_TOKENS,
   ];
 
   protected readonly settingsList$: Observable<SidenavSetting[]>;

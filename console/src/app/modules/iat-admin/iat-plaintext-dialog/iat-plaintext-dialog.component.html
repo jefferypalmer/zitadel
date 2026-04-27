@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>{{ 'DESCRIPTIONS.DCR.IAT.PLAINTEXT_TITLE' | translate }}</h2>
+<mat-dialog-content>
+  <div class="iat-plaintext-warning">
+    <i class="las la-exclamation-triangle"></i>
+    <p>{{ 'DESCRIPTIONS.DCR.IAT.PLAINTEXT_WARNING' | translate }}</p>
+  </div>
+
+  <p class="iat-plaintext-id-line">
+    <strong>{{ 'DESCRIPTIONS.DCR.IAT.COL_ID' | translate }}:</strong>
+    <code>{{ data.iatId }}</code>
+  </p>
+
+  @if (revealed) {
+    <div class="iat-plaintext-token-row">
+      <code class="iat-plaintext-token">{{ data.token }}</code>
+      <button mat-icon-button type="button" (click)="copy()" matTooltip="{{ 'ACTIONS.COPY' | translate }}">
+        <i class="las la-copy"></i>
+      </button>
+    </div>
+  } @else {
+    <button mat-stroked-button type="button" (click)="reveal()">
+      <i class="las la-eye"></i>
+      {{ 'DESCRIPTIONS.DCR.IAT.PLAINTEXT_REVEAL' | translate }}
+    </button>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-raised-button color="primary" type="button" (click)="close()">
+    {{ 'DESCRIPTIONS.DCR.IAT.PLAINTEXT_DONE' | translate }}
+  </button>
+</mat-dialog-actions>
