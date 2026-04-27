@@ -742,6 +742,42 @@ func startAPIs(
 					PersistedAppName:      res.PersistedAppName,
 				}, nil
 			},
+			// ConsumeIAT bridges to commands.ConsumeInitialAccessToken
+			// per cavekit-register-handler.md R6 amendment / F-200.
+			// Without this closure the IAT slot is never reserved,
+			// turning any valid IAT into an unbounded-replay token.
+			ConsumeIAT: func(ctx context.Context, regCtx *dcr.RegistrationContext) error {
+				lookup := func(ctx context.Context) (*command.IATSnapshot, error) {
+					row, err := queries.InitialAccessTokenByID(ctx, regCtx.IATID, regCtx.OrgID)
+					if err != nil {
+						return nil, err
+					}
+					return &command.IATSnapshot{
+						ID:            row.ID,
+						ProjectID:     row.ProjectID,
+						InstanceID:    row.InstanceID,
+						ResourceOwner: row.ResourceOwner,
+						MaxUses:       int(row.MaxUses),
+						UsesConsumed:  int(row.UsesConsumed),
+						Revoked:       row.Revoked,
+						ExpiresAt:     row.ExpiresAt,
+					}, nil
+				}
+				_, err := commands.ConsumeInitialAccessToken(ctx, lookup)
+				if err == nil {
+					return nil
+				}
+				// Map any consume failure to invalid_token so the
+				// dispatcher emits 401 + WWW-Authenticate. Exhausted /
+				// revoked / expired all collapse to "invalid_token" per
+				// cavekit-iat.md R4 anti-enumeration AC.
+				return &dcr.ClampError{
+					Status:      401,
+					Code:        dcr.ErrCodeInvalidToken,
+					Description: "initial access token cannot be consumed",
+					Wrapped:     err,
+				}
+			},
 		}
 		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcr.NewHandler(dcrDeps))
 		// RFC 8414 AS metadata (cavekit-discovery-and-as-metadata.md

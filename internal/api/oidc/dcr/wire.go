@@ -143,11 +143,29 @@ type RegistrationDeps struct {
 	// import boundary one-way.
 	Register RegisterFn
 
+	// ConsumeIAT is the closure that reserves one slot of the IAT
+	// identified by [RegistrationContext.IATID] via
+	// `command.Commands.ConsumeInitialAccessToken`. Per
+	// cavekit-register-handler.md R6 amendment 2026-04-27 / F-200, the
+	// dispatcher MUST call this AFTER successful ResolveIAT and BEFORE
+	// invoking [Register] — otherwise an attacker can replay one valid
+	// IAT to register N clients regardless of MaxUses. Anonymous mode
+	// (RegistrationContext.IATID == "") MUST NOT invoke this closure.
+	ConsumeIAT ConsumeIATFn
+
 	// MaxBodyBytes caps the registration request body
 	// (cavekit-config.md R1 / R2 AC). Zero falls back to
 	// `DefaultMaxBodyBytes` (64 KiB).
 	MaxBodyBytes int64
 }
+
+// ConsumeIATFn is the function-shaped seam for invoking
+// `command.Commands.ConsumeInitialAccessToken` from inside the
+// dispatcher without a direct command-package import. Returns a
+// *ClampError on failure (mapped to 401 invalid_token by the
+// dispatcher per cavekit-register-handler.md R6 amendment / F-200);
+// any other error type is treated as a 500.
+type ConsumeIATFn func(ctx context.Context, regCtx *RegistrationContext) error
 
 // RegMethod* are the audit-event registration_method enum values
 // the dispatcher passes through to the command layer. Mirror of
@@ -221,6 +239,9 @@ func (d RegistrationDeps) Validate() error {
 	}
 	if d.Register == nil {
 		return errors.New("dcr: RegistrationDeps.Register is required (wire to command.Commands.RegisterClient)")
+	}
+	if d.ConsumeIAT == nil {
+		return errors.New("dcr: RegistrationDeps.ConsumeIAT is required (wire to command.Commands.ConsumeInitialAccessToken). F-200 — without this, IAT replay protection is non-existent in production.")
 	}
 	return nil
 }
@@ -296,6 +317,17 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 		if err != nil {
 			writeAuthError(w, err)
 			return
+		}
+
+		// 2b. Consume IAT slot (R6 amendment 2026-04-27 / F-200).
+		// MUST run BEFORE clamp + Register so an exhausted/revoked IAT
+		// short-circuits with 401 before any application events are
+		// pushed. Anonymous mode (regCtx.IATID == "") skips the call.
+		if regCtx.IATID != "" {
+			if cErr := deps.ConsumeIAT(ctx, regCtx); cErr != nil {
+				writeAuthError(w, cErr)
+				return
+			}
 		}
 
 		// 3. Clamp + validate (R4 / R5)
