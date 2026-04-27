@@ -425,3 +425,75 @@ This recommendation is the second cross-kit-amendment trigger from this build (t
 | infrastructural-transient (no-op) | 1 (F-102) |
 | closed-by-bundled-fix (no-op) | 1 |
 | test-method-defect | 1 (F-205) |
+
+---
+
+## Entry #16 — N-4 (slog ctx-loss in writeDispatchError)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 3rd pass — `slog.WarnContext(context.Background(), ...)` lost tracing/instance/request correlation. Defeats the purpose of `*Context` slog variants.
+- **Classification:** `wrong_criterion` (impl defect, no kit gap).
+- **Kit amendment:** NONE.
+- **Regression test:** none added — code-only fix; signature change is its own canary.
+- **Fix commit:** `049e3c042`. writeDispatchError + writeAuthError now take ctx; all 5 call sites pass r.Context() through.
+- **Pattern category:** observability-defect (1 entry).
+
+## Entry #17 — N-5 (RFC 6750 401 vocabulary)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 3rd pass — F-219 invented "Authorization Bearer header is required" instead of RFC 6750 §3 phrasing. Inconsistent vocabulary across the four 401 paths in DCR.
+- **Classification:** `incomplete_criterion` (pattern: `unspecified-error-vocabulary`).
+- **Kit amendment:** cavekit-register-handler.md R3 — added `MissingOrInvalidAccessTokenDescription` AC pinning the canonical string.
+- **Regression test:** none — short string; existing 401 tests assert the `error` code which is unchanged.
+- **Fix commit:** `049e3c042`. New const + dispatcher uses it.
+
+## Entry #18 — F-300 (negative ClientSecretExpiresIn)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 3rd pass — security audit found DCRConfig.Validate has no clause for ClientSecretExpiresIn. Misconfigured `-24h` produces past-timestamp on issue; RFC 7591 §3.2.1 spec breach.
+- **Classification:** `missing_criterion` (pattern: **`unspecified-config-sentinel` — 2nd entry** after F-204).
+- **Kit amendment:** cavekit-config.md R1 — added "non-negative" AC.
+- **Regression test:** `internal/api/oidc/dcr_config_test.go::TestDCRConfig_Validate_R1_F300_ClientSecretExpiresIn_NonNegative` (5 cases).
+- **Fix commit:** `049e3c042`.
+
+## Entry #19 — F-301 (unbounded body via -1 sentinel)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 3rd pass — F-204's `-1 = no cap` removed `http.MaxBytesReader` entirely. Anonymous attacker (DCR is anonymous-by-default) POSTs multi-GB body → OOM.
+- **Classification:** `incomplete_criterion` (pattern: `unspecified-config-sentinel` — **3rd entry** 🚨).
+- **Kit amendment:** cavekit-config.md R1 — 2 new ACs: AbsoluteMaxBodyBytes=100 MiB ceiling applies even with `-1`; startup WARN on `-1`.
+- **Regression test:** `internal/api/oidc/dcr/decode_test.go::TestDecode_R2_F301_AbsoluteCeilingEnforcedEvenWithNoCap` (3 cases: -1+oversized→413, -1+small→accept, positive>ceiling→clamp-down).
+- **Fix commit:** `049e3c042`. New `dcr.AbsoluteMaxBodyBytes` const; decoder clamps; Validate emits WARN.
+
+## Entry #20 — N-6 (consume-before-clamp = DoS amplification)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check 3rd pass — F-200 placement consumed IAT before clamp. Attacker with one stolen IAT could burn MaxUses slots by sending MaxUses bad-metadata requests.
+- **Classification:** `missing_criterion` (pattern: **`unspecified-handler-contract` — 4th entry** 🚨).
+- **Kit amendment:** cavekit-register-handler.md R6 — added 2 ACs: (a) formalized the F-200 dispatcher-consume contract that was logged in entry #10 but never written into the kit; (b) ordering AC: consume MUST run after clamp succeeds.
+- **Regression test:** `internal/api/oidc/dcr/dispatcher_test.go::TestDispatch_R6_N6_ConsumeIAT_AfterClamp` (clamp fails on `javascript:` redirect_uri → ConsumeIAT NOT called, register NOT called, 400 invalid_redirect_uri returned).
+- **Fix commit:** `049e3c042`.
+
+---
+
+## Pattern category summary (cumulative across 20 entries)
+| Category | Count |
+|----------|-------|
+| **unspecified-parser-contract** | **4** 🚨 (F-100/F-101/F-103/F-218) — open recommendation since entry #6 |
+| **unspecified-handler-contract** | **4** 🚨 (F-101/F-200/F-219/N-6) — open recommendation since entry #15; **fourth instance now lands** |
+| **unspecified-config-sentinel** | **3** 🚨 (F-204/F-300/F-301) — **NEW threshold reached this pass** |
+| unspecified-config-plumbing | 1 (F-201) |
+| unspecified-error-envelope-redaction | 1 (F-202) |
+| unspecified-error-vocabulary | 1 (N-5) |
+| ambiguous-handler-scope | 1 (F-203) |
+| unspecified-mount-contract | 1 (F-217) |
+| kit-internal-inconsistency | 1 (DE-001) |
+| infrastructural-transient (no-op) | 1 (F-102) |
+| closed-by-bundled-fix (no-op) | 1 |
+| test-method-defect | 1 (F-205) |
+| observability-defect | 1 (N-4) |
+
+## 🚨 THREE open cross-kit amendment thresholds
+
+1. **`unspecified-parser-contract`** (4 entries) — open since entry #6.
+2. **`unspecified-handler-contract`** (4 entries) — open since entry #15.
+3. **`unspecified-config-sentinel`** (3 entries) — **NEW THIS PASS**. F-204 (MaxRequestBodyBytes=0 silent default), F-300 (ClientSecretExpiresIn negative not validated), F-301 (`-1` removed safety net). All three were "config field accepts a value the spec didn't pin → silent default / missing validation / removed safety net".
+
+   **Recommended skill amendment**: every config field whose value is interpreted as a sentinel (0, -1, "" etc) MUST have its semantics pinned in the kit AC AND validated at startup. Default-fallback substitution that hides operator intent is FORBIDDEN.
+
+This is now the FOURTH cross-kit amendment recommendation in this build (the third was the meta-pattern `fix-introduces-its-own-regression` flagged in the 3rd /ck:check finding log). All four target the cavekit-writing skill, not individual project kits, and should be addressed via `/ck:design` before any more Tier 4 work.
