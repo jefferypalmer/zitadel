@@ -15,6 +15,14 @@ This would give us `${CUSTOM_DOMAIN}/.well-known/openid-configuration`.
 
 **Link to spec.** [OpenID Connect Discovery 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-discovery-1_0.html)
 
+When [Dynamic Client Registration](./dynamic-client-registration) is enabled
+on an instance, the same document additionally advertises the RFC 7591
+`registration_endpoint` field. ZITADEL also serves an RFC 8414 OAuth 2.0
+Authorization Server metadata document at
+`${CUSTOM_DOMAIN}/.well-known/oauth-authorization-server` whose payload is
+byte-identical for the shared fields. Both documents omit
+`registration_endpoint` entirely (never `null`) when DCR is disabled.
+
 ## authorization_endpoint
 
 `${CUSTOM_DOMAIN}/oauth/v2/authorize`
@@ -658,6 +666,31 @@ You could also combine caching with a risk-based on-demand refresh when a critic
 Without caching you will call this endpoint on each request.
 This might result in being rate limited for a large number of requests that come from the same backend.
 
+## registration_endpoint
+
+`${CUSTOM_DOMAIN}/oidc/v1/register`
+
+The registration_endpoint is the [Dynamic Client Registration](./dynamic-client-registration)
+entry point — `POST` to register a new OAuth 2.0 / OpenID Connect client at
+runtime, plus `GET` / `PUT` / `DELETE` on `/oidc/v1/register/{client_id}` for
+RFC 7592 client management. It is advertised in the discovery document only
+when DCR is enabled on the instance; otherwise the field is omitted (never
+emitted as `null`).
+
+**Links to specs.**
+[RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591) (registration),
+[RFC 7592](https://datatracker.ietf.org/doc/html/rfc7592) (management),
+[OpenID Connect Dynamic Client Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html).
+
 ## OAuth 2.0 metadata
 
-**ZITADEL** does not yet provide a OAuth 2.0 Metadata endpoint but instead provides a [OpenID Connect Discovery Endpoint](https://openid.net/specs/openid-connect-discovery-1_0.html).
+ZITADEL serves an RFC 8414 Authorization Server metadata document at
+`${CUSTOM_DOMAIN}/.well-known/oauth-authorization-server`. It is colocated
+with the OpenID Connect Discovery document and emits byte-identical values
+for the shared fields (`issuer`, `authorization_endpoint`, `token_endpoint`,
+`jwks_uri`, and — when DCR is enabled — `registration_endpoint`). Operators
+that need a strict OAuth 2.0 metadata view should prefer this endpoint;
+clients that already consume `/.well-known/openid-configuration` continue
+to work unchanged.
+
+**Link to spec.** [RFC 8414 — OAuth 2.0 Authorization Server Metadata](https://datatracker.ietf.org/doc/html/rfc8414)

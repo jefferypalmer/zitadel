@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 48 — 2026-04-27 (Tier 6 — T-081 existing-MDX updates)
+- T-081: DONE. `authn-methods.mdx`: new top section "None (public clients)" pinning `token_endpoint_auth_method=none` as Phase-1 supported via DCR + Claude Code/MCP with server-side PKCE S256 enforcement (R5 AC `authn-methods.mdx notes none Phase-1 supported` ✓). `endpoints.mdx`: discovery section gains note about RFC 7591 registration_endpoint + RFC 8414 byte-identity guarantee with omit-on-disabled (never null); replaced outdated "ZITADEL does not yet provide a OAuth 2.0 Metadata endpoint" stub with a real RFC 8414 description; new `## registration_endpoint` subsection links to T-079 DCR API ref (R5 AC `endpoints.mdx gains DCR subsection + RFC 8414 note` ✓). Both MDX files validate (frontmatter + balanced fences). Tier 6 status: 12/21.
+
 ### Iteration 47 — 2026-04-27 (Tier 6 — T-079 DCR API doc MDX)
 - T-079: DONE. New MDX at `apps/docs/content/apis/openidoauth/dynamic-client-registration.mdx`. Covers all R5 ACs: 7-RFC spec table, endpoint table, discovery + RFC 8414 samples (enabled + disabled showing `registration_endpoint` field absence not null), hostname-root requirement, anon + IAT auth modes, 12-row metadata table, 10-row status-code matrix, 201 response shape, 2 curl examples, RFC 7592 manage section + PUT idempotency caveat + DELETE token-revocation note, jwks_uri SSRF defence, rate-limit + T16 ADR cross-ref, audit log + XFF trust boundary, TLS posture, full yaml config reference, 5-step upgrade note, Claude Code MCP walkthrough with `claude mcp add --transport http`, related-links footer. 59 keyword hits across R5 ACs. MDX frontmatter present, heading hierarchy clean (no level skips), 14 code fences balanced. T-080/T-081/T-082/T-086 now unblocked. Tier 6 status: 11/21.
 

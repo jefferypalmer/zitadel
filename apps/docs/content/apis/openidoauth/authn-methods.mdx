@@ -1,8 +1,18 @@
 ---
 title: Authentication Methods in ZITADEL
-description: "The supported client authentication methods in ZITADEL, including Client Secret and JWT."
+description: "The supported client authentication methods in ZITADEL, including Client Secret, JWT, and the public-client `none` method used by Dynamic Client Registration."
 sidebar_label: Authentication Methods
 ---
+
+## None (public clients)
+
+Public clients — typically native apps and CLIs that cannot keep a secret —
+authenticate the token request with PKCE S256 alone. They use the
+`token_endpoint_auth_method=none` value during registration. ZITADEL accepts
+this value in **Phase 1** of [Dynamic Client Registration](./dynamic-client-registration),
+including for Claude Code / MCP integrations. PKCE S256 is enforced server-side
+on every authorization request from a `none` client; the registration response
+does not emit a `client_secret`.
 
 ## Client Secret Basic
 
