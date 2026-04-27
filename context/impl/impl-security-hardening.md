@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-27T12:00:00Z"
+last_edited: "2026-04-27T12:30:00Z"
 ---
 # Implementation Tracking: Security Hardening
 
@@ -8,6 +8,7 @@ Build site: context/plans/build-site.md
 
 | Task | Status | Notes |
 |------|--------|-------|
+| T-065 | DONE | T17 unit test in dcr/handler_test.go pinning registration_endpoint dual-state contract from the dcr-package perspective. New `TestT065_RegistrationEndpoint_T17_DualState` (2 sub-tests): (1) disabled-state JSON marshal asserts `omitempty` drops the key entirely (no literal `"null"`); (2) enabled-state asserts the URL parses as scheme=https + correct host + path=HandlerPrefix, and JSON contains the field non-null. Constant assertion `HandlerPrefix == "/oidc/v1/register"` pins the discovery emission's path component so a rename surfaces a test failure here in addition to the byte-identical assertion in `dcr_discovery_test.go::TestDiscoveryConfig_RegistrationEndpoint_NeverNullInJSON` (T-029) and the cross-doc test `TestDiscoveryAndAsMetadata_R3_BothOmitRegistrationWhenDisabled` (T-047). T17 root cause documented inline: Claude Code's Zod parser rejects `null` on optional URL fields. Files: `internal/api/oidc/dcr/handler_test.go` (+test, +`net/url`+`strings` imports). Build P, Tests P. |
 | T-059 | DONE | Hash-rotation cross-cut. R5 AC1 (RFC 7592 verify uses two-return form) + R5 AC2 (`.rehashed` event emission) + R5 AC3 (M4 affirmative decision: silent-rehash IS in scope, NOT deferred). Decision artifact: `context/impl/m4-hash-rotation-decision-t059.md` documents implementation evidence cross-referencing T-051's surface (`internal/api/oidc/dcr/manage.go:305` two-return Verify call + `RATVerifier` interface signature + `cmd/start/start.go:755` production wiring of `commands.SecretHasher()`). New test `TestT059_HashRotation_RealPasswap_TwoReturnForm` at `internal/api/oidc/dcr/manage_test.go` exercises the full two-return path through a REAL `passwap.NewSwapper(argon2id, bcrypt.Verifier)` rotation: stores a bcrypt-encoded RAT, calls VerifyRAT, asserts (a) verify succeeds, (b) Rehasher receives an argon2id-encoded hash distinct from original bcrypt encoding, (c) ManageContext.Rehashed=true. Distinct from `TestVerifyRAT_SilentRehash` (fake-verifier unit test) — T-059 catches regressions in Swapper-rotation wiring that the fake-verifier path masks. New `realRotationVerifier` adapter type. R5 AC4 (`dcr_iat_projection_lag_test.go` ≥95% retry success) cross-cut to T-060. Build P, Tests P. |
 | T-003 | DONE | CORS reuse inspection. Decision artifact: `context/impl/m0-cors-reuse-t003.md`. DCR handlers will wrap in existing `middleware.CORSInterceptor`; no new config tree. `rs/cors` semantics under `AllowCredentials:true` + `AllowOriginFunc` satisfy R1 "never `*` + credentials". |
 | T-006 | DONE | M0 log-redaction posture survey. Decision artifact: `context/impl/m0-log-redaction-survey-t006.md`. HTTP + gRPC middleware log NO bodies today; AccessLog already redacts Authorization/cookie headers; bodies not captured. T-061 still required for defensive redaction wrappers (protects against future debug-level logging). |

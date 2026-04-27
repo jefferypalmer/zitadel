@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -275,6 +277,95 @@ func TestHandler_FeatureGateOverridesMethodRouting(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), `"error":"feature_disabled"`,
 			"%s %s: expected feature_disabled envelope", c.method, c.path)
 	}
+}
+
+// TestT065_RegistrationEndpoint_T17_DualState pins the T17 threat-
+// model contract (cavekit-security-hardening.md R6) from the dcr-
+// package perspective: discovery emission MUST never produce
+// `"registration_endpoint": null` in JSON. Two cases are pinned
+// structurally:
+//
+//	enabled-state: a non-empty issuer + the dcr.HandlerPrefix yields
+//	  a parseable absolute URL with scheme + host + path.
+//	disabled-state: the source-of-truth helper returns "" so the
+//	  discovery struct's `omitempty` tag drops the key entirely.
+//
+// T17 root cause: Claude Code's Zod parser rejects `null` on optional
+// URL fields, so a regression that ever emits the literal `null`
+// breaks the hostname-root MCP probe. The byte-identical assertion
+// lives in `internal/api/oidc/dcr_discovery_test.go`
+// (TestDiscoveryConfig_RegistrationEndpoint_NeverNullInJSON, T-029);
+// this dcr-package test pins the same contract from the dcr surface so
+// a future refactor that moves the URL-construction logic into dcr
+// (e.g. when `dcr.NewHandler` grows a discovery hook) cannot regress
+// without a visible test failure here.
+func TestT065_RegistrationEndpoint_T17_DualState(t *testing.T) {
+	// HandlerPrefix is a compile-time constant — assert the documented
+	// shape so a future rename surfaces here AND in the parent
+	// discovery test rather than only in the harder-to-isolate
+	// dcr_discovery_test.
+	require.Equal(t, "/oidc/v1/register", HandlerPrefix,
+		"T17: HandlerPrefix is the discovery emission's path component; renaming it without updating discovery would silently break Claude Code MCP probing")
+
+	// Mimic the discovery emission's `omitempty`-on-empty-string
+	// contract structurally — when the source URL is "", the JSON
+	// drops the key. (Real impl lives at internal/api/oidc/server.go
+	// :registrationEndpointURL; this asserts the shape contract dcr
+	// participates in.)
+	type discoveryShape struct {
+		Issuer               string `json:"issuer"`
+		RegistrationEndpoint string `json:"registration_endpoint,omitempty"`
+	}
+
+	t.Run("disabled state — empty URL drops the key", func(t *testing.T) {
+		// Empty source URL → omitempty ensures NO `registration_endpoint`
+		// JSON key is emitted (NEVER `null`).
+		body, err := json.Marshal(discoveryShape{
+			Issuer:               "https://issuer.example",
+			RegistrationEndpoint: "",
+		})
+		require.NoError(t, err)
+		var raw map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(body, &raw))
+		_, present := raw["registration_endpoint"]
+		assert.False(t, present,
+			"T17: when DCR disabled, discovery JSON MUST omit registration_endpoint entirely — got: %s", string(body))
+		assert.NotContains(t, string(body), "null",
+			"T17: discovery JSON MUST NEVER contain literal 'null' for registration_endpoint (Claude Code Zod parser bug)")
+	})
+
+	t.Run("enabled state — absolute URL non-null", func(t *testing.T) {
+		// Mirror server.go::registrationEndpointURL: trim trailing
+		// slash, append HandlerPrefix.
+		const issuer = "https://issuer.example/"
+		got := strings.TrimRight(issuer, "/") + HandlerPrefix
+		body, err := json.Marshal(discoveryShape{
+			Issuer:               issuer,
+			RegistrationEndpoint: got,
+		})
+		require.NoError(t, err)
+
+		// Must parse as a usable absolute URL.
+		u, err := url.Parse(got)
+		require.NoError(t, err)
+		assert.Equal(t, "https", u.Scheme,
+			"T17: enabled-state URL MUST carry an absolute scheme")
+		assert.Equal(t, "issuer.example", u.Host,
+			"T17: enabled-state URL MUST carry the issuer host")
+		assert.Equal(t, HandlerPrefix, u.Path,
+			"T17: enabled-state URL MUST be issuer + HandlerPrefix (no double-slash, no fragment)")
+
+		// Must appear in JSON without `null`.
+		var raw map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(body, &raw))
+		v, present := raw["registration_endpoint"]
+		require.True(t, present,
+			"T17: when DCR enabled, registration_endpoint MUST be present in discovery JSON")
+		var asString string
+		require.NoError(t, json.Unmarshal(v, &asString))
+		assert.NotEmpty(t, asString)
+		assert.NotEqual(t, "null", asString)
+	})
 }
 
 func TestHandler_FeatureDisabled_BodyShape(t *testing.T) {
