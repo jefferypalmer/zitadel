@@ -56,6 +56,8 @@ Defines the HTTP handler for `POST /oidc/v1/register`: request parsing, RFC 7591
 - [ ] In anonymous mode (no header, `RequireInitialAccessToken=false`), `instance_id` is derived from the request host and `{org_id, project_id}` from `OIDC.DCR.DefaultOrgID` / `DefaultProjectID`.
 - [ ] In anonymous mode, the audit event records `iat_id=""` (sentinel for anonymous).
 - [ ] Cross-instance / cross-org / cross-project IAT abuse (e.g. an IAT issued for project A used to register into project B) is rejected at handler level.
+- [ ] **Auth-before-decode sequencing (added 2026-04-27 / F-219).** When `RequireInitialAccessToken=true` AND no `Authorization` header is present, the dispatcher MUST short-circuit with 401 `invalid_token` + `WWW-Authenticate: Bearer error="invalid_token"` BEFORE invoking the request decoder. The body cap, Content-Type check, and JSON parse MUST NOT execute on an unauthenticated probe — those error responses (413/415/400) leak server config (max body size, accepted content types, JSON-decoder behavior) to anonymous attackers fingerprinting the deployment. Anonymous mode (`RequireInitialAccessToken=false`) bypasses this check — the decoder runs unconditionally because anonymous registration is open by design.
+- [ ] Pinned by a regression test that posts a 100 KiB body with `Content-Type: text/plain` and no Bearer header to an instance with `RequireInitialAccessToken=true`, and asserts: response is 401 + `WWW-Authenticate: Bearer error="invalid_token"`, NOT 413 (body cap) and NOT 415 (Content-Type). (added 2026-04-27 / F-219)
 
 **Dependencies:** `cavekit-config.md` R1; `cavekit-iat.md` R2, R4.
 

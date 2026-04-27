@@ -299,15 +299,29 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		// 1. Decode request body (R2)
+		// 1. Auth-first short-circuit (R3 amendment 2026-04-27 / F-219).
+		// When RequireInitialAccessToken=true and no Bearer is present,
+		// short-circuit with 401 BEFORE the decoder runs. The body cap,
+		// Content-Type check, and JSON parse error responses (413/415/400)
+		// would otherwise leak server config to anonymous attackers
+		// fingerprinting the deployment.
+		mode, bearer := ClassifyAuthMode(r)
+		if mode == AuthModeAnonymous && deps.AnonConfig.RequireInitialAccessToken() {
+			w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+			WriteError(w, http.StatusUnauthorized, ErrCodeInvalidToken,
+				"Authorization Bearer header is required")
+			return
+		}
+
+		// 2. Decode request body (R2)
 		decoded, err := Decode(r, DecodeOptions{MaxBodyBytes: deps.MaxBodyBytes})
 		if err != nil {
 			writeDispatchError(w, err)
 			return
 		}
 
-		// 2. Authenticate (R3)
-		mode, bearer := ClassifyAuthMode(r)
+		// 3. Authenticate (R3) — either resolve the Bearer IAT OR fall
+		// through to anonymous resolution.
 		var regCtx *RegistrationContext
 		switch mode {
 		case AuthModeIAT:

@@ -580,3 +580,76 @@ func TestSanitiseErrorDescription_F202(t *testing.T) {
 		assert.Equal(t, "", SanitiseErrorDescription(""))
 	})
 }
+
+// TestDispatch_R3_F219_AuthBeforeDecode_Sequencing pins the
+// cavekit-register-handler.md R3 amendment 2026-04-27 / F-219 — when
+// RequireInitialAccessToken=true and no Bearer is present, the
+// dispatcher MUST short-circuit with 401 invalid_token + WWW-Authenticate
+// BEFORE the decoder runs. Otherwise an anonymous attacker fingerprints
+// MaxRequestBodyBytes (via 413), accepted Content-Types (via 415), and
+// JSON-decoder behavior (via 400) without ever being challenged.
+func TestDispatch_R3_F219_AuthBeforeDecode_Sequencing(t *testing.T) {
+	register := &stubRegister{clientID: "should-not-be-called"}
+	consumeCalled := 0
+	consume := func(_ context.Context, _ *RegistrationContext) error {
+		consumeCalled++
+		return nil
+	}
+	h := newDispatchHandlerWithConsume(t, register.fn(),
+		stubAnonConfig{requireIAT: true, defaultOrgID: "o", defaultProject: "p"},
+		consume)
+
+	t.Run("oversized body + wrong content-type + no Bearer → 401, NOT 413/415", func(t *testing.T) {
+		// Probe shape: 100 KiB body, Content-Type: text/plain, no Bearer.
+		// Pre-fix: dispatcher would 413 (body cap) or 415 (CT) leaking
+		// max-body-bytes / accepted-content-types to the attacker.
+		// Post-fix: 401 fires first.
+		hugeBody := strings.Repeat("x", 100*1024)
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(hugeBody))
+		req.Header.Set("Content-Type", "text/plain")
+		req = req.WithContext(ctxWithFeature(t, true))
+
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code,
+			"F-219: 401 MUST fire before decoder probes the body")
+		assert.Contains(t, w.Body.String(), `"error":"invalid_token"`,
+			"F-219: code MUST be invalid_token, NOT payload_too_large or unsupported_media_type")
+		assert.Equal(t, `Bearer error="invalid_token"`, w.Header().Get("WWW-Authenticate"),
+			"F-219: WWW-Authenticate header is mandatory on this short-circuit path")
+		assert.Equal(t, 0, register.called, "register MUST NOT run")
+		assert.Equal(t, 0, consumeCalled, "consume MUST NOT run on anonymous request")
+	})
+
+	t.Run("malformed JSON + no Bearer → 401, NOT 400", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{not json`))
+		req.Header.Set("Content-Type", "application/json")
+		req = req.WithContext(ctxWithFeature(t, true))
+
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code,
+			"F-219: malformed JSON probe MUST yield 401 first when require-IAT is on")
+		assert.NotContains(t, w.Body.String(), `"error":"invalid_client_metadata"`,
+			"F-219: decoder error MUST NOT fire on unauthenticated probe")
+	})
+
+	t.Run("anonymous mode (require-IAT off) — decoder runs unconditionally", func(t *testing.T) {
+		hAnon := newDispatchHandlerWithConsume(t, register.fn(),
+			stubAnonConfig{requireIAT: false, defaultOrgID: "o", defaultProject: "p"},
+			consume)
+
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{not json`))
+		req.Header.Set("Content-Type", "application/json")
+		req = req.WithContext(ctxWithFeature(t, true))
+
+		w := httptest.NewRecorder()
+		hAnon.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code,
+			"anonymous-mode: decoder runs and yields 400 invalid_client_metadata")
+		assert.Contains(t, w.Body.String(), `"error":"invalid_client_metadata"`)
+	})
+}
