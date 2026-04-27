@@ -102,7 +102,16 @@ func ValidateAndClampMetadata(
 	if len(out.ResponseTypes) == 0 {
 		return nil, newClampError(ErrCodeInvalidClientMetadata, "response_types", "must not be empty", "DCR-Vt005")
 	}
-	clampedRT := intersectStringSlice(out.ResponseTypes, cfg.AllowedResponseTypes())
+	// cavekit-register-handler.md R4 amendment 2026-04-27 / F-103: RFC
+	// 6749 §3.1.1 defines response_type values as space-separated SETS
+	// of tokens; `"token id_token"` ≡ `"id_token token"`. Canonicalize
+	// both sides before set-membership comparison, then echo the
+	// allow-list spelling (which mirrors zitadel/oidc/v3's canonical
+	// strings) on output so the rest of the OIDC stack — which switches
+	// on those exact literals at
+	// internal/api/oidc/auth_request_converter.go::ResponseTypeToBusiness —
+	// sees consistent values.
+	clampedRT := intersectResponseTypes(out.ResponseTypes, cfg.AllowedResponseTypes())
 	if len(clampedRT) == 0 {
 		return nil, newClampError(ErrCodeInvalidClientMetadata, "response_types",
 			"none of the requested values are allowed by DCR.AllowedResponseTypes", "DCR-Vt006")
@@ -251,6 +260,69 @@ type DCRConfigSubset interface {
 }
 
 // helpers ----------------------------------------------------------
+
+// canonicaliseResponseType normalises a response_type value (RFC 6749
+// §3.1.1 space-separated set) into a stable canonical form: tokens
+// split on whitespace, sorted alphabetically, joined with a single
+// space. Empty / whitespace-only input returns "".
+//
+// The canonical form deliberately matches the upstream
+// zitadel/oidc/v3 spelling (e.g. `ResponseTypeIDToken = "id_token
+// token"`) — sorted alphabetical order — so this canonicalization
+// produces the same string the rest of Zitadel's OIDC stack already
+// switches on.
+func canonicaliseResponseType(s string) string {
+	tokens := strings.Fields(s)
+	if len(tokens) == 0 {
+		return ""
+	}
+	slices.Sort(tokens)
+	return strings.Join(tokens, " ")
+}
+
+// intersectResponseTypes is the canonicalization-aware variant of
+// [intersectStringSlice] for `response_type` values. Both the
+// requested values and the allow-list entries are canonicalized
+// before equality. The output preserves the allow-list canonical
+// spelling (since the allow-list is the operator-blessed form).
+//
+// cavekit-register-handler.md R4 amendment 2026-04-27 / F-103.
+func intersectResponseTypes(requested, allowed []string) []string {
+	if len(allowed) == 0 {
+		return nil
+	}
+	// Pre-canonicalize the allow-list once so the inner loop is a
+	// constant-cost map lookup.
+	canonAllowed := make(map[string]string, len(allowed))
+	for _, a := range allowed {
+		canon := canonicaliseResponseType(a)
+		if canon == "" {
+			continue
+		}
+		// First-write-wins on duplicate canonical keys; the operator
+		// gets back their first spelling.
+		if _, exists := canonAllowed[canon]; !exists {
+			canonAllowed[canon] = a
+		}
+	}
+	out := make([]string, 0, len(requested))
+	seen := make(map[string]struct{}, len(requested))
+	for _, r := range requested {
+		canon := canonicaliseResponseType(r)
+		if canon == "" {
+			continue
+		}
+		if _, ok := canonAllowed[canon]; !ok {
+			continue
+		}
+		if _, dup := seen[canon]; dup {
+			continue
+		}
+		seen[canon] = struct{}{}
+		out = append(out, canonAllowed[canon])
+	}
+	return out
+}
 
 func intersectStringSlice(requested, allowed []string) []string {
 	if len(allowed) == 0 {

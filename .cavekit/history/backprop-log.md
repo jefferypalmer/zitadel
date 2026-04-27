@@ -185,13 +185,96 @@ fix, and pattern category so cross-iteration trends become visible.
   derived finding (rather than an independent root cause): the
   natural fix scope for F-101 subsumed it.
 
+## Entry #6 — F-103 / response_type whitespace-order sensitivity (RFC 6749 violation)
+
+- **Date:** 2026-04-27
+- **Triggered by:** `/ck:revise --trace --from-finding F-103` after the
+  `/ck:check` REJECT verdict (the last P1 finding).
+- **Source finding:** `context/impl/impl-review-findings.md` F-103.
+- **Classification:** `incomplete_criterion` — R4's "intersected with
+  DCR.AllowedResponseTypes" AC didn't pin equality semantics. T-034
+  implementer used exact-string `slices.Contains`. RFC 6749 §3.1.1
+  defines `response_type` values as space-separated SETS, so
+  `"token id_token"` and `"id_token token"` must compare equal.
+  Spec-compliant clients sending the non-canonical spelling got 400.
+- **Vulnerability:** Spec violation, not security — but actively
+  breaks Claude Code MCP and any client that defensively sorts its
+  own response_type tokens.
+- **Kit:** `cavekit-register-handler.md` → R4 (canonicalization AC
+  added; existing intersection AC tightened to refer to it).
+- **Amendment summary:** Both requested values and allow-list MUST
+  run through `canonicaliseResponseType` (`strings.Fields` + sort +
+  join with single space) before set-membership comparison. Canonical
+  form mirrors `zitadel/oidc/v3.ResponseTypeIDToken = "id_token token"`
+  upstream spelling so the rest of Zitadel's OIDC stack — which
+  switches on those exact literals at
+  `internal/api/oidc/auth_request_converter.go::ResponseTypeToBusiness` —
+  sees consistent values. Output preserves the operator-blessed
+  allow-list spelling.
+- **Brownfield-vs-greenfield discussion (recorded for future
+  reference):** before approving the proposal, the user asked whether
+  this matched existing Zitadel patterns. Investigation found Zitadel
+  already trusts the upstream library's canonical spelling and never
+  tokenizes itself (auth_request_converter.go switches on literal
+  upstream constants). The chosen Path A (canonicalize-on-input,
+  then string-equal) matches that pattern; the alternative Path B
+  (compare token sets at every comparison) would have introduced a
+  second response_type comparison style. Path A is greenfield-correct
+  AND brownfield-consistent.
+- **Regression test:** `internal/api/oidc/dcr/validate_test.go::TestValidateAndClampMetadata_R4_F103_ResponseTypeSetSemantics`
+  — 5 subtests covering non-canonical vs canonical match (both
+  directions), extra whitespace canonicalisation, single-token
+  unchanged, disallowed-token rejected even with whitespace
+  permutation. 3 of 5 fail pre-fix; all 5 pass post-fix.
+- **Test commit:** `8c7907404`
+- **Fix commit:** (next commit after this log entry)
+- **Pattern category:** `unspecified-parser-contract` — **THIRD**
+  entry in this family (F-100 host parser, F-101 dummy hash, F-103
+  set-equality semantics). Triggers the cross-kit amendment
+  recommendation per protocol (see warning below).
+
+⚠️⚠️⚠️ **CROSS-KIT AMENDMENT RECOMMENDATION TRIGGERED** ⚠️⚠️⚠️
+
+The `unspecified-parser-contract` pattern has now landed three times
+in this session. Shared root cause: kit ACs name a defensive
+mechanism or matching rule without pinning HOW the comparison /
+construction is computed. Implementers fill the gap with whatever
+feels natural — string-cut for hosts, hardcoded literal for hashes,
+exact-string equality for response_types — and the gap-fillers
+consistently miss spec semantics or production-config interactions.
+
+Recommended cross-kit amendment at the **cavekit-writing skill**
+level (`.claude/plugins/local/cavekit-marketplace/ck/skills/cavekit-writing/SKILL.md`
+or wherever the skill's authoring guidance lives): any AC that names
+a parser, hasher, dummy artifact, comparison rule, or matching rule
+MUST also pin:
+
+  (a) the exact library / function used (e.g. `net/url.Parse`,
+      `strings.Fields`, `secretHasher.Hash`)
+  (b) the equivalence semantics — string-equal? set-equal?
+      case-sensitive? whitespace-sensitive? Algorithm-bound?
+  (c) a startup probe or invariant test that exercises the REAL
+      dependency (not a stub) on a known-bad input — the failure
+      mode that indicates misconfiguration
+
+This would have caught all three: F-100 (kit would have specified
+`net/url.Hostname()`, ruling out the userinfo-bypass parser); F-101
+(kit would have specified `secretHasher.Hash` + ErrNoVerifier
+probe); F-103 (kit would have specified `strings.Fields` +
+canonical sort).
+
+The cavekit-writing skill amendment is OUT OF SCOPE for this DCR
+build but should be filed as a separate `/ck:revise --trace
+--from-skill cavekit-writing` after the build closes. Logging here
+so the recommendation isn't lost.
+
 ## Pattern category counts
 
 | Category | Count |
 |----------|-------|
 | kit-internal-inconsistency | 1 |
 | infrastructural-transient (no-op) | 1 |
-| unspecified-parser-contract | **2** ← warning: one more triggers cross-kit amendment recommendation |
+| unspecified-parser-contract | **3** 🚨 cross-kit amendment recommendation triggered (see entry #6 warning) |
 | closed-by-bundled-fix (no-op) | 1 |
 
 ⚠️ **Pattern observation:** two entries (F-100, F-101) in the same session share
