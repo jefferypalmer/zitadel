@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 42 — 2026-04-27 (Tier 6 — T-084)
+- T-084: DONE. T1-T20 threat-model evidence map. New artifact: `context/impl/m_t084_threat_model_evidence.md`. Rows: threat-id × short threat × mitigation type (config/code/docs/mixed) × source paths × test evidence × build-site task. All 14 dependency tasks (T-001/T-016/T-018/T-040/T-042/T-052/T-055/T-057/T-058/T-060/T-061/T-062/T-064/T-065) DONE. Notable carryovers documented in-file: T9 (XSS) blocked on frontend tier (T-070 ← T-069 human); T16 (rotating-IP) intentionally docs-only — ADR T-085 captures product sign-off; T19 (burst) deferred to runtime observability (zitadel.dcr.* metrics from T-067). Unblocks T-083 (SECURITY.md) + T-085 (ADR). No code change. Tier 6 status: 6/21 done.
+
 ### Iteration 41 — 2026-04-27 (Tier 6 — T-074 + translator fix)
 - T-074: DONE. R3 English-fallback contract. Discovered live defect: translator `localize()` discarded go-i18n's fallback template when MessageNotFoundErr fired, even though v2.4.0 localizer.go:200-214 returns BOTH the rendered default-language string AND the NotFound error. Fix: `errors.As(err, *MessageNotFoundErr) && s != ""` branch preserves `s`. Files (modified): internal/i18n/translator.go (fallback-tolerant branch + errors import). Files (new): internal/i18n/dcr_fallback_test.go (3 tests / 78 subtests: 5 unsupported locales × 11 keys × default lookup, per-method pin Localize/LocalizeWithoutArgs/LocalizeFromRequest, direct en/de lookup). Also moved earlier-iter dcr_keys_test.go from static/i18n/ to internal/i18n/ so statik regen doesn't embed it as a translation file (was causing init() panic "no unmarshaler registered for go"). Statik regenerated. Build P, Tests P (i18n + dcr + command + cmd/start + login + notification + grpc/server middleware all green). Tier 6 status: 5/21 done.
 
