@@ -57,6 +57,14 @@ Dispatching both in parallel via ck:task-builder subagents in isolated worktrees
 Waves executed: 4 (T-070, T-071, T-072+T-076+T-077, T-078)
 Tasks completed: 90/90 (Tier 6 frontend chain closeout; T-013 remains human-owned upstream PR push)
 
+═══ /ck:check 2026-04-27 (second pass) ═══
+Verdict: REVISE — 0 P0, 3 P1, 6 P2, 5 P3 across the Tier 6 frontend diff.
+Coverage: R1 PARTIAL (proto gap blocks AC3), R2 COMPLETE, R3 COMPLETE, R4 PARTIAL (fixture + click-through + local build/test).
+Kit amendments: R1 AC (proto-conditional wiring contract), R2 ACs (plaintext retention, list pagination, lifetime bound, revoke guard), R4 AC4 split + RegExp.toString() ban.
+Build site: Tier 8 added (T-091..T-099, 9 tasks) addressing F-001..F-009 + F-012.
+Next: `/ck:make` to drain Tier 8.
+
+
 
 
 

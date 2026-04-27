@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-27T11:00:00Z"
+last_edited: "2026-04-27T23:00:00Z"
 ---
 
 # Build Site
@@ -156,6 +156,22 @@ last_edited: "2026-04-27T11:00:00Z"
 
 ---
 
+## Tier 8 — Post-Tier-6 Revisions (from /ck:check 2026-04-27, second pass)
+
+| Task | Title | Cavekit | Requirement | blockedBy | Effort |
+|------|-------|---------|-------------|-----------|--------|
+| T-091 | F-001 fix: `tests/functional-ui/cypress/e2e/dcr/iat.cy.ts:49` uses `RegExp.toString()` inside `.should('contain.text', ...)` — stringifies regex literal to substring; assertion never matches. Replace with `.contains(/Revoked\|Widerrufen/i)` or `.should('match', /.../i)`. | cavekit-console-ui-docs-and-observability.md | R4 AC4 (new) | T-076 | XS |
+| T-092 | F-002 fix: paginate IAT admin list. Extend `AdminService.listInitialAccessTokens(projectId, query?: ListQuery)` to accept a `ListQuery`; default page size 100. Add `<cnsl-paginator>` to `iat-admin.component.html` and surface `details.totalResult`. | cavekit-console-ui-docs-and-observability.md | R2 AC (new pagination) | T-071 | M |
+| T-093 | F-003 fix: guard revoke for empty projectId. In `iat-admin.component.ts::revoke`, refuse to dispatch when `!token.projectId` and surface a toast/no-op. Document in TS that the projectId-required invariant is client-enforced. | cavekit-console-ui-docs-and-observability.md | R2 AC (new revoke guard) | T-071 | XS |
+| T-094 | F-005 fix: structurally bound plaintext retention in `IatPlaintextDialogComponent`. On `close()`, mutate `(this.data as any).token = ''` before `ref.close()`; ensure no closure outside the component instance retains the token. Add a unit test asserting `data.token === ''` post-close. | cavekit-console-ui-docs-and-observability.md | R2 AC3 (amended) | T-071 | S |
+| T-095 | F-006 fix: add `Validators.max(8760)` (or kit-defined cap) to `lifetimeHours` in `IatIssueDialogComponent`; remove the dead `Math.max(0, …)` clamp now that the validator covers it. | cavekit-console-ui-docs-and-observability.md | R2 AC (new lifetime bound) | T-071 | XS |
+| T-096 | F-004 fix forward: when proto-extension-dcr-marker lands, switch `isDynamicallyRegistered` from `return false` to the proto-driven predicate AND replace the hard-coded 100-row first page in `dynamic-clients.component.ts::load` with a paginated client loop OR a server-side filter on `AppQuery`. Add a follow-up TODO referencing this task. | cavekit-console-ui-docs-and-observability.md | R1 AC3 (amended) | T-070, proto-extension | M |
+| T-097 | F-008 fix: auto-mask the plaintext token after a bounded reveal duration (recommend 60s) in `IatPlaintextDialogComponent`. Add a re-mask button. Pin via test or screenshot. | cavekit-console-ui-docs-and-observability.md | R2 AC3 (amended) | T-094 | S |
+| T-098 | F-007 fix: bind `loading$` BehaviorSubject to the refresh button's `[disabled]` and to a `<mat-progress-bar>` in both `IatAdminComponent` and `DynamicClientsComponent`; prevents double-click parallel fetches. | cavekit-console-ui-docs-and-observability.md | R2 AC1 / R1 AC2 | T-070, T-071 | XS |
+| T-099 | F-009 + F-012 cleanup: move IAT methods in `admin.service.ts` to a contiguous block after the secret-generator group; remove unused `DESCRIPTIONS.DCR.CLIENTS.IAT_USED` from en.json + de.json (no template references). | cavekit-console-ui-docs-and-observability.md | R3 AC1 | T-071, T-072 | XS |
+
+---
+
 ## Summary
 
 | Tier | Tasks | Effort |
@@ -168,8 +184,9 @@ last_edited: "2026-04-27T11:00:00Z"
 | 5 | 8 | mixed S/M |
 | 6 | 21 | mixed S/M/L |
 | 7 | 4 | mixed XS/S (post-loop revisions from /ck:check 2026-04-27) |
+| 8 | 9 | mixed XS/S/M (post-Tier-6 /ck:check second pass 2026-04-27) |
 
-**Total: 90 tasks, 8 tiers**
+**Total: 99 tasks, 9 tiers**
 
 ## Coverage Matrix
 

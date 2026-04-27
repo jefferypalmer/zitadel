@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-27T19:00:00Z"
+last_edited: "2026-04-27T23:00:00Z"
 complexity: medium
 ---
 
@@ -27,8 +27,9 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 - [ ] The Dynamic Clients view lists registered apps with at least: client_id, client_name, registration method (anonymous / IAT-id), registration timestamp, link to view audit events.
 - [ ] No edit affordances are present (no "Edit metadata" button, no "Rotate RAT" button — those are user-managed via RFC 7592).
 - [ ] The view renders without errors when zero DCR-registered apps exist (uses the empty-state i18n key from R3).
+- [ ] **AC3 fulfilment is conditional on the management `App` proto exposing a DCR marker** (e.g. `bool dynamically_registered` or a `dcr_meta` JSON pass-through). Until that proto extension lands, the view ships with the listing template, columns, and audit-link routing wired but with the predicate stubbed to always-empty (which exercises AC5 every time). The Phase-1 wiring contract is: list-component + 5 columns + audit `[routerLink]="['/projects', projectId, 'apps', client.id]"` + empty-state branch — not a populated table. (Added 2026-04-27 from /ck:check Tier 6 finding F-T6-101 — "stubbed predicate is structurally complete but functionally empty"; previously implicit, now explicit.)
 
-**Dependencies:** `cavekit-iat.md` R6 (admin gRPC for cross-link); `cavekit-register-handler.md` R6 (audit events provide the metadata).
+**Dependencies:** `cavekit-iat.md` R6 (admin gRPC for cross-link); `cavekit-register-handler.md` R6 (audit events provide the metadata); proto extension `App.dynamically_registered` (follow-up, not Phase 1).
 
 ### R2: Initial Access Tokens admin UI under Instance Settings → Security
 **Description:** Admins can issue, list, and revoke IATs from the console. Wraps the gRPC from `cavekit-iat.md` R6.
@@ -37,6 +38,10 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 - [ ] An admin surface under Instance Settings → Security exposes Issue / List / Revoke for IATs. Exact subdirectory verified with console owner at M5.5 kickoff.
 - [ ] Issue dialog accepts: project_id, lifetime, max_uses, allowed_grant_types (multi-select), allowed_redirect_uri_patterns (textarea), description.
 - [ ] On issue, the dialog displays the plaintext IAT EXACTLY ONCE with a copy-to-clipboard button and an explicit "you cannot retrieve this again" warning.
+- [ ] **Plaintext-token retention is structurally bounded**: the modal MUST (a) use `disableClose: true` so ESC / click-outside cannot drop the token unintentionally, (b) zero the in-memory token reference (`data.token = ''`) on close, (c) never pass the plaintext back through `MatDialogRef.afterClosed()`, and (d) optionally re-mask after a bounded reveal duration. AC3's "EXACTLY ONCE / unrecoverable" requires the structural contract, not just the UX-layer one. (Added 2026-04-27 from /ck:check Tier 6 finding F-005 — discovered that `data.token` is held on the `MatDialogRef` until GC; the kit's previous AC3 only constrained the UX layer.)
+- [ ] **List view paginates** via `ListInitialAccessTokensRequest.query: ListQuery`. Default page size 100; surface `ListInitialAccessTokensResponse.details.totalResult` for the count chip. An unbounded fetch is a foot-gun on instances with thousands of IATs. (Added 2026-04-27 from /ck:check Tier 6 finding F-002 — `listInitialAccessTokens` wrapper omitted the `query` field entirely.)
+- [ ] **Lifetime-input bounds**: the Issue dialog's `lifetimeHours` field MUST validate against a sensible upper bound (recommend 8760 = one year). Without an upper validator, scientific-notation input (`1e3` → 3.6M seconds) silently accepts unreasonable lifetimes. (Added 2026-04-27 from /ck:check Tier 6 finding F-006.)
+- [ ] **Revoke guard for empty projectId**: the IAT admin Revoke action MUST refuse to dispatch when `token.projectId` is falsy (server-side semantics for instance-scoped IATs are undefined; client must enforce the projectId-required invariant or document the empty case). (Added 2026-04-27 from /ck:check Tier 6 finding F-003.)
 - [ ] List view shows id, project_id, expires_at, max_uses, uses_consumed, revoked status.
 - [ ] Revoke action prompts confirmation using the `DESCRIPTIONS.DCR.IAT.REVOKE_CONFIRM` i18n key, then calls `RevokeInitialAccessToken`.
 - [ ] All actions inherit permission from the parent admin route (no additional permission plumbing).
@@ -65,7 +70,8 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 - [ ] `tests/functional-ui/cypress/e2e/dcr/iat.cy.ts` exists and: logs in as instance admin via `cy.login()`, creates an IAT, asserts the list shows it, revokes it, asserts it no longer appears in active list.
 - [ ] `tests/functional-ui/cypress/e2e/dcr/dcr-clients.cy.ts` exists and: logs in as admin, lands on a project with at least one DCR-registered app fixture, asserts the Dynamic Clients view shows the app with its DCR metadata, follows the link to the audit-events view.
 - [ ] Tests follow the convention from `applications.cy.ts` (login + throwaway project + cleanup hook).
-- [ ] `pnpm nx affected --targets lint test build` is clean after the additions.
+- [ ] `pnpm nx affected --targets lint test build` is clean after the additions. **Local-environment fallback**: when the developer environment cannot run all three targets (e.g., Node 18.x for `build`, missing Go toolchain for `test`'s `@zitadel/api:generate-install` upstream), `lint` clean + `tsc --noEmit -p console/tsconfig.app.json` clean is the strongest local signal; `build` and `test` are CI gates by design. The Cypress specs themselves require a running Zitadel instance and run in CI, not locally. (Amended 2026-04-27 from /ck:check Tier 6 finding F-T6-103 — the original AC straddled two execution environments without acknowledging the split.)
+- [ ] **Cypress assertion grammar**: regexes in `.should()` and `.contains()` MUST be passed as `RegExp` literals, never as `RegExp.toString()`. The latter stringifies to `/pattern/flags` (with literal slashes) and is then matched as a substring against rendered text — a silent always-false. Cypress reviewers should grep for `\.toString\(\)` in spec files and reject it. (Added 2026-04-27 from /ck:check Tier 6 finding F-001 — the Tier 6 IAT smoke shipped with this exact bug.)
 
 **Dependencies:** R1, R2; `cavekit-iat.md` R6.
 
@@ -152,3 +158,7 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 ## Changelog
 - 2026-04-24: Initial draft from `dcr-plan.md`.
 - 2026-04-27: R3 amended from /ck:check Tier 6 review (findings F-T6-002 + F-T6-005). Added explicit translator-fallback AC ("Translator preserves go-i18n's rendered fallback string when `*MessageNotFoundErr` fires") that closes a real cross-package i18n bug discovered while writing the fallback test. Rewrote the previous "M5.5 worker opens 19 GitHub tickets" AC to be outcome-prescriptive ("each supported locale either ships translations or correctly falls back to English") — process-prescriptive original was superseded by T-075's direct hand-translation of 20 locales.
+- 2026-04-27 (post-Tier-6 /ck:check): R1, R2, R4 amended from second-pass review.
+  - R1 AC: explicit "wiring contract is empty-state until App proto exposes a DCR marker" (finding F-T6-101).
+  - R2 AC: structural plaintext-retention bounds (finding F-005), list pagination via ListQuery (F-002), lifetime upper bound (F-006), revoke guard for empty projectId (F-003).
+  - R4 AC: split build/test/lint local-vs-CI execution semantics (F-T6-103); reject `RegExp.toString()` in Cypress assertions (F-001).
