@@ -779,14 +779,28 @@ func startAPIs(
 				}
 			},
 		}
-		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcr.NewHandler(dcrDeps))
+		// cavekit-register-handler.md R1 amendment 2026-04-27 / F-217:
+		// DCR handler MUST be wrapped with instanceInterceptor +
+		// limitingAccessInterceptor so (a) authz.GetInstance(ctx)
+		// returns the per-host instance (anonymous-mode tenancy depends
+		// on this), and (b) the rate limiter throttles a write-amplifying
+		// unauthenticated endpoint. Mounting bare returns emptyInstance
+		// from authz.GetInstance, which makes featureGateMiddleware
+		// always read DynamicClientRegistration=false (endpoint
+		// unreachable) OR if any host-routing layer side-steps the gate,
+		// allows cross-tenant write with instance_id="".
+		dcrWrapped := instanceInterceptor.Handler(limitingAccessInterceptor.Handle(dcr.NewHandler(dcrDeps)))
+		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcrWrapped)
 		// RFC 8414 AS metadata (cavekit-discovery-and-as-metadata.md
 		// R2 / T-030). Mounted on the yaml gate; the runtime feature
 		// flag still governs whether `registration_endpoint` appears
 		// in the body so the document tracks the discovery doc (R3).
 		// When yaml=false the handler is unmounted and the request
 		// gets the mux-level 404 (R2 AC: "DCR.Enabled=false → 404").
-		apis.RegisterHandlerOnPrefix(as_metadata.HandlerPath, as_metadata.NewHandler(oidcServer.AsMetadata))
+		// F-217 mirror for the AS metadata handler — same interceptor
+		// chain so per-instance discovery actually works.
+		asMetaWrapped := instanceInterceptor.Handler(limitingAccessInterceptor.Handle(as_metadata.NewHandler(oidcServer.AsMetadata)))
+		apis.RegisterHandlerOnPrefix(as_metadata.HandlerPath, asMetaWrapped)
 	}
 	apis.RegisterHandlerPrefixes(oidcServer, oidcPrefixes...)
 
