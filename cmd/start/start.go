@@ -709,6 +709,37 @@ func startAPIs(
 			SupportedSigAlgs:         oidc.SupportedSigningAlgs(),
 			SoftwareStatementEnabled: config.OIDC.DCR.SoftwareStatement.Enabled,
 			AntiEnumDummyHash:        dcrDummyHash,
+			MaxBodyBytes:             config.OIDC.DCR.MaxRequestBodyBytes,
+			// Register closure bridges dcr → command without an import
+			// cycle. Translates dcr.RegisterRequest → command.RegisterClientInput
+			// and the result back per cavekit-register-handler.md R6 / T-040.
+			Register: func(ctx context.Context, req *dcr.RegisterRequest) (*dcr.RegisterResult, error) {
+				app, dcrMeta := req.Clamped.ToOIDCApp(), req.Clamped.BuildDCRMeta()
+				in := &command.RegisterClientInput{
+					App:                  app,
+					OrgID:                req.OrgID,
+					ProjectID:            req.ProjectID,
+					IATID:                req.IATID,
+					DCRMeta:              dcrMeta,
+					RegistrationMethod:   req.RegistrationMethod,
+					ClientNameUnclamped:  req.ClientNameUnclamped,
+					RemoteIPString:       req.RemoteIPString,
+					UserAgent:            req.UserAgent,
+					RATLifetime:          config.OIDC.DCR.RegistrationAccessToken.Lifetime,
+				}
+				res, err := commands.RegisterClient(ctx, in)
+				if err != nil {
+					return nil, err
+				}
+				return &dcr.RegisterResult{
+					ClientID:         res.ClientID,
+					ClientSecret:     res.ClientSecret,
+					RATPlaintext:     res.RATPlaintext,
+					RATExpiresAt:     res.RATExpiresAt,
+					ClientIDIssuedAt: res.ClientIDIssuedAt,
+					PersistedAppName: res.PersistedAppName,
+				}, nil
+			},
 		}
 		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcr.NewHandler(dcrDeps))
 		// RFC 8414 AS metadata (cavekit-discovery-and-as-metadata.md
