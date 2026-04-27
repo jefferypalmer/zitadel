@@ -79,10 +79,18 @@ func TestT067_R8_AC1to5_MetricNamesMatchKit(t *testing.T) {
 // ───────────────────────────────────────────────────────────────────────
 
 func TestT067_R8_RegistrationSucceeds(t *testing.T) {
-	// init() in metrics.go has already called RegisterMetrics. Calling
-	// it again is idempotent and exercises the production path.
+	// F-001 fix: registration is now lazy-on-first-record (no init()),
+	// matching the codebase pattern at
+	// internal/api/grpc/server/middleware/metrics_interceptor.go. Call
+	// RegisterMetrics explicitly to verify the surface still works in
+	// the test binary; production wiring relies on ensureRegistered()
+	// being triggered by the first record-call.
 	require.NoError(t, RegisterMetrics(),
 		"production callers expect RegisterMetrics to be idempotent")
+	// Trigger the lazy guard explicitly so subsequent assertions read
+	// post-registration state regardless of whether any earlier test
+	// in this binary already exercised a record-helper.
+	ensureRegistered()
 
 	// The five kit names MUST be registered — sanity-check by calling
 	// AddCount / AddHistogramMeasurement and asserting no NotFound.

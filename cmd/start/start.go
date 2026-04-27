@@ -690,6 +690,16 @@ func startAPIs(
 	// 404 (the "yaml off → 404" half of the dual-gate). The runtime
 	// feature-flag half lives inside dcr.Handler.
 	if config.OIDC.DCR.Enabled {
+		// Pre-register DCR metric instruments now that the global meter
+		// provider is bound to the configured exporter (vs the noop
+		// default at package-init time). The record-helpers in
+		// internal/api/oidc/dcr/metrics.go re-register lazily on first
+		// use; this call is the defence-in-depth path so the first
+		// request does not pay registration latency.
+		// F-001 fix (post-loop ck:check): drop init()-time registration
+		// in the dcr package and wire it here instead.
+		_ = dcr.RegisterMetrics()
+
 		// Build the anti-enum dummy hash via the configured Passwap
 		// hasher. Per cavekit-iat.md R4 amendment 2026-04-27 / F-101
 		// the dummy MUST come from the same hasher real IATs do so

@@ -1,9 +1,15 @@
 # Changelog
 
-ZITADEL release notes are generated automatically from conventional-commits
-on each tagged release; see the [GitHub Releases page](https://github.com/zitadel/zitadel/releases)
-for the canonical version history. This file captures notable cross-cutting
-features whose narrative does not fit a single commit message.
+> **Source-of-truth note.** ZITADEL's authoritative version history lives
+> in the [GitHub Releases page](https://github.com/zitadel/zitadel/releases),
+> generated automatically by `semantic-release` from conventional commits
+> on each tagged build. **This file is NOT in the `semantic-release`
+> plugin chain** — it is hand-maintained as a curated narrative for
+> cross-cutting features whose story does not fit a single commit
+> message. If a release-tooling change later wires
+> `@semantic-release/changelog` into `.releaserc.js`, this file becomes
+> the auto-maintained log; until then, treat every entry below as a
+> human-written supplement to the GitHub Release body.
 
 ## Unreleased
 
@@ -27,11 +33,12 @@ The feature ships **disabled by default**; enable it by setting
 - **Hostname-root issuer required.** DCR is only supported on
   hostname-root issuers (`https://example.com/`), not subpath issuers
   (`https://example.com/zitadel/`). MCP clients including Claude Code
-  resolve `registration_endpoint` against the issuer host. ZITADEL emits
-  a startup warning naming the probed
-  `.well-known/oauth-authorization-server` URL when DCR is enabled on a
-  subpath issuer; fix the deployment before exposing DCR to MCP-style
-  consumers.
+  resolve `registration_endpoint` against the issuer host. ZITADEL logs
+  a structured warning the first time
+  `/.well-known/oauth-authorization-server` is requested from a
+  misconfigured subpath issuer (deduplicated per `(instance, issuer)`
+  tuple thereafter), naming the probed URL; fix the deployment before
+  exposing DCR to MCP-style consumers.
 - **DELETE revokes tokens.** `DELETE /oidc/v1/register/{client_id}`
   returns 204 and revokes the client's outstanding access tokens AND
   refresh tokens on the same transaction (RFC 7592 §4 — the `RevokeApplicationTokens`

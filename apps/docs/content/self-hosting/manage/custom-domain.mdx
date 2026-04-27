@@ -70,11 +70,13 @@ for Claude Code / MCP integrations, the deployment MUST run on a
 likewise lives at the host root, so a subpath issuer cannot serve it
 correctly without a custom rewrite at the reverse proxy.
 
-ZITADEL emits a **startup warning** naming the probed
-`.well-known/oauth-authorization-server` URL when DCR is enabled
-(`OIDC.DCR.Enabled: true`) and the configured `ExternalDomain` resolves
-to a subpath. Treat the warning as a deployment defect: either move
-ZITADEL to the host root, or disable DCR for this deployment.
+When DCR is enabled (`OIDC.DCR.Enabled: true`) and the configured
+`ExternalDomain` resolves to a subpath, ZITADEL logs a structured
+warning naming the probed `.well-known/oauth-authorization-server` URL
+the **first time the AS-metadata endpoint is hit** (deduplicated per
+`(instance, issuer)` tuple thereafter). Treat that warning as a
+deployment defect: either move ZITADEL to the host root, or disable
+DCR for this deployment.
 
 This requirement does not affect any other ZITADEL feature; subpath
 deployments remain fully supported for all non-DCR workflows.

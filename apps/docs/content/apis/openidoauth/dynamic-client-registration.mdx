@@ -78,9 +78,11 @@ Sample (DCR disabled — note the absence of `registration_endpoint`):
 DCR is only supported on **hostname-root** issuer URLs (`https://example.com/`),
 not on subpath issuers (`https://example.com/zitadel/`). MCP clients including
 Claude Code resolve `registration_endpoint` against the issuer host, not the
-issuer path. Subpath deployments will start ZITADEL with a warning naming
-the probed `.well-known/oauth-authorization-server` URL — fix the deployment
-before exposing DCR to MCP-style consumers.
+issuer path. ZITADEL emits a warning to its structured log on the first
+request to `/.well-known/oauth-authorization-server` from a subpath issuer
+(deduplicated per `(instance, issuer)` tuple), naming the probed URL —
+treat that warning as a deployment defect and fix it before exposing DCR
+to MCP-style consumers.
 
 ## Authentication modes
 
@@ -382,7 +384,7 @@ ZITADEL's anonymous-mode hardening (PKCE S256 enforcement, redirect URI
 clamping, audit log) applies to every Claude Code registration.
 
 For the full integration walkthrough, see the
-[Claude Code MCP guide](./claude-code-mcp).
+[Claude Code MCP guide](../../guides/integrate/tools/claude-code-mcp).
 
 ## Related links
 

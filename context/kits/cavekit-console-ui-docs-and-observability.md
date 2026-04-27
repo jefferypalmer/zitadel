@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-27T19:00:00Z"
 complexity: medium
 ---
 
@@ -52,7 +52,8 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 - [ ] Column-label keys for `expires_at`, `created_at`, `uses_consumed` are also added under the same namespace.
 - [ ] Backend error keys `Errors.DCR.*` are added to `internal/api/ui/login/static/i18n/*.yaml` (English canonical). Required keys, traceable to the kit-3 R8 status-code matrix and the kit-2 R1/R2 unique-constraint error: `Errors.DCR.FeatureDisabled`, `Errors.DCR.InvalidClientMetadata`, `Errors.DCR.InvalidRedirectURI`, `Errors.DCR.InvalidSoftwareStatement`, `Errors.DCR.UnapprovedSoftwareStatement`, `Errors.DCR.InvalidToken`, `Errors.DCR.IAT.Exhausted`, `Errors.DCR.IAT.SlotAlreadyConsumed`, `Errors.DCR.IAT.NotFound`, `Errors.DCR.IAT.Expired`, `Errors.DCR.IAT.Revoked`. German translations maintained for the same keys; other 19 locales fall back to English.
 - [ ] Integration test `dcr_i18n_fallback_test.go` asserts that with an unsupported `Accept-Language`, error_description falls back to English and NEVER emits a raw translation key (e.g., `Errors.DCR.SomeKey`).
-- [ ] M5.5 worker opens one GitHub issue per unsupported locale (19 issues) using the repo's translation issue template, assigned to `@zitadel/i18n` team. Issue links recorded in M5.5 worker report.
+- [ ] **Translator preserves go-i18n's rendered fallback string when `*MessageNotFoundErr` fires.** `internal/i18n/translator.go::localize()` MUST NOT discard the rendered template returned alongside the not-found error from go-i18n's Localizer. Without this branch, every i18n consumer in the repo emits the raw key string when a request arrives with an `Accept-Language` whose bundle has no translation for the requested ID, regardless of whether the bundle's default language has it. (Added 2026-04-27 from /ck:check finding F-T6-002 — discovered while implementing the fallback test above; closed a real cross-package bug.)
+- [ ] **For every supported locale, each `Errors.DCR.*` key resolves to a non-empty, non-raw-key string.** The original Phase-1 plan was to translate only English + German and let go-i18n fall back to English for the remaining 20 locales; T-075 instead translated all 22 locales by hand. Either approach satisfies this AC: a locale's `Errors.DCR.*` block is either present and human-translated OR absent (in which case the fallback test above guarantees English emission). What is NOT acceptable is a locale where the keys are present but partially-empty / partially-English-copied — that is a translation-quality regression, not a fallback. (Rewritten 2026-04-27 from /ck:check finding F-T6-005 — original AC was process-prescriptive, "open 19 GitHub tickets"; replaced with outcome-prescriptive language.)
 - [ ] Per-locale translation tickets do NOT block Phase 1 merge.
 
 **Dependencies:** R1, R2.
@@ -150,3 +151,4 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 
 ## Changelog
 - 2026-04-24: Initial draft from `dcr-plan.md`.
+- 2026-04-27: R3 amended from /ck:check Tier 6 review (findings F-T6-002 + F-T6-005). Added explicit translator-fallback AC ("Translator preserves go-i18n's rendered fallback string when `*MessageNotFoundErr` fires") that closes a real cross-package i18n bug discovered while writing the fallback test. Rewrote the previous "M5.5 worker opens 19 GitHub tickets" AC to be outcome-prescriptive ("each supported locale either ships translations or correctly falls back to English") — process-prescriptive original was superseded by T-075's direct hand-translation of 20 locales.

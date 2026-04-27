@@ -90,11 +90,17 @@ ingress (or accept that the audit row records the load-balancer IP
 hash). Misconfigured ingress ⇒ XFF spoofing, since DCR is reachable
 without a per-request session.
 
-### T16 product sign-off
+### T16 residual risk
 
 The rotating-IP-flood residual risk for the anonymous-mode DCR
-endpoint is acknowledged and product-signed-off in
+endpoint is described in
 [ADR-0001 Dynamic Client Registration](docs/adr/ADR-0001-dynamic-client-registration.md).
+Per-role sign-off (Engineering / Security / Product) is recorded in
+that ADR's Sign-off section and is **pending human review at time
+of writing**; until that matrix is filled, the mitigation guidance
+below should be treated as engineering-proposed rather than
+formally endorsed.
+
 Operators that disable IAT-required mode must front the endpoint
 with a CDN or WAF capable of distributed-IP rate-limiting; the
 ZITADEL access quota alone is per-instance and cannot defend

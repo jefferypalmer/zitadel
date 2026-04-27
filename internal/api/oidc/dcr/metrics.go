@@ -3,6 +3,7 @@ package dcr
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -95,10 +96,29 @@ var requestDurationBuckets = []float64{
 }
 
 // RegisterMetrics registers all five DCR metrics on the global meter.
-// Idempotent; safe to call from init() or from a startup wiring hook.
-// Returns the first registration error if any, but production callers
-// SHOULD NOT abort on metric-registration failure — observability
-// gaps are preferable to a deployment that refuses to serve traffic.
+// Idempotent — repeated calls are no-ops at the underlying meter
+// wrapper because [metrics.RegisterCounter] / [metrics.RegisterHistogram]
+// early-return when the name is already known.
+//
+// Production callers SHOULD NOT abort on metric-registration failure —
+// observability gaps are preferable to a deployment that refuses to
+// serve traffic.
+//
+// MUST NOT be called from package init(). The global meter is captured
+// from [otel.GetMeterProvider] inside a [sync.OnceValue] guard; if any
+// counter is created before [instrumentation.Setup] installs the real
+// provider, the cached counter may permanently dispatch to the noop
+// meter (depending on otel-go's instrument-delegation guarantees,
+// which we deliberately do not depend on).
+//
+// Each `record*` helper below calls RegisterMetrics opportunistically
+// on its first invocation per process, mirroring the codebase's
+// established lazy-register-on-first-use pattern from
+// `internal/api/grpc/server/middleware/metrics_interceptor.go`. The
+// guard is amortised across the lifetime of the process by
+// [registerOnce]; the underlying RegisterCounter / RegisterHistogram
+// calls are themselves idempotent so repeated calls are harmless even
+// without the guard.
 func RegisterMetrics() error {
 	if err := metrics.RegisterCounter(MetricRegistrationsTotal, MetricRegistrationsTotalDescription); err != nil {
 		return err
@@ -123,19 +143,26 @@ func RegisterMetrics() error {
 	return nil
 }
 
-// init registers the DCR metrics on package load. The global meter
-// is the noop meter until the instrumentation package's startup
-// hook installs an exporter — in that pre-startup window registration
-// still succeeds and the noop counters silently swallow Add calls,
-// so this init() is safe in test binaries too.
-func init() {
-	_ = RegisterMetrics()
+// registerOnce amortises [RegisterMetrics] across the process lifetime
+// without calling it from init(). The first record-call triggers
+// registration; later calls are skipped via [sync.Once].
+//
+// Defence-in-depth: this is a precondition guard, not a correctness
+// guarantee. Even if RegisterMetrics fails (returns a non-nil error),
+// the record-helpers still call AddCount / AddHistogramMeasurement —
+// those calls go through the metrics package's NotFound error branch
+// which we swallow. The metric simply never emits in that case.
+var registerOnce sync.Once
+
+func ensureRegistered() {
+	registerOnce.Do(func() { _ = RegisterMetrics() })
 }
 
 // recordRegistration increments [MetricRegistrationsTotal] with the
 // three labels mandated by R8 AC1. Best-effort: any error from the
 // metrics layer is swallowed so observability never fails a request.
 func recordRegistration(ctx context.Context, result, authMethod, applicationType string) {
+	ensureRegistered()
 	_ = metrics.AddCount(ctx, MetricRegistrationsTotal, 1, map[string]attribute.Value{
 		MetricLabelResult:          attribute.StringValue(result),
 		MetricLabelAuthMethod:      attribute.StringValue(authMethod),
@@ -147,6 +174,7 @@ func recordRegistration(ctx context.Context, result, authMethod, applicationType
 // on [MetricRequestDurationSeconds]. No labels — duration is reported
 // as a single global series per R8 AC2.
 func recordRequestDuration(ctx context.Context, elapsed time.Duration) {
+	ensureRegistered()
 	_ = metrics.AddHistogramMeasurement(ctx, MetricRequestDurationSeconds, elapsed.Seconds(), nil)
 }
 
@@ -155,6 +183,7 @@ func recordRequestDuration(ctx context.Context, elapsed time.Duration) {
 // so the label cardinality stays bounded by the documented RFC 7591
 // + DCR-internal code set.
 func recordError(ctx context.Context, code string) {
+	ensureRegistered()
 	if code == "" {
 		code = ErrCodeServerError
 	}
@@ -166,12 +195,14 @@ func recordError(ctx context.Context, code string) {
 // recordIATConsumed increments [MetricIATConsumedTotal] on every
 // successful IAT slot reservation (R8 AC4).
 func recordIATConsumed(ctx context.Context) {
+	ensureRegistered()
 	_ = metrics.AddCount(ctx, MetricIATConsumedTotal, 1, nil)
 }
 
 // recordIATExhausted increments [MetricIATExhaustedTotal] when an IAT
 // consume returns the exhausted condition (R8 AC5).
 func recordIATExhausted(ctx context.Context) {
+	ensureRegistered()
 	_ = metrics.AddCount(ctx, MetricIATExhaustedTotal, 1, nil)
 }
 

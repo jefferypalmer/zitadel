@@ -194,11 +194,22 @@ notes) is at `context/impl/m_t084_threat_model_evidence.md`.
 
 ## Sign-off
 
-| Role | Approved | Date |
-|------|----------|------|
-| Engineering | ✅ | 2026-04-27 |
-| Security | ✅ | 2026-04-27 |
-| Product (incl. T16 residual-risk acknowledgement) | ✅ | 2026-04-27 |
+This ADR was drafted alongside the Phase-1 implementation. The sign-off
+matrix below MUST be filled in by the named human reviewers before the
+T16 residual-risk acceptance recorded in this ADR is treated as
+authoritative.
+
+| Role | Approved | Date | Reviewer |
+|------|----------|------|----------|
+| Engineering | _Pending_ | _TBD_ | _TBD_ |
+| Security | _Pending_ | _TBD_ | _TBD_ |
+| Product (incl. T16 residual-risk acknowledgement) | _Pending_ | _TBD_ | _TBD_ |
+
+Until the matrix is filled, downstream artefacts that reference this
+ADR for residual-risk acceptance — `SECURITY.md`'s T16 sign-off
+section, the `CHANGELOG.md` "Operators must front the endpoint with a
+CDN/WAF" note — should be read as engineering-proposed mitigations
+pending product review, NOT as endorsed deployment guidance.
 
 ## References
 

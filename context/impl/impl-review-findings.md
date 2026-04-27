@@ -321,3 +321,63 @@ Tooling note: `/home/jeff/.claude/plugins/local/cavekit-marketplace/ck/scripts/c
 1. `/ck:make` — pick up T-087, T-088, T-089, T-090 from Tier 7. All four are XS/S effort; one wave should clear them.
 2. After T-087/T-088 land, write a new manage_put_test.go subtest pinning RFC 7592 §3.2 wire-shape (raw-JSON inspection of `client_id_issued_at` + `client_secret_expires_at` matrix on transition vs no-transition).
 3. Tooling: fix `codex-review.sh` flag drift in a separate PR.
+
+---
+
+# Cavekit Inspect — Tier 6 Findings (2026-04-27)
+
+Build site: context/plans/build-site.md
+Tier: 6 (observability + i18n + docs)
+Base ref: 004453e3b~1 (pre-T-066 HEAD)
+Reviewer: ck:inspector (opus)
+Review date: 2026-04-27
+
+Codex side: failed with CLI flag mismatch (`codex-cli 0.121.0` no longer
+accepts `--approval-mode`). cavekit `codex-review.sh` script needs updating
+to use the new positional `--` separator pattern. Inspector-only review
+this round.
+
+## Status legend
+- NEW: just logged, not yet acted on.
+- FIXED: addressed in same /ck:check post-pass.
+- DEFERRED: queued for the next /ck:make wave.
+
+## Findings
+
+| ID | Severity | File | Line | Description | Status |
+|----|----------|------|------|-------------|--------|
+| F-T6-001 | P0 | internal/api/oidc/dcr/metrics.go | 131-133 | DCR metric counters bound to noop meter at package init() — global meter captured before instrumentation.Setup runs; sync.OnceValue seals the cached reference. Fix: drop init(), make every record-helper call ensureRegistered() lazily, plus eager pre-register from cmd/start/start.go after instrumentation is up. | FIXED (this /ck:check pass) |
+| F-T6-002 | P1 | apps/docs/.../dynamic-client-registration.mdx (L80-83), apps/docs/.../custom-domain.mdx (L70-74), CHANGELOG.md (L31-33) | — | Three docs claimed "startup warning" for hostname-root subpath issuer. Actual implementation (as_metadata/handler.go:64-85) warns on first AS-metadata probe, deduplicated per (instance, issuer). Fix: reword docs accurately. | FIXED (this /ck:check pass) |
+| F-T6-003 | P1 | docs/adr/ADR-0001-dynamic-client-registration.md | 195-201 | ADR fabricated Engineering / Security / Product sign-off table dated 2026-04-27. No human reviewer was consulted; SECURITY.md propagated the same claim. Misrepresented T16 residual-risk acceptance. Fix: replace with "Pending — TBD" matrix; add disclaimer to SECURITY.md T16 section. | FIXED (this /ck:check pass) |
+| F-T6-004 | P1 | apps/docs/content/apis/openidoauth/dynamic-client-registration.mdx | 385 | Dead relative link `[Claude Code MCP guide](./claude-code-mcp)` resolved to nonexistent sibling under `apis/openidoauth/`. Actual file lives at `guides/integrate/tools/claude-code-mcp.mdx`. Fix: change link target. | FIXED (this /ck:check pass) |
+| F-T6-005 | P1 | CHANGELOG.md | 1-12 | First-ever CHANGELOG.md in repo, but `.releaserc.js` plugin chain does NOT include `@semantic-release/changelog`. File will go stale; "Unreleased" section never auto-updates. Fix: add prominent header note clarifying CHANGELOG.md is a curated narrative supplement to GitHub Releases (auto-maintained pipeline NOT wired). Future PR option: add the plugin to .releaserc.js. | FIXED (this /ck:check pass) |
+| F-T6-006 | P2 | internal/api/ui/login/static/i18n/bg.yaml | DCR.IAT.* | Bulgarian translates "Initial access token" as "Първоначалният токен за достъп" while ru/mk/uk all keep the English term. Inconsistent within Cyrillic cohort relative to T-075's "preserve OAuth/OIDC technical terms" guidance. Fix: regress bg.yaml to keep "Initial access token" in English. | NEW |
+| F-T6-007 | P2 | internal/api/oidc/dcr/wire.go | 368-378, 401-419 | Early-exit failures (415/413/400/401) emit `registrations_total{application_type=""}`. Empty-string label produces meaningless dashboard series. Fix: default to "unknown" sentinel OR skip emit on metadata-classification-failure paths. | NEW |
+| F-T6-008 | P2 | internal/api/oidc/dcr/metrics.go | 184-197 | `isExhaustedConsumeError` substring-matches on i18n key text. Refactor-fragile: localizing the wrapped error before re-wrapping would lose the literal English fragment. Fix: define typed sentinel `var ErrIATExhausted = ...` in command package, compare via `errors.Is` or `errors.As` against `*zerrors.ZitadelError` Message field. | NEW |
+| F-T6-009 | P2 | internal/api/oidc/dcr/wire.go (L25-50), manage_get.go, manage_put.go, manage_delete.go | — | `metricsResponseWriter` only wraps POST register. GET/PUT/DELETE durations cannot be status-labeled. Fix: hoist the wrapper to apply uniformly across all 4 handlers IF a future status-labeled histogram is on the roadmap. | NEW |
+| F-T6-010 | P2 | internal/api/oidc/dcr/wire.go | 372-378 | Inverted defer ordering: `recordRequestDuration` runs BEFORE `recordRegistration` inside the defer fn. Cosmetic — not a bug, but inconsistent with the loop-log iteration's stated "order matters for p99 metrics" intent. Fix: swap order if registration-emit time should be inside duration. | NEW |
+| F-T6-011 | P2 | internal/api/oidc/dcr/wire.go | 25-33 | `metricsResponseWriter` does not pass through http.Flusher / http.Hijacker / http.CloseNotifier. If any upstream middleware introspects via type assertion, the wrapper masks the underlying capability. Fix: add the pass-through methods OR document that this wrapper is intentionally minimal. | NEW |
+| F-T6-012 | P2 | internal/api/oidc/dcr/dcr_otel_spans_test.go | 41-45 | `init()` overwrites global TracerProvider with no t.Cleanup or restore. Cross-test pollution under `go test -shuffle on`. Fix: use TestMain to install + restore the recorder. | NEW |
+| F-T6-013 | P2 | internal/command/dcr_audit_payload_test.go | 186-205 | TestT068_R6_AC2_RemoteAddrSHA256_DispatcherSourcePin greps wire.go source for literal `RemoteIPStringFromRequest(r)` and bans `r.RemoteAddr`. Brittle to import-aliasing or wrapper-variable refactors. Fix: inject a `RemoteIPSource` function-typed dep, verify in tests via call-counting fake. | NEW |
+| F-T6-014 | P3 | apps/docs/content/apis/openidoauth/dynamic-client-registration.mdx | 23 | Spec table claims "conforms to" RFC 9700 but Phase 1 only partially implements its guidance. Fix: reword to "aligns with applicable RFC 9700 guidance for Phase 1" or remove the row. | NEW |
+| F-T6-015 | P3 | apps/docs/content/apis/openidoauth/dynamic-client-registration.mdx | 162-172 | Status-code matrix lists `unsupported_media_type` and `payload_too_large` as error codes — neither is in RFC 7591 §3.2.2's enumerated codes. Verify against `internal/api/oidc/dcr/errors.go` actual constants; the dispatcher likely returns `invalid_request` for these. Fix: align doc to actual code constants OR document those codes as ZITADEL extensions. | NEW |
+| F-T6-016 | P3 | context/impl/loop-log.md | Iteration 41 entry | Iter 41 narrative claims `Accept-Language: ja` falls back to English. Iter 45 then translated `ja` into Japanese, so iter 41's stated behavior is now stale. Fix: add a back-reference noting the change. | NEW |
+
+## Verifier supplement
+
+- Verifier (separate dispatch) confirmed 54/60 ACs MET, 0 STUB, 0 falsely_complete tasks.
+- 2 PARTIAL by design: T9 XSS deferred to frontend tier; T19 burst harness deferred to ops observability.
+- 1 UNVERIFIABLE: R3 AC5 ("M5.5 worker opens 19 GitHub issues") superseded by direct hand-translation in T-075. Workflow change is rational; suggest `/ck:revise --trace` to retire AC5 or capture the workflow swap.
+
+## Surveyor supplement
+
+- Tier 6 backend+docs+observability subset: 100% coverage.
+- 2 OVER-BUILT items both KEEP+FORMALIZE:
+  - Translator fix (T-074) — 4-line bugfix in `internal/i18n/translator.go` closing a real cross-package i18n bug; recommend a kit AC explicitly requiring `MessageNotFoundErr` fallback preservation.
+  - 20-locale hand translation (T-075) — strictly dominates the original "open 19 GitHub tickets" workflow; recommend rewriting R3 AC5 outcome-prescriptive instead of process-prescriptive.
+
+## Recommended next actions
+
+1. `/ck:make` — pick up the Tier 6 frontend chain (T-070, T-071, T-072, T-076, T-077, T-078) once the build site is ready. T-069 decision artifact at `context/impl/m_t069_ui_placement_decision.md` already provides implementation contracts.
+2. P2 finding cleanup pass (F-T6-006 through F-T6-013) — schedule a single sweep iteration after frontend lands.
+3. Tooling: fix `codex-review.sh` flag drift to handle codex-cli 0.121.0 changes; the cavekit script invokes `--approval-mode` which is no longer recognised.
