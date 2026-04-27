@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T13:30:00Z"
-last_edited: "2026-04-26T00:00:00Z"
+last_edited: "2026-04-27T00:00:00Z"
 ---
 # Codex Peer Review — Tier 0 Findings
 
@@ -54,3 +54,36 @@ remediation option:
 Preferred path depends on upstream merge timeline. Short SLA →
 Option D; long SLA → Option B (bundle T-004+T-026+T-027 in Tier 2
 with the interim sidecar from T-012).
+
+---
+
+# /ck:check Findings — 2026-04-27 (Tier 0–3 mid-build review)
+
+Build site: context/plans/build-site.md
+Tier reviewed: 0–3 (38 of 86 tasks DONE)
+Base ref: 3220f3d9a (pre-Tier-2 main)
+Reviewer: ck:inspector (opus) + ck:surveyor (opus) + ck:verifier (opus)
+Review date: 2026-04-27
+
+## Findings
+
+| ID | Severity | File | Line | Description | Status |
+|----|----------|------|------|-------------|--------|
+| F-100 | **P0** | internal/api/oidc/dcr/validate.go | 297-317 (extractHost) + 284-295 (matchesAnyHostPattern) | `AllowedRedirectURIHostPatterns` bypass via URL userinfo. extractHost cuts on `://`, `/`, `?`, `#` then splits port on `:` but never strips the RFC 3986 userinfo segment before `@`. URL `https://app.example.com:8080@evil.com/cb` parses to host=`app.example.com` and matches `*.example.com`; real host is `evil.com`. **Authorization-code exfiltration** — attacker registers a client with attacker-controlled DNS, defeats the host allow-list, steals codes via the malicious redirect. validate_test.go covers wildcards/IPv6/exact match but ZERO userinfo-bearing URLs. Reveals **kit gap** in cavekit-register-handler.md R4 — host-extraction algorithm unpinned. | NEW |
+| F-101 | **P0** | internal/api/oidc/dcr/auth.go | 178 (dummyPassWapHash) + internal/command/iat.go:328-343 (VerifyIATPlaintext) + cmd/defaults.yaml:984-998 | Anti-enumeration dummy hash defeats itself — **INVERTED timing oracle**. dummyPassWapHash hardcoded as `$argon2id$v=19$m=65536,t=2,p=1$...` but cmd/defaults.yaml ships `Algorithm: bcrypt` with empty `Verifiers` list. passwap.Swapper.Verify on `$argon2id$`-encoded string returns ErrNoVerifier immediately — zero crypto work. Real bcrypt-cost-4 verify takes ~5ms; dummy returns in microseconds. not-found / malformed / cross-instance paths now MEASURABLY FASTER than wrong-random — *inverted* oracle, **worse than no defence**. auth_test.go stubVerifier short-circuits on `encoded == s.matchHash` so unit tests never decode the dummy. Reveals **kit gap** in cavekit-iat.md R4 anti-enum AC — dummy hash is unspecified relative to the configured hasher. | NEW |
+| F-102 | P1 | internal/api/oidc/dcr/auth.go | 198-257 (ResolveIAT) | T-037 production path is dead code. `grep -rn "ResolveIAT\|ParseIATPlaintext"` finds zero non-test callers. T-040 dispatcher (consumer) still pending. Kit edit + tests claim "T-037 lands in full" but no production code reaches the function — F-101 cannot surface in any integration test because nothing reaches ResolveIAT. T-037 should be downgraded from DONE to PARTIAL until T-040 lands the wiring. F-101 fix (move dummy-hash construction to wiring site) addresses both. | NEW |
+| F-103 | P1 | internal/api/oidc/dcr/validate.go:104 + internal/domain/application_oidc.go (rfc7591ResponseTypes) | response_types clamp is whitespace-order-sensitive. RFC 6749 §3.1.1 defines value as a **space-separated SET** — `"token id_token"` MUST equal `"id_token token"`. Clamp does exact `slices.Contains`; domain mapper switches on literal string. Spec-compliant clients sending `"token id_token"` get 400. Reveals kit gap in cavekit-register-handler.md R2 + R4 (response_types semantics not spec'd). | NEW |
+| F-104 | P2 | internal/api/grpc/admin/iat.go:93-108 + internal/query/initial_access_tokens_search.sql | ListInitialAccessTokens lying API contract — proto declares ListQuery + ListDetails; impl ignores both. SQL has no LIMIT/OFFSET; ListDetails never populated. Trim proto or implement pagination. cavekit-iat.md R6 + impl drifted. | NEW |
+| F-105 | P2 | apps/api/test-integration-api.yaml + context/impl/impl-config.md (T-048) | Anonymous-mode integration coverage silently deferred. T-048 sets `RequireInitialAccessToken=true`, gating AC4/AC5 anonymous resolution to unit-test only. No follow-up task tracks this. Add an integration-fixture variant with anonymous mode + DefaultProjectID/DefaultOrgID set via instance-feature commands. | NEW |
+| F-106 | P3 | internal/query/projection/initial_access_token.go:170 + internal/query/initial_access_token.go:37 | consumed_slots SMALLINT[] silently overflows at use_index 32768 on finite=true tokens with very high max_uses. Document a kit-level cap on max_uses ≤ 32767, OR migrate column to INT[]. Inspector flagged this in Tier 2 review; restated. | OPEN |
+
+## Verdict
+
+**REJECT** — 2 P0 findings block forward progress. T-040 (RegisterClient keystone) MUST NOT land until F-100 + F-101 are routed through `/ck:revise --trace --from-finding F-100` / `F-101`. Both reveal kit gaps that need backprop, not just code fixes.
+
+## Recommended next actions
+
+1. **Route F-100 and F-101 through `/ck:revise --trace`** — both reveal kit gaps requiring user-approved kit amendments before code fixes. F-100 amends cavekit-register-handler.md R4 to pin the host-extraction algorithm (use net/url + reject userinfo). F-101 amends cavekit-iat.md R4 to require the dummy hash come from the same hasher instance + adds a startup probe AC.
+2. **Bundle F-102 into F-101 fix** — moving dummy-hash construction to a wiring-site initialization call also gives ResolveIAT a real production caller as soon as T-040 ships.
+3. **Defer F-103 / F-104 / F-105 / F-106** — log + revisit at next /ck:check boundary; not blocking.
+4. **Downgrade T-037 status** — flip from DONE to PARTIAL in `context/impl/impl-register-handler.md` until T-040 wiring lands.
