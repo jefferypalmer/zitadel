@@ -132,10 +132,10 @@ func ResolveAnonymous(ctx context.Context, cfg AnonymousConfig) (*RegistrationCo
 // needs from query.Queries. Defined as an interface so unit tests can
 // stub it without spinning up the full DB harness.
 type IATLookupQueries interface {
-	InitialAccessTokenByID(ctx context.Context, id, resourceOwner string) (*queryIATRow, error)
+	InitialAccessTokenByID(ctx context.Context, id, resourceOwner string) (*QueryIATRow, error)
 }
 
-// queryIATRow mirrors the subset of [query.InitialAccessToken] the
+// QueryIATRow mirrors the subset of [query.InitialAccessToken] the
 // auth path consumes. Defined as a local alias-shaped struct so this
 // package does not have to import the full query package (avoids the
 // import cycle between dcr → query and query → dcr that would arise
@@ -144,7 +144,7 @@ type IATLookupQueries interface {
 // Fields kept aligned with the order in
 // `internal/query/initial_access_token.go::InitialAccessToken` so a
 // type-converter is a 1:1 field copy.
-type queryIATRow struct {
+type QueryIATRow struct {
 	ID            string
 	InstanceID    string
 	ResourceOwner string
@@ -164,18 +164,14 @@ type IATVerifier interface {
 // command.ParseIATPlaintext at the start.go wiring site.
 type PlaintextParser func(presented string) (id, random string, ok bool)
 
-// dummyPassWapHash is a fixed precomputed Passwap-encoded hash used
-// for the anti-enumeration timing path per cavekit-iat.md R4
-// amendment 2026-04-26. The contents do not matter — only that
-// VerifyIATPlaintext takes constant-ish-time computing an unsuccessful
-// match against it. Generated once at package init and cached.
-//
-// The handler MUST run a Verify against this fixed hash on every
-// not-found / invalid-format / wrong-instance code path so unknown-ID
-// timing matches known-ID-wrong-random timing within typical Passwap
-// variance. This mirrors the same defence cavekit-manage-handler.md
-// R3 / cavekit-security-hardening.md R4 spec for unknown client_id.
-var dummyPassWapHash = "$argon2id$v=19$m=65536,t=2,p=1$ZHVtbXktc2FsdC1mb3ItYW50aS1lbnVtZXJh$ZHVtbXktaGFzaC1mb3ItYW50aS1lbnVtZXJhdGlvbi1uZXZlci1tYXRjaGVz"
+// (dummyPassWapHash literal removed 2026-04-27 / F-101 — see
+// cavekit-iat.md R4 amendment. The dummy hash now travels through
+// [RegistrationDeps.AntiEnumDummyHash], built by [BuildAntiEnumDummyHash]
+// at startup so its algorithm prefix matches the configured
+// `passwap.Swapper`. A hardcoded `$argon2id$` literal vs a bcrypt-
+// configured swapper returned `passwap.ErrNoVerifier` in microseconds
+// while the wrong-random branch ran real bcrypt-verify in milliseconds,
+// inverting the anti-enumeration oracle.)
 
 // ResolveIAT implements cavekit-register-handler.md R3 AC2-AC3, AC6
 // (T-037 — the post-DE-001 implementation). Steps:
@@ -195,18 +191,24 @@ var dummyPassWapHash = "$argon2id$v=19$m=65536,t=2,p=1$ZHVtbXktc2FsdC1mb3ItYW50a
 // The function does NOT consume the slot — it stops at verification.
 // The split lets T-040 bundle slot-consume into the same eventstore
 // transaction as the application-creation events for atomicity.
+//
+// `antiEnumDummyHash` MUST be the value built by [BuildAntiEnumDummyHash]
+// at startup (cavekit-iat.md R4 amendment 2026-04-27 / F-101).
+// Passing a static literal will reintroduce the inverted timing
+// oracle.
 func ResolveIAT(
 	ctx context.Context,
 	queries IATLookupQueries,
 	verifier IATVerifier,
 	parse PlaintextParser,
 	presented string,
+	antiEnumDummyHash string,
 ) (*RegistrationContext, error) {
 	id, _, ok := parse(presented)
 	if !ok {
 		// Bad shape. Anti-enum: still pay one Verify so timing matches
 		// the wrong-random case.
-		_ = verifier.VerifyIATPlaintext(presented, dummyPassWapHash)
+		_ = verifier.VerifyIATPlaintext(presented, antiEnumDummyHash)
 		return nil, &ClampError{
 			Code:        ErrCodeInvalidToken,
 			Description: "Authorization Bearer is not a recognised IAT plaintext",
@@ -218,7 +220,7 @@ func ResolveIAT(
 	if err != nil {
 		// Not-found / cross-instance / DB error — uniform Verify-then-401
 		// to suppress the unknown-ID-vs-wrong-random timing oracle.
-		_ = verifier.VerifyIATPlaintext(presented, dummyPassWapHash)
+		_ = verifier.VerifyIATPlaintext(presented, antiEnumDummyHash)
 		return nil, &ClampError{
 			Code:        ErrCodeInvalidToken,
 			Description: "the presented Initial Access Token is not valid for this instance",
@@ -231,7 +233,7 @@ func ResolveIAT(
 	// ctx instance empty would surface a row from any instance. Verify
 	// the binding here so the auth boundary is explicit.
 	if row.InstanceID != authz.GetInstance(ctx).InstanceID() {
-		_ = verifier.VerifyIATPlaintext(presented, dummyPassWapHash)
+		_ = verifier.VerifyIATPlaintext(presented, antiEnumDummyHash)
 		return nil, &ClampError{
 			Code:        ErrCodeInvalidToken,
 			Description: "the presented Initial Access Token is not valid for this instance",

@@ -690,7 +690,27 @@ func startAPIs(
 	// 404 (the "yaml off → 404" half of the dual-gate). The runtime
 	// feature-flag half lives inside dcr.Handler.
 	if config.OIDC.DCR.Enabled {
-		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcr.Handler())
+		// Build the anti-enum dummy hash via the configured Passwap
+		// hasher. Per cavekit-iat.md R4 amendment 2026-04-27 / F-101
+		// the dummy MUST come from the same hasher real IATs do so
+		// the encoded algorithm prefix has a registered Verifier;
+		// hardcoded literals invert the timing oracle. The function
+		// panics on `passwap.ErrNoVerifier` — fail-fast at boot.
+		dcrDummyHash, err := dcr.BuildAntiEnumDummyHash(commands.SecretHasher())
+		if err != nil {
+			return nil, fmt.Errorf("dcr anti-enum dummy hash: %w", err)
+		}
+		dcrDeps := dcr.RegistrationDeps{
+			Queries:                  &dcrQueriesAdapter{q: queries},
+			Verifier:                 commands, // *command.Commands.VerifyIATPlaintext satisfies dcr.IATVerifier
+			Parser:                   command.ParseIATPlaintext,
+			Config:                   oidc.DCRClampAdapter{C: &config.OIDC.DCR},
+			AnonConfig:               oidc.DCRAnonAdapter{C: &config.OIDC.DCR},
+			SupportedSigAlgs:         oidc.SupportedSigningAlgs(),
+			SoftwareStatementEnabled: config.OIDC.DCR.SoftwareStatement.Enabled,
+			AntiEnumDummyHash:        dcrDummyHash,
+		}
+		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcr.NewHandler(dcrDeps))
 		// RFC 8414 AS metadata (cavekit-discovery-and-as-metadata.md
 		// R2 / T-030). Mounted on the yaml gate; the runtime feature
 		// flag still governs whether `registration_endpoint` appears
@@ -844,4 +864,29 @@ func checkExisting(values []string) func(string) bool {
 	return func(value string) bool {
 		return slices.Contains(values, value)
 	}
+}
+
+// dcrQueriesAdapter bridges *query.Queries to dcr.IATLookupQueries
+// (cavekit-iat.md R4 amendment 2026-04-27 / F-101 wiring). The dcr
+// package defines a local *queryIATRow rather than importing
+// internal/query, so the wiring layer here translates the query
+// struct field-by-field. The dcr-side struct is intentionally narrow
+// — it carries only the four fields ResolveIAT consumes (ID,
+// InstanceID, ResourceOwner, ProjectID, TokenHash).
+type dcrQueriesAdapter struct {
+	q *query.Queries
+}
+
+func (a *dcrQueriesAdapter) InitialAccessTokenByID(ctx context.Context, id, resourceOwner string) (*dcr.QueryIATRow, error) {
+	row, err := a.q.InitialAccessTokenByID(ctx, id, resourceOwner)
+	if err != nil {
+		return nil, err
+	}
+	return &dcr.QueryIATRow{
+		ID:            row.ID,
+		InstanceID:    row.InstanceID,
+		ResourceOwner: row.ResourceOwner,
+		ProjectID:     row.ProjectID,
+		TokenHash:     row.TokenHash,
+	}, nil
 }

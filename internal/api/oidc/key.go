@@ -34,6 +34,14 @@ func supportedSigningAlgs() []string {
 	return supportedWebKeyAlgs
 }
 
+// SupportedSigningAlgs is the exported counterpart used by the DCR
+// registration handler wiring to pass server-advertised signing
+// algorithms into [dcr.RegistrationDeps] (cavekit-register-handler.md
+// R4: id_token_signed_response_alg validation).
+func SupportedSigningAlgs() []string {
+	return supportedWebKeyAlgs
+}
+
 type cachedPublicKey struct {
 	lastUse atomic.Int64 // unix micro time.
 	expiry  *time.Time   // expiry may be nil if the key does not expire.

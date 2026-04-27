@@ -167,7 +167,7 @@ func TestResolveIAT_F101_RealPasswapTimingEquivalence(t *testing.T) {
 	}
 
 	notFoundQueries := stubIATQueries{err: errors.New("nf")}
-	wrongRandomQueries := stubIATQueries{row: &queryIATRow{
+	wrongRandomQueries := stubIATQueries{row: &QueryIATRow{
 		ID:            "iat-1",
 		InstanceID:    "inst-1",
 		ResourceOwner: "org-1",

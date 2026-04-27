@@ -156,11 +156,11 @@ func TestResolveAnonymous_R3_DefensiveDefaultsCheck(t *testing.T) {
 // stubIATQueries / stubIATVerifier are the test seams for ResolveIAT.
 
 type stubIATQueries struct {
-	row *queryIATRow
+	row *QueryIATRow
 	err error
 }
 
-func (s stubIATQueries) InitialAccessTokenByID(ctx context.Context, id, ro string) (*queryIATRow, error) {
+func (s stubIATQueries) InitialAccessTokenByID(ctx context.Context, id, ro string) (*QueryIATRow, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -204,7 +204,7 @@ func parseStub(presented string) (string, string, bool) {
 // Verify → RegistrationContext{IATID=row.ID, etc.}.
 func TestResolveIAT_R3_HappyPath(t *testing.T) {
 	ctx := authz.WithInstanceID(context.Background(), "inst-1")
-	row := &queryIATRow{
+	row := &QueryIATRow{
 		ID:            "iat-row-1",
 		InstanceID:    "inst-1",
 		ResourceOwner: "org-from-iat",
@@ -214,7 +214,7 @@ func TestResolveIAT_R3_HappyPath(t *testing.T) {
 	q := stubIATQueries{row: row}
 	v := &stubIATVerifier{matchHash: "stored-hash-XYZ"}
 
-	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-row-1.somerandom")
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-row-1.somerandom", "stub-dummy-hash")
 	require.NoError(t, err)
 	require.NotNil(t, got)
 	assert.Equal(t, "inst-1", got.InstanceID)
@@ -232,7 +232,7 @@ func TestResolveIAT_R4_DummyVerifyOnNotFound(t *testing.T) {
 	q := stubIATQueries{err: errors.New("not found")}
 	v := &stubIATVerifier{matchHash: "never-matches"}
 
-	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_unknown-id.somerandom")
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_unknown-id.somerandom", "stub-dummy-hash")
 	assert.Nil(t, got)
 	ce, ok := IsClampError(err)
 	require.True(t, ok)
@@ -249,7 +249,7 @@ func TestResolveIAT_R5_DummyVerifyOnMalformed(t *testing.T) {
 	q := stubIATQueries{}
 	v := &stubIATVerifier{matchHash: "never-matches"}
 
-	got, err := ResolveIAT(ctx, q, v, parseStub, "garbage-not-a-zdiat-token")
+	got, err := ResolveIAT(ctx, q, v, parseStub, "garbage-not-a-zdiat-token", "stub-dummy-hash")
 	assert.Nil(t, got)
 	ce, ok := IsClampError(err)
 	require.True(t, ok)
@@ -263,7 +263,7 @@ func TestResolveIAT_R5_DummyVerifyOnMalformed(t *testing.T) {
 // over the SQL WHERE clause).
 func TestResolveIAT_R3_WrongInstanceRejected(t *testing.T) {
 	ctx := authz.WithInstanceID(context.Background(), "inst-1")
-	row := &queryIATRow{
+	row := &QueryIATRow{
 		ID:            "iat-1",
 		InstanceID:    "inst-OTHER", // mismatch — would only happen if SQL filter is misconfigured
 		ResourceOwner: "org-x",
@@ -273,7 +273,7 @@ func TestResolveIAT_R3_WrongInstanceRejected(t *testing.T) {
 	q := stubIATQueries{row: row}
 	v := &stubIATVerifier{matchHash: "hash-x"} // would have matched if we let it through
 
-	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-1.somerandom")
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-1.somerandom", "stub-dummy-hash")
 	assert.Nil(t, got)
 	ce, ok := IsClampError(err)
 	require.True(t, ok)
@@ -286,7 +286,7 @@ func TestResolveIAT_R3_WrongInstanceRejected(t *testing.T) {
 // stored Passwap encoding.
 func TestResolveIAT_R3_WrongRandomRejected(t *testing.T) {
 	ctx := authz.WithInstanceID(context.Background(), "inst-1")
-	row := &queryIATRow{
+	row := &QueryIATRow{
 		ID:            "iat-1",
 		InstanceID:    "inst-1",
 		ResourceOwner: "org-x",
@@ -296,7 +296,7 @@ func TestResolveIAT_R3_WrongRandomRejected(t *testing.T) {
 	q := stubIATQueries{row: row}
 	v := &stubIATVerifier{matchHash: "different-hash"} // forces Verify to fail
 
-	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-1.wrongrandom")
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-1.wrongrandom", "stub-dummy-hash")
 	assert.Nil(t, got)
 	ce, ok := IsClampError(err)
 	require.True(t, ok)

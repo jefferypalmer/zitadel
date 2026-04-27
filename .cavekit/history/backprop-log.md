@@ -111,10 +111,76 @@ fix, and pattern category so cross-iteration trends become visible.
   isolated to validate.go + the test — no cross-package dependencies,
   no schema changes, no migration.
 
+## Entry #4 — F-101 / inverted anti-enum timing oracle
+
+- **Date:** 2026-04-27
+- **Triggered by:** `/ck:revise --trace --from-finding F-101` after a
+  `/ck:check` REJECT verdict (the second of two P0s; F-100 was
+  resolved in entry #3).
+- **Source finding:** `context/impl/impl-review-findings.md` F-101.
+- **Classification:** `incomplete_criterion` — the anti-enum AC (added
+  in entry #1's DE-001 amendment) named the right defence but didn't
+  constrain the dummy hash provenance. T-038 implementer hardcoded a
+  `$argon2id$` literal; production cmd/defaults.yaml ships
+  `Algorithm: bcrypt` + empty `Verifiers`, so passwap returned
+  `ErrNoVerifier` instantly on the dummy and inverted the timing
+  oracle.
+- **Vulnerability:** Not-found / parse-failure / cross-instance paths
+  returned in microseconds while the wrong-random branch ran real
+  bcrypt-cost-4 verify in milliseconds. Worse than no defence.
+- **Kit:** `cavekit-iat.md` → R4 (single anti-enum AC replaced with
+  three).
+- **Amendment summary:**
+  - AC1 — provenance: dummy MUST come from `secretHasher.Hash(sentinel)`
+    at startup; hand-written hash literals FORBIDDEN.
+  - AC2 — startup probe: wiring code MUST `Verify(dummy, "x")` once at
+    boot and panic on `passwap.ErrNoVerifier`.
+  - AC3 — real-Passwap timing test: N≥50 iterations through the live
+    swapper, ratio mean-not-found / mean-wrong-random ∈ [0.5, 2.0].
+    Stub-only tests don't satisfy AC3.
+- **Regression test:** `internal/api/oidc/dcr/wire_test.go` — three
+  tests: `TestBuildAntiEnumDummyHash_F101_PanicsOnErrNoVerifier` (probe
+  panic), `TestBuildAntiEnumDummyHash_F101_HappyPath` (matched-algorithm
+  Verify), `TestResolveIAT_F101_RealPasswapTimingEquivalence` (live
+  bcrypt swapper, 50 iterations, ratio 1.012 in measured run). All
+  fail to compile pre-fix (BuildAntiEnumDummyHash + new ResolveIAT
+  signature don't exist); pass post-fix.
+- **Test commit:** `168dc7531`
+- **Fix commit:** (next commit after this log entry)
+- **T-040 wiring scaffold delivered in same fix** — at user request,
+  the F-101 fix included `dcr.RegistrationDeps`, `dcr.NewHandler(deps)`,
+  `cmd/start/start.go` wiring (anti-enum dummy hash + queries adapter
+  + clamp config adapter + anonymous config adapter), exported
+  `Commands.SecretHasher()` accessor, exported `oidc.SupportedSigningAlgs()`,
+  and adapter types `oidc.DCRClampAdapter` / `oidc.DCRAnonAdapter`.
+  This closes F-102 (ResolveIAT was dead code) by giving it a real
+  production caller. T-040 RegisterClient now plugs into the deps
+  struct cleanly.
+- **Pattern category:** `unspecified-parser-contract` — same family as
+  F-100 (kit permissive about a specific provenance/derivation rule,
+  implementer filled with ineffective artifact). With this entry the
+  category counter reaches 2.
+
 ## Pattern category counts
 
 | Category | Count |
 |----------|-------|
 | kit-internal-inconsistency | 1 |
 | infrastructural-transient (no-op) | 1 |
-| unspecified-parser-contract | 1 |
+| unspecified-parser-contract | **2** ← warning: one more triggers cross-kit amendment recommendation |
+
+⚠️ **Pattern observation:** two entries (F-100, F-101) in the same session share
+`unspecified-parser-contract`. The shared root cause is kit ACs that name
+a defensive mechanism without pinning its construction/algorithm/derivation
+rule. Implementers fill the gap with whatever feels reasonable, which has
+twice now produced an artifact that passes unit tests (built against
+permissive interfaces or string-equality stubs) while failing the actual
+security invariant against real production dependencies.
+
+If a third `unspecified-parser-contract` entry lands, recommend a cross-kit
+amendment at the cavekit-writing skill level: any AC mentioning a parser,
+hasher, dummy artifact, or string-extraction rule MUST also pin (a) the
+exact library/function used, (b) a startup probe or invariant test that
+exercises the *real* dependency (not a stub), (c) the failure mode that
+indicates misconfiguration. This would have caught both F-100 and F-101
+at sketch time.

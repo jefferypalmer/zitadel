@@ -347,6 +347,16 @@ func samlCertificateAndKeyGenerator(keySize int, lifetime time.Duration) func(id
 
 // Close blocks until all async jobs are finished,
 // the context expires or after eventstore.PushTimeout.
+// SecretHasher returns the configured Passwap secret hasher. Exposed
+// for the DCR registration handler wiring (cavekit-iat.md R4 amendment
+// 2026-04-27 / F-101): the dcr package builds the anti-enum dummy
+// hash by calling Hash on this same hasher at startup so the encoded
+// algorithm prefix matches the configured Verifiers list. Hardcoded
+// hash literals in dcr code are forbidden by the kit AC.
+func (c *Commands) SecretHasher() *crypto.Hasher {
+	return c.secretHasher
+}
+
 func (c *Commands) Close(ctx context.Context) error {
 	if c.eventstore.PushTimeout != 0 {
 		var cancel context.CancelFunc

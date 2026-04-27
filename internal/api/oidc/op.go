@@ -96,6 +96,36 @@ type DCRJwksURIConfig struct {
 	DisallowedIPRanges []string
 }
 
+// DCRClampAdapter wraps DCRConfig to satisfy `dcr.DCRConfigSubset`
+// (the metadata clamp interface) without requiring the dcr package
+// to import this one — keeps the import graph one-way (start.go →
+// dcr, not dcr → oidc package). The adapter is a thin pass-through;
+// it allocates nothing and is safe to construct per request if
+// needed.
+type DCRClampAdapter struct {
+	C *DCRConfig
+}
+
+func (a DCRClampAdapter) AllowedGrantTypes() []string         { return a.C.AllowedGrantTypes }
+func (a DCRClampAdapter) AllowedResponseTypes() []string      { return a.C.AllowedResponseTypes }
+func (a DCRClampAdapter) AllowedAuthMethods() []string        { return a.C.AllowedAuthMethods }
+func (a DCRClampAdapter) AllowedApplicationTypes() []string   { return a.C.AllowedApplicationTypes }
+func (a DCRClampAdapter) AllowedRedirectURIHostPatterns() []string {
+	return a.C.AllowedRedirectURIHostPatterns
+}
+func (a DCRClampAdapter) MaxRedirectURIs() int { return a.C.MaxRedirectURIs }
+
+// DCRAnonAdapter wraps DCRConfig to satisfy `dcr.AnonymousConfig`
+// for the anonymous-mode resolution path
+// (cavekit-register-handler.md R3 AC4-AC5 / T-038).
+type DCRAnonAdapter struct {
+	C *DCRConfig
+}
+
+func (a DCRAnonAdapter) RequireInitialAccessToken() bool { return a.C.RequireInitialAccessToken }
+func (a DCRAnonAdapter) DefaultOrgID() string            { return a.C.DefaultOrgID }
+func (a DCRAnonAdapter) DefaultProjectID() string        { return a.C.DefaultProjectID }
+
 // BackChannelLogoutConfig returns the BackChannelLogoutWorkerConfig and takes the deprecated TokenLifetime into account.
 func (c *Config) BackChannelLogoutConfig() *handlers.BackChannelLogoutWorkerConfig {
 	if c.DefaultBackChannelLogoutLifetime == 0 {
