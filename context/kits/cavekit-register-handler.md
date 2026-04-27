@@ -62,7 +62,8 @@ Defines the HTTP handler for `POST /oidc/v1/register`: request parsing, RFC 7591
 
 **Acceptance Criteria:**
 - [ ] `grant_types` is intersected with `DCR.AllowedGrantTypes`; empty intersection on a required field → 400 `invalid_client_metadata` with the field name in `error_description`.
-- [ ] `response_types` is intersected with `DCR.AllowedResponseTypes`.
+- [ ] `response_types` is intersected with `DCR.AllowedResponseTypes` after canonicalization (see next AC).
+- [ ] **`response_type` value canonicalization (added 2026-04-27 / F-103).** `response_type` values are space-separated SETS of tokens per RFC 6749 §3.1.1; `"token id_token"` and `"id_token token"` denote the same response_type. The clamp MUST canonicalize each value via `canonicaliseResponseType(s)` — `strings.Fields(s)` + sort + join with single space — on BOTH the requested values AND the `DCR.AllowedResponseTypes` allow-list entries before `slices.Contains`-style equality / membership checks. The canonical form mirrors the spelling used by `github.com/zitadel/oidc/v3.ResponseTypeIDToken = "id_token token"` (alphabetical token order) so the rest of Zitadel's OIDC stack — which already depends on this canonical spelling at `internal/api/oidc/auth_request_converter.go::ResponseTypeToBusiness` — sees consistent values. Exact-string `slices.Contains` without canonicalization is FORBIDDEN.
 - [ ] `token_endpoint_auth_method` is intersected with `DCR.AllowedAuthMethods`; `client_secret_jwt` is rejected with `invalid_client_metadata`.
 - [ ] `application_type` is intersected with `DCR.AllowedApplicationTypes`.
 - [ ] Each `redirect_uris` entry passes `domain.GetOIDCV1Compliance` AND the URL's `u.Hostname()` matches `DCR.AllowedRedirectURIHostPatterns` (when non-empty).
@@ -191,6 +192,12 @@ Defines the HTTP handler for `POST /oidc/v1/register`: request parsing, RFC 7591
 
 ## Changelog
 - 2026-04-24: Initial draft from `dcr-plan.md`.
+
+### 2026-04-27 — Revision (F-103 / `--trace`)
+- **Affected:** R4
+- **Summary:** R4's `response_types` intersection AC didn't pin equality semantics. T-034 implementer used exact-string `slices.Contains`, but RFC 6749 §3.1.1 defines `response_type` values as space-separated SETS — `"token id_token"` ≡ `"id_token token"`. Spec-compliant clients sending `"token id_token"` got 400. Amendment adds a canonicalization AC: both requested values and allow-list MUST run through `canonicaliseResponseType` (Fields + sort + join) before comparison. Mirrors `zitadel/oidc/v3.ResponseTypeIDToken = "id_token token"` upstream canonical spelling so the rest of Zitadel's OIDC stack sees consistent strings.
+- **Commits:** 66f16cf99 (T-034 originally) — fix commits to follow.
+- **Pattern category:** unspecified-parser-contract (THIRD entry — F-100 host parser, F-101 dummy hash, F-103 set-equality semantics — triggers cross-kit amendment recommendation at cavekit-writing skill level).
 
 ### 2026-04-27 — Revision (F-100 / `--trace`)
 - **Affected:** R4

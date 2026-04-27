@@ -438,3 +438,78 @@ func TestValidateAndClampMetadata_R4_UserinfoBypassRejected(t *testing.T) {
 		})
 	}
 }
+
+// TestValidateAndClampMetadata_R4_F103_ResponseTypeSetSemantics pins
+// cavekit-register-handler.md R4 amendment 2026-04-27 / F-103. RFC 6749
+// §3.1.1 defines response_type values as space-separated SETS of tokens
+// — `"token id_token"` MUST be treated as equivalent to `"id_token
+// token"`. Pre-fix the clamp used exact-string slices.Contains, so a
+// spec-compliant client sending the non-canonical spelling got 400.
+//
+// The fix canonicalizes each value (Fields + sort + join) on both the
+// requested side and the allow-list side before comparison. The
+// canonical form mirrors zitadel/oidc/v3.ResponseTypeIDToken =
+// "id_token token" so the rest of the Zitadel OIDC stack (which
+// switches on that exact upstream literal) sees consistent values.
+func TestValidateAndClampMetadata_R4_F103_ResponseTypeSetSemantics(t *testing.T) {
+	cases := []struct {
+		name       string
+		allowList  []string
+		requested  []string
+		wantOutput []string // empty → expect rejection
+		wantOK     bool
+	}{
+		{
+			name:       "non-canonical spelling matches canonical allow-list",
+			allowList:  []string{"id_token token"},
+			requested:  []string{"token id_token"}, // attacker / spec-compliant client
+			wantOutput: []string{"id_token token"}, // echo allow-list spelling
+			wantOK:     true,
+		},
+		{
+			name:       "canonical spelling matches non-canonical allow-list",
+			allowList:  []string{"token id_token"}, // operator misordered
+			requested:  []string{"id_token token"},
+			wantOutput: []string{"token id_token"}, // echo allow-list spelling
+			wantOK:     true,
+		},
+		{
+			name:       "extra whitespace canonicalises",
+			allowList:  []string{"id_token token"},
+			requested:  []string{"  token   id_token  "},
+			wantOutput: []string{"id_token token"},
+			wantOK:     true,
+		},
+		{
+			name:       "code single-token unchanged",
+			allowList:  []string{"code"},
+			requested:  []string{"code"},
+			wantOutput: []string{"code"},
+			wantOK:     true,
+		},
+		{
+			name:      "disallowed token rejected even with whitespace permutation",
+			allowList: []string{"code"},
+			requested: []string{"id_token token"}, // not in allow-list
+			wantOK:    false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			cfg := defaultStubConfig()
+			cfg.responseTypes = c.allowList
+			in := validHappyPathMetadata()
+			in.ResponseTypes = c.requested
+			got, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+			if !c.wantOK {
+				ce := requireClampError(t, err)
+				assert.Equal(t, ErrCodeInvalidClientMetadata, ce.Code)
+				assert.Contains(t, ce.Description, "response_types")
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, c.wantOutput, got.ResponseTypes,
+				"clamped response_types must echo the allow-list canonical spelling, not the client's spelling")
+		})
+	}
+}
