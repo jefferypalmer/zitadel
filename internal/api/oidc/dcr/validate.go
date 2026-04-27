@@ -29,9 +29,26 @@ import (
 // error carries the zerror with the `DCR-<5 alpha>` ID for log
 // correlation.
 type ClampError struct {
+	// Status is the HTTP status code the dispatcher should use when
+	// emitting WriteError for this error. Zero is treated as 400 by
+	// the conventional 4xx mapping (Code is the RFC 7591 envelope
+	// code; the spec defines all four code constants as 400-only). The
+	// decoder (T-033 / R2) sets non-400 values for the 413 / 415
+	// branches.
+	Status      int
 	Code        string
 	Description string
 	Wrapped     error
+}
+
+// HTTPStatus returns Status when set, otherwise 400 (the RFC 7591
+// §3.2.2 default for envelope codes). Lets dispatchers use a uniform
+// `WriteError(w, e.HTTPStatus(), e.Code, e.Description)` line.
+func (e *ClampError) HTTPStatus() int {
+	if e.Status == 0 {
+		return 400
+	}
+	return e.Status
 }
 
 func (e *ClampError) Error() string {

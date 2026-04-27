@@ -27,6 +27,13 @@ const (
 	ErrCodeInvalidToken    = "invalid_token"
 	ErrCodeInvalidRequest  = "invalid_request"
 	ErrCodeNotImplemented  = "not_implemented"
+
+	// HTTP-status-mapped envelope codes used by the request decoder
+	// (T-033 / R2). RFC 7591 §3.2.2 only enumerates the first four
+	// codes above as 400 errors; 413 + 415 are documented HTTP
+	// extensions per R8.
+	ErrCodeUnsupportedMediaType = "unsupported_media_type"
+	ErrCodePayloadTooLarge      = "payload_too_large"
 )
 
 // ErrorEnvelope is the RFC 7591 §3.2.2 client-registration error body.
