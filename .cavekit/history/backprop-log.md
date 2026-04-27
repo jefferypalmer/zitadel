@@ -161,6 +161,30 @@ fix, and pattern category so cross-iteration trends become visible.
   implementer filled with ineffective artifact). With this entry the
   category counter reaches 2.
 
+## Entry #5 — F-102 / ResolveIAT dead-code (no-op, audit only)
+
+- **Date:** 2026-04-27
+- **Triggered by:** `/ck:revise --trace --from-finding F-102`.
+- **Source finding:** `context/impl/impl-review-findings.md` F-102.
+- **Triage:** F-102 was already marked RESOLVED at trace time. The
+  F-101 fix (entry #4 / commit `fa34caa56`) included the
+  `dcr.RegistrationDeps` + `dcr.NewHandler(deps)` wiring scaffold and
+  the `cmd/start/start.go` adapter glue that gave
+  `dcr.BuildAntiEnumDummyHash`, `command.ParseIATPlaintext`, and
+  `dcr.NewHandler` real production callers. `grep` confirms 4 live
+  call sites in `cmd/start/start.go` lines 699 / 703 / 706 / 713.
+  Additionally, the F-101 regression test
+  `TestResolveIAT_F101_RealPasswapTimingEquivalence` exercises
+  `ResolveIAT` through the live Passwap path, closing the original
+  "F-101 cannot surface in any integration test" worry.
+- **Classification:** N/A — no current failure.
+- **Kit changes:** None. Logged for audit completeness so the
+  `--trace` history reflects the user's full runtime path through
+  the /ck:check P0/P1 list.
+- **Pattern category:** `closed-by-bundled-fix` — F-102 was a
+  derived finding (rather than an independent root cause): the
+  natural fix scope for F-101 subsumed it.
+
 ## Pattern category counts
 
 | Category | Count |
@@ -168,6 +192,7 @@ fix, and pattern category so cross-iteration trends become visible.
 | kit-internal-inconsistency | 1 |
 | infrastructural-transient (no-op) | 1 |
 | unspecified-parser-contract | **2** ← warning: one more triggers cross-kit amendment recommendation |
+| closed-by-bundled-fix (no-op) | 1 |
 
 ⚠️ **Pattern observation:** two entries (F-100, F-101) in the same session share
 `unspecified-parser-contract`. The shared root cause is kit ACs that name
