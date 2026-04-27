@@ -395,3 +395,46 @@ func requireClampError(t *testing.T, err error) *ClampError {
 		"description should be 'field: reason', got: %q", ce.Description)
 	return ce
 }
+
+// TestValidateAndClampMetadata_R4_UserinfoBypassRejected pins
+// cavekit-register-handler.md R4 amendment 2026-04-27 / F-100 —
+// authorization-code exfiltration via URL userinfo.
+//
+// Before the fix, extractHost cut the URL on `://` then `/?#` then
+// split port on `:`, never stripping the RFC 3986 `userinfo` segment.
+// `https://app.example.com:8080@evil.com/cb` parsed to host=
+// `app.example.com` and matched `*.example.com`, while the actual
+// host the browser would resolve is `evil.com`. An attacker
+// registering a client with attacker-controlled DNS could thereby
+// defeat the host allow-list and steal authorization codes via the
+// malicious redirect.
+//
+// The fix uses net/url.Parse + u.Hostname() and rejects any URL
+// where u.User != nil (defence-in-depth).
+func TestValidateAndClampMetadata_R4_UserinfoBypassRejected(t *testing.T) {
+	cfg := defaultStubConfig()
+	cfg.hostPatterns = []string{"*.example.com"}
+
+	// All four shapes named in the kit AC. Each presents as a host
+	// matching the allow-list when parsed by a hand-rolled split, but
+	// the real authority is `evil.com`.
+	bypasses := []string{
+		"https://victim.example.com@evil.com/cb",
+		"https://victim.example.com:443@evil.com/cb",
+		"https://user:pass@evil.com/cb",
+		"https://[2001:db8::1]@evil.com/cb",
+	}
+	for _, uri := range bypasses {
+		t.Run(uri, func(t *testing.T) {
+			in := validHappyPathMetadata()
+			in.RedirectURIs = []string{uri}
+			_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+			ce := requireClampError(t, err)
+			assert.Equal(t, ErrCodeInvalidRedirectURI, ce.Code,
+				"userinfo-carrying redirect URI MUST be rejected as invalid_redirect_uri")
+			// The error_description should name the field. Don't pin
+			// the literal text — just that the field name appears.
+			assert.Contains(t, ce.Description, "redirect_uris")
+		})
+	}
+}

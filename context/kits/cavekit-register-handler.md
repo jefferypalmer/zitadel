@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-27T00:00:00Z"
 complexity: medium
 ---
 
@@ -65,7 +65,10 @@ Defines the HTTP handler for `POST /oidc/v1/register`: request parsing, RFC 7591
 - [ ] `response_types` is intersected with `DCR.AllowedResponseTypes`.
 - [ ] `token_endpoint_auth_method` is intersected with `DCR.AllowedAuthMethods`; `client_secret_jwt` is rejected with `invalid_client_metadata`.
 - [ ] `application_type` is intersected with `DCR.AllowedApplicationTypes`.
-- [ ] Each `redirect_uris` entry passes `domain.GetOIDCV1Compliance` AND matches `DCR.AllowedRedirectURIHostPatterns` (when non-empty).
+- [ ] Each `redirect_uris` entry passes `domain.GetOIDCV1Compliance` AND the URL's `u.Hostname()` matches `DCR.AllowedRedirectURIHostPatterns` (when non-empty).
+- [ ] **Host extraction algorithm (added 2026-04-27 / F-100).** Each `redirect_uris` entry MUST be parsed via `net/url.Parse`; the host check MUST use `u.Hostname()`. Hand-rolled split-on-`://`/`@`/`:` parsers are FORBIDDEN — they have repeatedly missed the RFC 3986 `userinfo` segment, allowing `https://app.example.com:8080@evil.com/cb` to satisfy a `*.example.com` host pattern while actually pointing at `evil.com` (authorization-code exfiltration vector).
+- [ ] **Reject URLs carrying userinfo (added 2026-04-27 / F-100).** Any `redirect_uris` entry where `u.User != nil` (URL contains a `userinfo` segment before `@`) → 400 `invalid_redirect_uri`. RFC 7591 redirect URIs SHOULD NOT carry userinfo; OAuth 2.1 §4.1.2 redirect URIs MUST NOT include credentials. Defence-in-depth even when the parser is correct: a redirect URI carrying userinfo is structurally suspect.
+- [ ] **Userinfo-bypass test coverage (added 2026-04-27 / F-100).** The clamp test suite MUST include at least 4 userinfo-bypass shapes — `https://victim.example.com@evil.com/cb`, `https://victim.example.com:443@evil.com/cb`, `https://user:pass@evil.com/cb`, and `https://[2001:db8::1]@evil.com/cb` (IPv6 with userinfo) — each MUST be rejected with `invalid_redirect_uri`.
 - [ ] Loopback HTTP redirect URIs (`http://localhost:<port>/...`, `http://127.0.0.1:<port>/...`, `http://[::1]:<port>/...` with arbitrary ports) are accepted for `application_type=native`.
 - [ ] `subject_type=pairwise` → 400 `invalid_client_metadata`; `public` accepted.
 - [ ] `id_token_signed_response_alg` not in the server-advertised `id_token_signing_alg_values_supported` → 400 `invalid_client_metadata`.
@@ -188,3 +191,9 @@ Defines the HTTP handler for `POST /oidc/v1/register`: request parsing, RFC 7591
 
 ## Changelog
 - 2026-04-24: Initial draft from `dcr-plan.md`.
+
+### 2026-04-27 — Revision (F-100 / `--trace`)
+- **Affected:** R4
+- **Summary:** Original R4 host-pattern AC said "matches DCR.AllowedRedirectURIHostPatterns" but did not pin the host-extraction algorithm. T-034 implementation rolled a hand-cut parser that missed the RFC 3986 `userinfo` segment, allowing `https://app.example.com:8080@evil.com/cb` to satisfy `*.example.com` while pointing at `evil.com` — authorization-code exfiltration. Amendment adds three ACs: (1) host extraction MUST use `net/url.Parse` + `u.Hostname()` (no hand-rolled parsers); (2) URLs with `u.User != nil` MUST be rejected with `invalid_redirect_uri` per OAuth 2.1 §4.1.2; (3) clamp test suite MUST cover 4 named userinfo-bypass shapes including IPv6+userinfo.
+- **Commits:** 66f16cf99 (T-034 originally landed the unsafe hand-rolled parser). Regression test + fix commits to follow.
+- **Pattern category:** unspecified-parser-contract.
