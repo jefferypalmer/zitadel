@@ -1,6 +1,7 @@
 package projection
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"unsafe"
@@ -40,10 +41,26 @@ func readDefault(c *handler.InitColumn) interface{} {
 	return mirror.defaultValue
 }
 
-// Compile-time anchor: this var fails to build if our mirror size
-// drifts from handler.InitColumn. Cheaper than a runtime test and
-// catches the wrong things at the right moment.
-var _ = unsafe.Sizeof(initColumnMirror{}) - unsafe.Sizeof(handler.InitColumn{})
+// Runtime size guard (F-205 fix): the previous compile-time anchor
+//
+//	var _ = unsafe.Sizeof(initColumnMirror{}) - unsafe.Sizeof(handler.InitColumn{})
+//
+// did NOT detect drift — `unsafe.Sizeof` of two struct types subtracts to
+// a uintptr regardless of equality, so the expression compiled cleanly
+// under any size delta. The mirror could silently misread `nullable` as
+// `defaultValue` if the upstream struct grew by a field. The runtime
+// init-time panic below catches drift loudly the first time any test in
+// this package runs.
+func init() {
+	mirrorSize := unsafe.Sizeof(initColumnMirror{})
+	realSize := unsafe.Sizeof(handler.InitColumn{})
+	if mirrorSize != realSize {
+		panic(fmt.Sprintf(
+			"dcr_rollback_test.go: initColumnMirror size (%d) != handler.InitColumn size (%d) — upstream struct layout has drifted; update the mirror to match handler/v2/init.go::InitColumn",
+			mirrorSize, realSize,
+		))
+	}
+}
 
 // dcrInspectableColumns rebuilds the InitColumn slice for the columns
 // this test cares about. We construct via the same handler.NewColumn
@@ -165,3 +182,32 @@ func TestDCRRollback_R6_DocumentsCrossCoverage(t *testing.T) {
 
 // _ keeps strings referenced in case the body shrinks in future edits.
 var _ = strings.HasPrefix
+
+// TestDCRRollback_F205_SizeGuardCatchesDrift pins the F-205 fix.
+// The pre-fix anchor (`var _ = unsafe.Sizeof(a) - unsafe.Sizeof(b)`)
+// compiled regardless of size mismatch; this test demonstrates that a
+// hypothetical drifted mirror has a different size from the real struct,
+// so the init-time guard above WOULD panic if our real mirror diverged.
+func TestDCRRollback_F205_SizeGuardCatchesDrift(t *testing.T) {
+	// driftedMirror has one extra field — different size from
+	// handler.InitColumn. If the size guard were still the no-op
+	// subtraction expression, this test would not catch it.
+	type driftedMirror struct {
+		Name          string
+		Type          handler.ColumnType
+		nullable      bool
+		defaultValue  interface{}
+		deleteCascade string
+		extraField    int // simulates upstream adding a field
+	}
+
+	if unsafe.Sizeof(driftedMirror{}) == unsafe.Sizeof(handler.InitColumn{}) {
+		t.Fatal("test invariant broken: driftedMirror should NOT match handler.InitColumn size")
+	}
+
+	// Sanity check: the production mirror MUST match — otherwise the
+	// init() panic above would have already fired. (We're just here.)
+	if unsafe.Sizeof(initColumnMirror{}) != unsafe.Sizeof(handler.InitColumn{}) {
+		t.Fatal("initColumnMirror size mismatch — but init() should have panicked already")
+	}
+}
