@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 40 — 2026-04-27 (Tier 6 — T-073)
+- T-073: DONE. Backend `Errors.DCR.*` i18n keys (R3 AC4). 11 keys added to en.yaml + de.yaml under Errors.DCR (6 top-level + 5 IAT.*). German translations chosen for Phase-1 supported locale per kit. New i18n/dcr_keys_test.go pins: English canonical (key+value), German non-empty presence, absence in 20 unsupported locales (T-075 owns translation tickets). YAML structure validated via yaml.v3 + Python yaml.safe_load. Build P, Tests P. T-074 (fallback test) now unblocked. Tier 6 status: 4/21 done.
+
 ### Iteration 39 — 2026-04-27 (Tier 6 — T-068)
 - T-068: DONE. Audit-event payload completeness verification (R6 AC1+AC2). Files (new): internal/command/dcr_audit_payload_test.go (4 tests / 12 subtests). Pins every R6 AC1 field on ApplicationDynamicallyRegisteredEvent — payload-level (AppID=client_id, InitialAccessTokenID=iat_id, SoftwareStatementJTI, RegistrationMethod, RemoteAddrSHA256, UserAgent) + aggregate-level (aggregate.ID=project_id, aggregate.ResourceOwner=org_id, BaseEvent.InstanceID field-presence check). Anonymous mode iat_id omitted via json:omitempty. AC2 pin: source-string check on wire.go asserting `RemoteIPStringFromRequest(r)` is the IP source AND r.RemoteAddr is NOT directly accessed. Privacy-defence helpers: HashRemoteAddr returns 64-char lowercase hex on non-empty inputs, no plaintext IP fragment, empty input → empty hash. GET intentionally out-of-scope per "where applicable per operation" qualifier. AC3 (XFF trust-boundary in SECURITY.md) deferred to T-083. Build P, Tests P (command + oidc + as_metadata + dcr all green). Tier 6 status: 3/21 done.
 
