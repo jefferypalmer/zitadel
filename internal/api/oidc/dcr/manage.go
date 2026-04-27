@@ -3,6 +3,7 @@ package dcr
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -221,6 +222,19 @@ type UpdateResult struct {
 	ClientSecret string
 	RATPlaintext string
 	RATExpiresAt time.Time
+
+	// ClientIDIssuedAt is the original registration time; emitted in
+	// the PUT response as RFC 7591 §3.2.1 `client_id_issued_at` per
+	// RFC 7592 §3.2 (T-087, F-001 fix). Zero only when the upstream
+	// reducer could not locate the AddedEvent — response writer omits
+	// the field in that defensive case.
+	ClientIDIssuedAt time.Time
+
+	// ChangedAt is the timestamp the rotation/secret-mint anchored on
+	// — the response writer uses it to compute `client_secret_expires_at`
+	// when this PUT minted a fresh secret AND the AS has a non-zero
+	// `ClientSecretExpiresIn` (T-088, F-002 fix).
+	ChangedAt time.Time
 }
 
 // Validate enforces non-nil/non-empty deps at boot. Called by
@@ -303,10 +317,17 @@ func VerifyRAT(
 	if updatedHash != "" {
 		// Silent rehash. Best-effort push — failure does not invalidate
 		// the verification (the operator gets the rotated form on the
-		// next verify). The error is intentionally swallowed; production
-		// wiring may attach a span/log inside the closure.
+		// next verify). On failure, log at WARN with the project + app
+		// + error so operators get a signal that algorithm rotation is
+		// failing to persist (T-090, F-007). Suppressing the log made
+		// silent failures invisible.
 		if rehErr := deps.Rehasher(ctx, row.ProjectID, row.ResourceOwner, row.AppID, updatedHash); rehErr == nil {
 			rehashed = true
+		} else {
+			slog.WarnContext(ctx, "dcr: silent RAT rehash push failed — operator will retry on next verify",
+				slog.String("project_id", row.ProjectID),
+				slog.String("app_id", row.AppID),
+				slog.Any("err", rehErr))
 		}
 	}
 

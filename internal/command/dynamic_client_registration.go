@@ -390,6 +390,14 @@ type UpdateRegisteredClientResult struct {
 	ClientName      string
 	ChangedAt       time.Time
 
+	// ClientIDIssuedAt is the timestamp of the original
+	// ApplicationAddedEvent — the registration time — sourced via a
+	// dedicated reducer so the PUT response can mirror RFC 7591 §3.2.1
+	// `client_id_issued_at` per RFC 7592 §3.2 (T-087, F-001 fix).
+	// Zero when the AddedEvent could not be located (defensive — the
+	// upstream getOIDCAppWriteModel already failed in that case).
+	ClientIDIssuedAt time.Time
+
 	// RATPlaintext is the rotated RAT (cavekit-manage-handler.md R5 AC7
 	// / T-055). Returned exactly once — the caller MUST surface it in
 	// the 200 response body and treat the previous RAT as invalid from
@@ -398,6 +406,41 @@ type UpdateRegisteredClientResult struct {
 	// RATExpiresAt is the rotated RAT's expiry (zero = no expiry).
 	// Mirrors RegisterClientResult.RATExpiresAt.
 	RATExpiresAt time.Time
+}
+
+// appIssuedAtReducer is a tiny QueryReducer that captures the
+// CreatedAt of the original ApplicationAddedEvent for a given
+// (projectID, appID). Used by [UpdateRegisteredClient] to source
+// `client_id_issued_at` for the PUT response (T-087, F-001 fix) —
+// the existing OIDCApplicationWriteModel clears its Events slice
+// inside Reduce, so the registration timestamp would otherwise need
+// a write-model schema change. Keeping this reducer DCR-local
+// minimises blast radius into shared command-layer infrastructure.
+type appIssuedAtReducer struct {
+	eventstore.WriteModel
+	AppID    string
+	IssuedAt time.Time
+}
+
+func (r *appIssuedAtReducer) Query() *eventstore.SearchQueryBuilder {
+	return eventstore.NewSearchQueryBuilder(eventstore.ColumnsEvent).
+		AddQuery().
+		AggregateTypes(project_repo.AggregateType).
+		AggregateIDs(r.AggregateID).
+		EventTypes(project_repo.ApplicationAddedType).
+		EventData(map[string]interface{}{"appId": r.AppID}).
+		Builder()
+}
+
+func (r *appIssuedAtReducer) Reduce() error {
+	for _, e := range r.Events {
+		if added, ok := e.(*project_repo.ApplicationAddedEvent); ok {
+			if added.AppID == r.AppID && r.IssuedAt.IsZero() {
+				r.IssuedAt = e.CreatedAt()
+			}
+		}
+	}
+	return r.WriteModel.Reduce()
 }
 
 // UpdateRegisteredClient implements cavekit-manage-handler.md R5
@@ -547,18 +590,38 @@ func (c *Commands) UpdateRegisteredClient(ctx context.Context, in *UpdateRegiste
 		return nil, appendErr
 	}
 
+	// Source the ORIGINAL ApplicationAddedEvent timestamp for the
+	// `client_id_issued_at` echo (T-087, F-001). Done AFTER the push so
+	// a failed update doesn't pay this query cost. Best-effort — a
+	// reducer error here does NOT fail the update; the caller gets a
+	// zero IssuedAt and the response writer will skip emitting the
+	// field (defensive — should be unreachable since
+	// getOIDCAppWriteModel already verified the project aggregate
+	// exists).
+	issuedReducer := &appIssuedAtReducer{
+		WriteModel: eventstore.WriteModel{AggregateID: in.ProjectID, ResourceOwner: in.OrgID},
+		AppID:      in.AppID,
+	}
+	if rErr := c.eventstore.FilterToQueryReducer(ctx, issuedReducer); rErr != nil {
+		// Best-effort — fall through with zero IssuedAt. The response
+		// writer omits the field when zero so the caller sees a
+		// missing-field instead of a wrong-value.
+		_ = rErr
+	}
+
 	return &UpdateRegisteredClientResult{
-		ClientID:        existing.ClientID,
-		ClientSecret:    plainSecret,
-		AuthMethodType:  existing.AuthMethodType,
-		GrantTypes:      existing.GrantTypes,
-		ResponseTypes:   existing.ResponseTypes,
-		ApplicationType: existing.ApplicationType,
-		RedirectURIs:    existing.RedirectUris,
-		ClientName:      existing.AppName,
-		ChangedAt:       now,
-		RATPlaintext:    ratPlain,
-		RATExpiresAt:    ratExpiresAt,
+		ClientID:         existing.ClientID,
+		ClientSecret:     plainSecret,
+		AuthMethodType:   existing.AuthMethodType,
+		GrantTypes:       existing.GrantTypes,
+		ResponseTypes:    existing.ResponseTypes,
+		ApplicationType:  existing.ApplicationType,
+		RedirectURIs:     existing.RedirectUris,
+		ClientName:       existing.AppName,
+		ChangedAt:        now,
+		ClientIDIssuedAt: issuedReducer.IssuedAt,
+		RATPlaintext:     ratPlain,
+		RATExpiresAt:     ratExpiresAt,
 	}, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 // ManageUpdateResponse is the wire-format struct emitted by a successful
@@ -24,9 +25,26 @@ import (
 // returned exactly once. Old RAT becomes invalid the moment the
 // projection reducer overwrites the hash column.
 type ManageUpdateResponse struct {
-	ClientID                string `json:"client_id"`
-	ClientSecret            string `json:"client_secret,omitempty"`
-	ClientSecretExpiresAt   int64  `json:"client_secret_expires_at"`
+	ClientID string `json:"client_id"`
+
+	// ClientIDIssuedAt is RFC 7591 §3.2.1 — the original registration
+	// time, surfaced on PUT per RFC 7592 §3.2 wire-shape mirror (T-087,
+	// F-001 fix). `omitempty` so a defensive zero from the command
+	// layer (lookup failed) yields a missing-field rather than 0.
+	ClientIDIssuedAt int64 `json:"client_id_issued_at,omitempty"`
+
+	ClientSecret string `json:"client_secret,omitempty"`
+
+	// ClientSecretExpiresAt is mandatory (no omitempty) — RFC 7591
+	// §3.2.1 specifies the value `0` means "no expiry" and the field
+	// MUST be present whenever a client_secret is meaningful for the
+	// AS configuration. Computed from `ClientSecretExpiresIn`: when the
+	// PUT mints a fresh secret (`none → client_secret_*`) AND the AS
+	// configures a non-zero lifetime, this is `result.ChangedAt +
+	// ClientSecretExpiresIn` Unix-seconds; otherwise the `0=no expiry`
+	// sentinel (T-088, F-002 fix).
+	ClientSecretExpiresAt int64 `json:"client_secret_expires_at"`
+
 	RegistrationAccessToken string `json:"registration_access_token"`
 	RegistrationClientURI   string `json:"registration_client_uri"`
 
@@ -96,7 +114,7 @@ func putClientHandler(deps ManageDeps) http.HandlerFunc {
 			return
 		}
 
-		body := buildManageUpdateResponse(ctx, mctx, clamped, result)
+		body := buildManageUpdateResponse(ctx, mctx, clamped, result, deps.ClientSecretExpiresIn)
 
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.Header().Set("Cache-Control", "no-store")
@@ -110,23 +128,46 @@ func putClientHandler(deps ManageDeps) http.HandlerFunc {
 // and the unit tests so the body shape can be asserted without an
 // http.ResponseWriter round-trip. Echoes the clamped metadata that
 // was just persisted plus (only on the `none → client_secret_*`
-// transition) the freshly-minted plaintext secret.
+// transition) the freshly-minted plaintext secret + its expiry.
 //
-// `client_secret_expires_at` stays present (no omitempty) — RFC 7591
-// §3.2.1 specifies that the value `0` means "no expiry". The current
-// projection does not store a per-secret expires_at column so this
-// always emits 0; T-055 may revisit when it threads the lifetime
-// through.
+// `clientSecretExpiresIn` is the AS-configured lifetime (mirror of
+// `ManageDeps.ClientSecretExpiresIn` / `OIDC.DCR.ClientSecretExpiresIn`).
+// The `client_secret_expires_at` field is computed as:
+//   - 0 (no-expiry sentinel) when no fresh secret was minted, OR when
+//     the configured lifetime is 0 (operator chose no-expiry policy)
+//   - `result.ChangedAt + clientSecretExpiresIn` (Unix seconds)
+//     otherwise — same convention as POST register's
+//     `clientSecretExpiresAtFor` helper (T-088, F-002 fix).
+//
+// `ClientIDIssuedAt` mirrors the original registration time per RFC
+// 7592 §3.2 (T-087, F-001 fix). Zero result yields an omitted field
+// (defensive — should be unreachable since the upstream lookup
+// already verified the project aggregate exists).
 func buildManageUpdateResponse(
 	ctx context.Context,
 	mctx *ManageContext,
 	clamped *RFC7591Metadata,
 	result *UpdateResult,
+	clientSecretExpiresIn time.Duration,
 ) *ManageUpdateResponse {
+	var clientSecretExpiresAt int64
+	if result.ClientSecret != "" && clientSecretExpiresIn > 0 && !result.ChangedAt.IsZero() {
+		// Anchor on the command's `now` (carried as ChangedAt) — the
+		// SAME basis the rotation event uses, so the response and the
+		// projection agree to the second.
+		clientSecretExpiresAt = result.ChangedAt.Add(clientSecretExpiresIn).Unix()
+	}
+
+	var clientIDIssuedAt int64
+	if !result.ClientIDIssuedAt.IsZero() {
+		clientIDIssuedAt = result.ClientIDIssuedAt.Unix()
+	}
+
 	resp := &ManageUpdateResponse{
 		ClientID:                mctx.ClientID,
+		ClientIDIssuedAt:        clientIDIssuedAt,
 		ClientSecret:            result.ClientSecret,
-		ClientSecretExpiresAt:   0,
+		ClientSecretExpiresAt:   clientSecretExpiresAt,
 		RegistrationAccessToken: result.RATPlaintext,
 		RegistrationClientURI:   buildRegistrationClientURI(ctx, mctx.ClientID),
 		ClientName:              clamped.ClientName,

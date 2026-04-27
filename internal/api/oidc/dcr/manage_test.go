@@ -1,8 +1,10 @@
 package dcr
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -184,6 +186,39 @@ func TestVerifyRAT_SilentRehash(t *testing.T) {
 	assert.Equal(t, "org-1", c.orgID, "rehash routes to the project's resource owner")
 	assert.Equal(t, "app-1", c.appID)
 	assert.Equal(t, "$argon2id$updated", c.hash, "must persist the updatedHash from Verify")
+}
+
+// TestVerifyRAT_RehashFailureLogsWarn covers T-090 / F-007 — silent
+// rehash failure MUST NOT be invisible to operators. Captures the slog
+// output and asserts the WARN line carries the project/app/error
+// fields so monitoring tooling can alert on it.
+func TestVerifyRAT_RehashFailureLogsWarn(t *testing.T) {
+	row := &ManageRATRow{
+		AppID: "app-1", ProjectID: "proj-1", ResourceOwner: "org-1",
+		TokenHash: "$bcrypt$stored",
+	}
+	q := &fakeManageQueries{row: row}
+	v := &fakeRATVerifier{
+		respond: func(_, _ string) (string, error) { return "$argon2id$updated", nil },
+	}
+	r := &fakeRehasher{err: errors.New("eventstore-down")}
+	deps := newDeps(q, v, r.fn, "$argon2id$dummy")
+
+	// Capture slog output.
+	var buf bytes.Buffer
+	prev := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(prev) })
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})))
+
+	_, err := VerifyRAT(context.Background(), deps, "client-1", "zdrat_xxx")
+	require.NoError(t, err, "rehash failure does NOT fail verification")
+
+	logged := buf.String()
+	assert.Contains(t, logged, "silent RAT rehash push failed",
+		"F-007: rehash failure MUST emit a structured WARN signal")
+	assert.Contains(t, logged, "proj-1", "log MUST carry project_id for ops correlation")
+	assert.Contains(t, logged, "app-1", "log MUST carry app_id for ops correlation")
+	assert.Contains(t, logged, "eventstore-down", "log MUST carry the wrapped error for triage")
 }
 
 // TestVerifyRAT_RehashFailureDoesNotFailVerification — the silent-rehash

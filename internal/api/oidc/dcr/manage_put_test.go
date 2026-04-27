@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -489,6 +490,146 @@ func TestPUT_RATRotation_PresentEvenWithoutAuthMethodTransition(t *testing.T) {
 	assert.Equal(t, "zdrat_rotated_on_idempotent_put", resp.RegistrationAccessToken,
 		"R5 AC7: rotation MUST happen even on a no-op PUT")
 	assert.Empty(t, resp.ClientSecret, "no auth-method transition → no client_secret echo")
+}
+
+// TestPUT_Response_ClientIDIssuedAt_T087 covers cavekit-manage-handler.md
+// R5 new AC (T-087, F-001): PUT response MUST emit `client_id_issued_at`
+// (Unix seconds, sourced from registration time). RFC 7592 §3.2 mandates
+// the PUT body mirror RFC 7591 §3.2.1 client-info shape.
+func TestPUT_Response_ClientIDIssuedAt_T087(t *testing.T) {
+	issued := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	u := &fakeUpdate{result: &UpdateResult{
+		ClientID:         "client-1",
+		RATPlaintext:     "zdrat_x",
+		ClientIDIssuedAt: issued,
+	}}
+	deps := newPUTDeps(u)
+
+	body := validPUTBody(t, validHappyPathMetadata())
+	rec := servePUT(deps, "client-1", body, "application/json")
+
+	require.Equal(t, http.StatusOK, rec.Code, "body=%s", rec.Body.String())
+	var raw map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &raw))
+	v, present := raw["client_id_issued_at"]
+	require.True(t, present, "F-001: client_id_issued_at MUST be present in PUT 200 body")
+	assert.EqualValues(t, issued.Unix(), v,
+		"F-001: client_id_issued_at MUST equal registration time (Unix seconds)")
+}
+
+// TestPUT_Response_ClientIDIssuedAt_OmittedWhenZero — defensive: when
+// the upstream lookup couldn't source the registration time the field
+// is omitted rather than emitted as 0 (which would be 1970-01-01 — an
+// obvious wrong-value).
+func TestPUT_Response_ClientIDIssuedAt_OmittedWhenZero(t *testing.T) {
+	u := &fakeUpdate{result: &UpdateResult{
+		ClientID:     "client-1",
+		RATPlaintext: "zdrat_x",
+		// ClientIDIssuedAt deliberately zero
+	}}
+	deps := newPUTDeps(u)
+
+	body := validPUTBody(t, validHappyPathMetadata())
+	rec := servePUT(deps, "client-1", body, "application/json")
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var raw map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &raw))
+	_, present := raw["client_id_issued_at"]
+	assert.False(t, present, "F-001 defensive: zero IssuedAt → field omitted (not emitted as 0)")
+}
+
+// TestPUT_Response_ClientSecretExpiresAt_Computed_T088 covers
+// cavekit-manage-handler.md R5 new AC (T-088, F-002): when the PUT
+// mints a fresh secret AND the AS configures non-zero
+// `ClientSecretExpiresIn`, the response MUST emit
+// `client_secret_expires_at = ChangedAt + lifetime` (Unix seconds),
+// NOT the no-expiry sentinel 0.
+func TestPUT_Response_ClientSecretExpiresAt_Computed_T088(t *testing.T) {
+	changedAt := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	lifetime := 90 * 24 * time.Hour // 90 days
+	u := &fakeUpdate{result: &UpdateResult{
+		ClientID:     "client-1",
+		ClientSecret: "freshly-minted",
+		RATPlaintext: "zdrat_x",
+		ChangedAt:    changedAt,
+	}}
+	deps := newPUTDeps(u)
+	deps.ClientSecretExpiresIn = lifetime
+
+	body := validPUTBody(t, &RFC7591Metadata{
+		ClientName:              "x",
+		RedirectURIs:            []string{"https://example.com/cb"},
+		GrantTypes:              []string{"authorization_code"},
+		ResponseTypes:           []string{"code"},
+		TokenEndpointAuthMethod: "client_secret_basic",
+		ApplicationType:         "web",
+	})
+	rec := servePUT(deps, "client-1", body, "application/json")
+
+	require.Equal(t, http.StatusOK, rec.Code, "body=%s", rec.Body.String())
+	var resp ManageUpdateResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	expected := changedAt.Add(lifetime).Unix()
+	assert.Equal(t, expected, resp.ClientSecretExpiresAt,
+		"F-002: when minting a fresh secret with configured lifetime, expires_at MUST be ChangedAt+lifetime (got %d, want %d)",
+		resp.ClientSecretExpiresAt, expected)
+	assert.NotEqual(t, int64(0), resp.ClientSecretExpiresAt,
+		"F-002: 0 sentinel is reserved for no-expiry; non-zero lifetime MUST yield non-zero")
+}
+
+// TestPUT_Response_ClientSecretExpiresAt_ZeroWhenNoSecretMinted pins
+// the AC4 path: a transition that does NOT mint a secret (e.g.
+// idempotent PUT, or basic→none) MUST emit the 0 no-expiry sentinel.
+func TestPUT_Response_ClientSecretExpiresAt_ZeroWhenNoSecretMinted(t *testing.T) {
+	u := &fakeUpdate{result: &UpdateResult{
+		ClientID:     "client-1",
+		ClientSecret: "", // no transition / no mint
+		RATPlaintext: "zdrat_x",
+		ChangedAt:    time.Now(),
+	}}
+	deps := newPUTDeps(u)
+	deps.ClientSecretExpiresIn = 90 * 24 * time.Hour // even with lifetime configured
+
+	body := validPUTBody(t, validHappyPathMetadata())
+	rec := servePUT(deps, "client-1", body, "application/json")
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var resp ManageUpdateResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.Equal(t, int64(0), resp.ClientSecretExpiresAt,
+		"F-002: no fresh secret minted → 0 no-expiry sentinel (no client_secret to expire)")
+}
+
+// TestPUT_Response_ClientSecretExpiresAt_ZeroWhenLifetimeZero pins the
+// AS-policy-no-expiry case: secret WAS minted but the AS configures
+// `ClientSecretExpiresIn == 0` ("never expires"). Response MUST emit
+// the 0 sentinel as RFC 7591 §3.2.1 specifies.
+func TestPUT_Response_ClientSecretExpiresAt_ZeroWhenLifetimeZero(t *testing.T) {
+	u := &fakeUpdate{result: &UpdateResult{
+		ClientID:     "client-1",
+		ClientSecret: "freshly-minted",
+		RATPlaintext: "zdrat_x",
+		ChangedAt:    time.Now(),
+	}}
+	deps := newPUTDeps(u)
+	deps.ClientSecretExpiresIn = 0 // operator chose no-expiry
+
+	body := validPUTBody(t, &RFC7591Metadata{
+		ClientName:              "x",
+		RedirectURIs:            []string{"https://example.com/cb"},
+		GrantTypes:              []string{"authorization_code"},
+		ResponseTypes:           []string{"code"},
+		TokenEndpointAuthMethod: "client_secret_basic",
+		ApplicationType:         "web",
+	})
+	rec := servePUT(deps, "client-1", body, "application/json")
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var resp ManageUpdateResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.Equal(t, int64(0), resp.ClientSecretExpiresAt,
+		"F-002: ClientSecretExpiresIn=0 (AS no-expiry policy) → 0 sentinel per RFC 7591 §3.2.1")
 }
 
 // TestPUT_RATRotation_NotEmittedOnError pins the negative — error

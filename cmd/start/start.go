@@ -778,10 +778,12 @@ func startAPIs(
 						return nil, err
 					}
 					return &dcr.UpdateResult{
-						ClientID:     res.ClientID,
-						ClientSecret: res.ClientSecret,
-						RATPlaintext: res.RATPlaintext,
-						RATExpiresAt: res.RATExpiresAt,
+						ClientID:         res.ClientID,
+						ClientSecret:     res.ClientSecret,
+						RATPlaintext:     res.RATPlaintext,
+						RATExpiresAt:     res.RATExpiresAt,
+						ClientIDIssuedAt: res.ClientIDIssuedAt,
+						ChangedAt:        res.ChangedAt,
 					}, nil
 				},
 				Delete: func(ctx context.Context, req *dcr.DeleteRequest) (int, error) {

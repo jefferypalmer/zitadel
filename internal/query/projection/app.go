@@ -899,17 +899,14 @@ func (p *appProjection) reduceApplicationRegistrationAccessTokenRehashed(event e
 
 // reduceApplicationRegistrationAccessTokenRotated handles
 // project.application.registration_access_token.rotated (T-055).
-// Updates BOTH the hash column AND the expires_at column — a PUT-side
-// rotation can re-stamp the lifetime. Same shape as the `.set` reducer
-// since the wire-event payloads have the same fields.
+// Updates the hash column unconditionally; updates the expires_at
+// column ONLY when the rotated event carries a non-zero ExpiresAt —
+// a rotation that doesn't specify a lifetime MUST NOT silently extend
+// an existing finite-lifetime RAT.
 //
 // Old-RAT invalidation falls out of overwriting the hash column: a
 // VerifyRAT against the old plaintext fails on Passwap.Verify against
 // the new stored hash. No explicit revocation event is needed.
-//
-// ExpiresAt is the zero-value time.Time when the rotation re-issues
-// the RAT with no lifetime; the column is NULL'd to mirror that
-// (handler.NewCol with a zero-value time.Time writes NULL).
 func (p *appProjection) reduceApplicationRegistrationAccessTokenRotated(event eventstore.Event) (*handler.Statement, error) {
 	e, ok := event.(*project.ApplicationRegistrationAccessTokenRotatedEvent)
 	if !ok {
