@@ -653,3 +653,80 @@ func TestDispatch_R3_F219_AuthBeforeDecode_Sequencing(t *testing.T) {
 		assert.Contains(t, w.Body.String(), `"error":"invalid_client_metadata"`)
 	})
 }
+
+// TestDispatch_R6_N6_ConsumeIAT_AfterClamp pins the
+// cavekit-register-handler.md R6 amendment 2026-04-27 / N-6 — the IAT
+// slot MUST be consumed AFTER ValidateAndClampMetadata succeeds, NOT
+// before. Burning IAT slots on bad-metadata requests is DoS amplification:
+// an attacker with one stolen IAT can burn MaxUses slots by sending
+// MaxUses malformed bodies.
+func TestDispatch_R6_N6_ConsumeIAT_AfterClamp(t *testing.T) {
+	register := &stubRegister{clientID: "should-not-be-called"}
+	consumeCalled := 0
+	consume := func(_ context.Context, _ *RegistrationContext) error {
+		consumeCalled++
+		return nil
+	}
+
+	// We need an IAT-mode flow that successfully resolves but FAILS
+	// clamp. The stubQueries returns nil row → ResolveIAT will fail
+	// at the byID lookup with anti-enum dummy-Verify and return 401
+	// (not what we want). So override Queries to return a valid row
+	// and Verifier to accept the bearer.
+	hasher := mustBuildHasher(t)
+	dummy, err := BuildAntiEnumDummyHash(hasher)
+	require.NoError(t, err)
+	encodedHash, err := hasher.Hash("zdiat_id1.random")
+	require.NoError(t, err)
+
+	deps := RegistrationDeps{
+		Queries: stubQueries{row: &QueryIATRow{
+			ID: "id1", InstanceID: "test-instance", ResourceOwner: "ro-1",
+			ProjectID: "proj-1", TokenHash: encodedHash,
+		}},
+		Verifier:   bcryptVerifier{Swapper: hasher.(bcryptHasher).Swapper},
+		Parser:     stubParser,
+		Config:     defaultStubConfig(),
+		AnonConfig: stubAnonConfig{defaultOrgID: "o", defaultProject: "p"},
+		SupportedSigAlgs:  []string{"RS256"},
+		AntiEnumDummyHash: dummy,
+		Register:          register.fn(),
+		MaxBodyBytes:      64 * 1024,
+		ConsumeIAT:        consume,
+	}
+	h := NewHandler(deps)
+
+	// Bad clamp input: javascript: redirect_uri (post-F-218 hard reject).
+	body := `{
+		"client_name": "x",
+		"redirect_uris": ["javascript:alert(1)"],
+		"grant_types": ["authorization_code"],
+		"response_types": ["code"],
+		"token_endpoint_auth_method": "none",
+		"application_type": "native"
+	}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer zdiat_id1.random")
+	req = req.WithContext(ctxWithFeature(t, true))
+
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code,
+		"clamp should fail with 400 invalid_redirect_uri")
+	assert.Contains(t, w.Body.String(), `"error":"invalid_redirect_uri"`)
+	assert.Equal(t, 0, consumeCalled,
+		"N-6: ConsumeIAT MUST NOT fire on clamp failure (DoS amplification guard)")
+	assert.Equal(t, 0, register.called,
+		"register MUST NOT fire on clamp failure")
+}
+
+// bcryptVerifier wraps the same Swapper as the test fixture so
+// Verify-on-real-hash succeeds in the N-6 happy-resolve path.
+type bcryptVerifier struct{ Swapper *passwap.Swapper }
+
+func (v bcryptVerifier) VerifyIATPlaintext(presented, encoded string) error {
+	_, err := v.Swapper.Verify(encoded, presented)
+	return err
+}

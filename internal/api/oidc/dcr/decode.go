@@ -24,6 +24,16 @@ type DecodeOptions struct {
 // (65536) so unconfigured callers behave the same as a default deploy.
 const DefaultMaxBodyBytes int64 = 65536
 
+// AbsoluteMaxBodyBytes is the hard package-level safety net per
+// cavekit-config.md R1 amendment 2026-04-27 / F-301. Even when the
+// operator sets `MaxRequestBodyBytes=-1` (per-request cap disabled),
+// the decoder enforces this absolute ceiling. Bodies exceeding 100 MiB
+// return 413. Rationale: an unauthenticated POST endpoint with no
+// upper bound is a memory-exhaustion DoS one config typo away — the
+// `-1` sentinel disables the operator-tunable cap but NOT this safety
+// net.
+const AbsoluteMaxBodyBytes int64 = 100 * 1024 * 1024
+
 // Synthesised client_name format per cavekit-register-handler.md R2:
 // `Dynamically Registered Client <clientID[:8]>`. The handler computes
 // the suffix AFTER mint-id (T-040 RegisterClient.in.App.AppName is
@@ -108,13 +118,16 @@ func Decode(r *http.Request, opts DecodeOptions) (*RFC7591Metadata, error) {
 	case max == 0:
 		max = DefaultMaxBodyBytes
 	case max < 0:
-		max = -1 // sentinel: no cap
+		// F-301: operator opted out of the per-request cap via -1.
+		// The absolute package-level ceiling still applies.
+		max = AbsoluteMaxBodyBytes
+	case max > AbsoluteMaxBodyBytes:
+		// Defensive: even an explicit positive operator-tunable cap
+		// MUST NOT exceed the absolute ceiling. Clamp + log nothing
+		// here (startup warns once per F-301).
+		max = AbsoluteMaxBodyBytes
 	}
-	var bodyReader io.Reader = r.Body
-	if max > 0 {
-		bodyReader = http.MaxBytesReader(nil, r.Body, max)
-	}
-	body, readErr := io.ReadAll(bodyReader)
+	body, readErr := io.ReadAll(http.MaxBytesReader(nil, r.Body, max))
 	if readErr != nil {
 		var mbe *http.MaxBytesError
 		if errors.As(readErr, &mbe) {

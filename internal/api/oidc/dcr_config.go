@@ -1,6 +1,7 @@
 package oidc
 
 import (
+	"log/slog"
 	"context"
 	"fmt"
 	"strings"
@@ -26,6 +27,17 @@ func (c DCRConfig) Validate(ctx context.Context, externalSecure bool, externalDo
 		return nil
 	}
 
+	// cavekit-config.md R1 amendment 2026-04-27 / F-300:
+	// ClientSecretExpiresIn MUST be non-negative. A negative duration
+	// would advertise a freshly-issued secret as already expired
+	// (RFC 7591 §3.2.1 client_secret_expires_at would be in the past).
+	if c.ClientSecretExpiresIn < 0 {
+		return fmt.Errorf(
+			"OIDC.DCR.ClientSecretExpiresIn=%s is invalid: MUST be non-negative. "+
+				"0 = no expiry per RFC 7591 §3.2.1; positive durations are accepted. "+
+				"See cavekit-config.md R1 / F-300", c.ClientSecretExpiresIn)
+	}
+
 	// cavekit-config.md R1 amendment 2026-04-27 / F-204:
 	// MaxRequestBodyBytes sentinel semantics. 0 is INVALID — refuse
 	// startup rather than silently substitute the package default.
@@ -41,6 +53,16 @@ func (c DCRConfig) Validate(ctx context.Context, externalSecure bool, externalDo
 			"OIDC.DCR.MaxRequestBodyBytes=%d is invalid: only positive integers (enforced cap) "+
 				"or -1 (no cap) are accepted. See cavekit-config.md R1 / F-204",
 			c.MaxRequestBodyBytes)
+	case c.MaxRequestBodyBytes == -1:
+		// F-301 startup WARN: -1 disables the per-request cap, but the
+		// dcr.AbsoluteMaxBodyBytes ceiling (100 MiB) still applies.
+		// Surface the trade-off at boot so an operator who set -1
+		// accidentally sees it.
+		slog.Warn("OIDC.DCR.MaxRequestBodyBytes=-1: per-request cap disabled. "+
+			"Defence-in-depth ceiling dcr.AbsoluteMaxBodyBytes=100 MiB still applies.",
+			"field", "OIDC.DCR.MaxRequestBodyBytes",
+			"absolute_ceiling_bytes", 100*1024*1024,
+			"reference", "cavekit-config.md R1 / F-301")
 	}
 
 	if !c.RequireInitialAccessToken {

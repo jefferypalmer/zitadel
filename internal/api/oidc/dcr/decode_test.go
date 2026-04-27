@@ -271,3 +271,54 @@ func requireClampStatus(t *testing.T, err error, wantStatus int, wantCode string
 
 // _ anchors io.ReadAll so the test compile-link is exercised.
 var _ = io.ReadAll
+
+// TestDecode_R2_F301_AbsoluteCeilingEnforcedEvenWithNoCap pins
+// cavekit-config.md R1 amendment 2026-04-27 / F-301 — the operator's
+// `MaxRequestBodyBytes=-1` opt-out disables the per-request cap but
+// the dcr.AbsoluteMaxBodyBytes (100 MiB) safety net still applies.
+// Without this defence-in-depth, an unauthenticated POST endpoint
+// with no upper bound is a memory-exhaustion DoS one config typo away.
+func TestDecode_R2_F301_AbsoluteCeilingEnforcedEvenWithNoCap(t *testing.T) {
+	t.Run("MaxBodyBytes=-1 still rejects body > AbsoluteMaxBodyBytes", func(t *testing.T) {
+		// Synthesize a 101 MiB body via a strings.Repeat — no actual
+		// allocation needed at MaxBytesReader level, but io.ReadAll
+		// will allocate. Test runs fine with allocation; if memory is
+		// tight, replace with a custom io.Reader that returns infinite
+		// bytes.
+		oversized := strings.Repeat("x", int(AbsoluteMaxBodyBytes)+1)
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(oversized))
+		req.Header.Set("Content-Type", "application/json")
+
+		_, err := Decode(req, DecodeOptions{MaxBodyBytes: -1})
+		require.Error(t, err)
+		var ce *ClampError
+		require.True(t, errors.As(err, &ce))
+		assert.Equal(t, http.StatusRequestEntityTooLarge, ce.HTTPStatus(),
+			"F-301: body > AbsoluteMaxBodyBytes MUST 413 even with MaxBodyBytes=-1")
+		assert.Equal(t, ErrCodePayloadTooLarge, ce.Code)
+	})
+
+	t.Run("MaxBodyBytes=-1 accepts body <= AbsoluteMaxBodyBytes", func(t *testing.T) {
+		// 1 MiB body — well under the 100 MiB ceiling.
+		body := `{"client_name":"` + strings.Repeat("x", 1024*1024) + `","redirect_uris":["https://e/c"]}`
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		got, err := Decode(req, DecodeOptions{MaxBodyBytes: -1})
+		require.NoError(t, err)
+		require.NotNil(t, got)
+	})
+
+	t.Run("operator-set positive cap above absolute ceiling clamped down", func(t *testing.T) {
+		oversized := strings.Repeat("x", int(AbsoluteMaxBodyBytes)+1)
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(oversized))
+		req.Header.Set("Content-Type", "application/json")
+
+		_, err := Decode(req, DecodeOptions{MaxBodyBytes: AbsoluteMaxBodyBytes * 10}) // 1 GB
+		require.Error(t, err)
+		var ce *ClampError
+		require.True(t, errors.As(err, &ce))
+		assert.Equal(t, http.StatusRequestEntityTooLarge, ce.HTTPStatus(),
+			"F-301 defensive: operator caps above ceiling are clamped to ceiling")
+	})
+}

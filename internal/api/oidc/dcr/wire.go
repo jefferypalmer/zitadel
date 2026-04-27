@@ -309,14 +309,14 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 		if mode == AuthModeAnonymous && deps.AnonConfig.RequireInitialAccessToken() {
 			w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
 			WriteError(w, http.StatusUnauthorized, ErrCodeInvalidToken,
-				"Authorization Bearer header is required")
+				MissingOrInvalidAccessTokenDescription)
 			return
 		}
 
 		// 2. Decode request body (R2)
 		decoded, err := Decode(r, DecodeOptions{MaxBodyBytes: deps.MaxBodyBytes})
 		if err != nil {
-			writeDispatchError(w, err)
+			writeDispatchError(ctx, w, err)
 			return
 		}
 
@@ -330,26 +330,30 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			regCtx, err = ResolveAnonymous(ctx, deps.AnonConfig)
 		}
 		if err != nil {
-			writeAuthError(w, err)
+			writeAuthError(ctx, w, err)
 			return
-		}
-
-		// 2b. Consume IAT slot (R6 amendment 2026-04-27 / F-200).
-		// MUST run BEFORE clamp + Register so an exhausted/revoked IAT
-		// short-circuits with 401 before any application events are
-		// pushed. Anonymous mode (regCtx.IATID == "") skips the call.
-		if regCtx.IATID != "" {
-			if cErr := deps.ConsumeIAT(ctx, regCtx); cErr != nil {
-				writeAuthError(w, cErr)
-				return
-			}
 		}
 
 		// 3. Clamp + validate (R4 / R5)
 		clamped, err := ValidateAndClampMetadata(deps.Config, decoded, deps.SupportedSigAlgs, deps.SoftwareStatementEnabled)
 		if err != nil {
-			writeDispatchError(w, err)
+			writeDispatchError(ctx, w, err)
 			return
+		}
+
+		// 3b. Consume IAT slot (R6 amendments 2026-04-27 / F-200 + N-6).
+		// MUST run AFTER clamp succeeds — clamp errors are not metadata-
+		// fault attribution and MUST NOT burn IAT slots. Otherwise an
+		// attacker with one stolen IAT can burn MaxUses slots by sending
+		// MaxUses malformed bodies (DoS amplification). Consume MUST
+		// still run BEFORE Register so an exhausted/revoked IAT short-
+		// circuits before any application events are pushed. Anonymous
+		// mode (regCtx.IATID == "") skips the call.
+		if regCtx.IATID != "" {
+			if cErr := deps.ConsumeIAT(ctx, regCtx); cErr != nil {
+				writeAuthError(ctx, w, cErr)
+				return
+			}
 		}
 
 		// 4. Persist (R6)
@@ -369,7 +373,7 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 		}
 		result, err := deps.Register(ctx, req)
 		if err != nil {
-			writeDispatchError(w, err)
+			writeDispatchError(ctx, w, err)
 			return
 		}
 
@@ -400,13 +404,17 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 // for operator recovery; the response carries only a fixed
 // `internal server error` description so an unauthenticated caller
 // cannot fingerprint the database, eventstore, or other internal state.
-func writeDispatchError(w http.ResponseWriter, err error) {
+//
+// N-4 fix: takes the request ctx so slog.WarnContext can preserve
+// tracing / instance / request correlation IDs the operator needs to
+// correlate the log line back to the failed request.
+func writeDispatchError(ctx context.Context, w http.ResponseWriter, err error) {
 	var ce *ClampError
 	if errors.As(err, &ce) {
 		WriteError(w, ce.HTTPStatus(), ce.Code, ce.Description)
 		return
 	}
-	slog.WarnContext(context.Background(), "dcr: dispatcher internal error",
+	slog.WarnContext(ctx, "dcr: dispatcher internal error",
 		slog.Any("err", err))
 	WriteError(w, http.StatusInternalServerError, ErrCodeServerError,
 		"internal server error")
@@ -415,14 +423,14 @@ func writeDispatchError(w http.ResponseWriter, err error) {
 // writeAuthError is writeDispatchError + WWW-Authenticate header for
 // 401 invalid_token responses (R8 AC). All ClampErrors with code
 // `invalid_token` get the header; everything else falls through.
-func writeAuthError(w http.ResponseWriter, err error) {
+func writeAuthError(ctx context.Context, w http.ResponseWriter, err error) {
 	var ce *ClampError
 	if errors.As(err, &ce) && ce.Code == ErrCodeInvalidToken {
 		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
 		WriteError(w, http.StatusUnauthorized, ce.Code, ce.Description)
 		return
 	}
-	writeDispatchError(w, err)
+	writeDispatchError(ctx, w, err)
 }
 
 // _ is here so unused-field guards stay quiet.

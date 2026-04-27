@@ -35,6 +35,14 @@ const (
 	ErrCodeUnsupportedMediaType = "unsupported_media_type"
 	ErrCodePayloadTooLarge      = "payload_too_large"
 
+	// MissingOrInvalidAccessTokenDescription is the canonical
+	// `error_description` string for every 401 invalid_token response
+	// (cavekit-register-handler.md R3 amendment 2026-04-27 / N-5).
+	// RFC 6750 §3 vocabulary; the fixed string keeps log-aggregator
+	// pattern matching stable across the four 401 paths (auth-first
+	// short-circuit, IAT verify, IAT consume, RAT verify).
+	MissingOrInvalidAccessTokenDescription = "missing or invalid access token"
+
 	// ErrCodeServerError is the envelope `error` code for 500
 	// responses (cavekit-register-handler.md R8 amendment / F-202).
 	// Mirrors RFC 6749 §5.2's `server_error` family; intentionally

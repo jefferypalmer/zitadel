@@ -1,6 +1,7 @@
 package oidc
 
 import (
+	"time"
 	"bytes"
 	"context"
 	"log/slog"
@@ -275,6 +276,44 @@ func TestDCRConfig_Validate_R1_F204_MaxRequestBodyBytes_Sentinel(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errSubs)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+// TestDCRConfig_Validate_R1_F300_ClientSecretExpiresIn_NonNegative pins
+// the cavekit-config.md R1 amendment 2026-04-27 / F-300 — negative
+// ClientSecretExpiresIn MUST be refused at startup. A misconfigured
+// `-24h` would otherwise flow through F-201's plumbing and advertise
+// a freshly-issued secret as already expired (RFC 7591 §3.2.1 spec
+// breach + RP availability bug).
+func TestDCRConfig_Validate_R1_F300_ClientSecretExpiresIn_NonNegative(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       time.Duration
+		wantErr bool
+	}{
+		{"zero — accepted (no expiry sentinel)", 0, false},
+		{"positive 24h — accepted", 24 * time.Hour, false},
+		{"positive small — accepted", 1 * time.Second, false},
+		{"-1ns — REJECTED (any negative is invalid)", -1 * time.Nanosecond, true},
+		{"-24h — REJECTED", -24 * time.Hour, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := DCRConfig{
+				Enabled:                   true,
+				MaxRequestBodyBytes:       65536,
+				RequireInitialAccessToken: true,
+				ClientSecretExpiresIn:     tt.v,
+			}
+			err := cfg.Validate(context.Background(), true, "example.com", 443)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "ClientSecretExpiresIn")
+				assert.Contains(t, err.Error(), "non-negative")
 				return
 			}
 			require.NoError(t, err)
