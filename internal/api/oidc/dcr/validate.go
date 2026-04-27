@@ -3,6 +3,7 @@ package dcr
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -182,21 +183,36 @@ func CheckRedirectURIs(cfg DCRConfigSubset, appType string, grantTypes []string,
 		return runOIDCV1Compliance(appType, grantTypes, authMethod, uris)
 	}
 
-	for _, u := range uris {
-		if strings.TrimSpace(u) == "" {
+	for _, raw := range uris {
+		if strings.TrimSpace(raw) == "" {
 			return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
 				"contains an empty entry", "DCR-Vt020")
 		}
-		if isLoopbackHTTP(u) && appType == "native" {
+		// cavekit-register-handler.md R4 amendment 2026-04-27 / F-100:
+		// MUST parse via net/url and MUST reject any URL carrying
+		// userinfo. The hand-rolled string-cut parser this replaced
+		// missed the RFC 3986 userinfo segment, allowing
+		// `https://victim.example.com:443@evil.com/cb` to satisfy
+		// `*.example.com` while pointing at evil.com.
+		parsed, perr := url.Parse(raw)
+		if perr != nil || parsed == nil || parsed.Scheme == "" {
+			return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
+				"is not a valid URL: "+raw, "DCR-Vt023")
+		}
+		if parsed.User != nil {
+			return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
+				"MUST NOT carry userinfo (RFC 7591 / OAuth 2.1 §4.1.2): "+raw, "DCR-Vt024")
+		}
+		if isLoopbackHTTP(raw) && appType == "native" {
 			// Loopback HTTP is allowed for native per RFC 8252 §7.3 and
 			// the kit's R4 AC. Skip the host-pattern check for loopback
 			// since the host is fixed by spec.
 			continue
 		}
 		if patterns := cfg.AllowedRedirectURIHostPatterns(); len(patterns) > 0 {
-			if !matchesAnyHostPattern(u, patterns) {
+			if !matchesAnyHostPattern(parsed, patterns) {
 				return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
-					"does not match DCR.AllowedRedirectURIHostPatterns: "+u, "DCR-Vt021")
+					"does not match DCR.AllowedRedirectURIHostPatterns: "+raw, "DCR-Vt021")
 			}
 		}
 	}
@@ -279,10 +295,17 @@ func isLoopbackHTTP(u string) bool {
 // the configured patterns. Patterns support `*` as a single-label
 // wildcard (e.g. `*.example.com` matches `app.example.com` but NOT
 // `deep.app.example.com`) and exact-match for non-wildcard entries.
-// This mirrors the convention used by Zitadel's existing
-// `AllowedRedirectURIHostPatterns` consumers.
-func matchesAnyHostPattern(rawURL string, patterns []string) bool {
-	host := extractHost(rawURL)
+//
+// The URL MUST already be parsed by [url.Parse] — passing the parsed
+// struct rather than a raw string is the cavekit-register-handler.md
+// R4 amendment 2026-04-27 contract that prevents the F-100 userinfo
+// bypass. `u.Hostname()` correctly extracts the host even when
+// userinfo is present (caller is expected to reject userinfo first).
+func matchesAnyHostPattern(u *url.URL, patterns []string) bool {
+	if u == nil {
+		return false
+	}
+	host := u.Hostname()
 	if host == "" {
 		return false
 	}
@@ -292,28 +315,6 @@ func matchesAnyHostPattern(rawURL string, patterns []string) bool {
 		}
 	}
 	return false
-}
-
-func extractHost(rawURL string) string {
-	// Strip scheme.
-	idx := strings.Index(rawURL, "://")
-	if idx < 0 {
-		return ""
-	}
-	rest := rawURL[idx+3:]
-	host, _, _ := strings.Cut(rest, "/")
-	host, _, _ = strings.Cut(host, "?")
-	host, _, _ = strings.Cut(host, "#")
-	// Strip port (IPv6 brackets handled by Cut on `]`).
-	if strings.HasPrefix(host, "[") {
-		closing := strings.Index(host, "]")
-		if closing < 0 {
-			return ""
-		}
-		return host[1:closing]
-	}
-	host, _, _ = strings.Cut(host, ":")
-	return host
 }
 
 func hostMatches(host, pattern string) bool {

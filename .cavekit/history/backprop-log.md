@@ -68,9 +68,53 @@ fix, and pattern category so cross-iteration trends become visible.
 - **Pattern category:** `infrastructural-transient` (recorded for
   cross-trace pattern tracking even though no kit work resulted).
 
+## Entry #3 — F-100 / AllowedRedirectURIHostPatterns userinfo bypass
+
+- **Date:** 2026-04-27
+- **Triggered by:** `/ck:revise --trace --from-finding F-100` after a
+  `/ck:check` REJECT verdict surfaced two P0 security findings.
+- **Source finding:** `context/impl/impl-review-findings.md` F-100,
+  reported by `ck:inspector` during a Tier 0–3 mid-build review.
+- **Classification:** `incomplete_criterion` — R4 had the right intent
+  but didn't pin the host-extraction algorithm. T-034 implementer
+  rolled an unsafe hand-cut parser to fill the gap.
+- **Vulnerability:** `extractHost` cut the URL on `://` / `/?#` / `:`
+  but never stripped the RFC 3986 userinfo segment before `@`.
+  `https://victim.example.com:443@evil.com/cb` parsed to host=
+  `victim.example.com`, matched `*.example.com`, and was accepted —
+  while the actual host the browser resolves is `evil.com`. An
+  attacker registering a client with attacker-controlled DNS could
+  defeat the host allow-list and steal authorization codes.
+- **Kit:** `cavekit-register-handler.md` → R4.
+- **Amendment summary:**
+  - Tighten existing AC: "the URL's `u.Hostname()`" matches host
+    patterns (was just "matches").
+  - Add: host extraction MUST use `net/url.Parse` + `u.Hostname()`;
+    hand-rolled parsers FORBIDDEN.
+  - Add: URLs with `u.User != nil` MUST be rejected as
+    `invalid_redirect_uri` (RFC 7591 SHOULD NOT, OAuth 2.1 §4.1.2
+    MUST NOT).
+  - Add: clamp test suite MUST cover 4 named userinfo-bypass shapes
+    including IPv6+userinfo.
+- **Regression test:** `internal/api/oidc/dcr/validate_test.go::TestValidateAndClampMetadata_R4_UserinfoBypassRejected`.
+  Covers all 4 named bypass shapes. Failed pre-fix on at least 1
+  shape (`https://victim.example.com:443@evil.com/cb` was fully
+  accepted); passes all 4 post-fix.
+- **Test commit:** `191a54d46`
+- **Fix commit:** (next commit after this log entry)
+- **Pattern category:** `unspecified-parser-contract` — the kit was
+  permissive about parsing semantics (a different shape from DE-001's
+  `kit-internal-inconsistency`, where the kit was internally
+  contradictory).
+- **Notes:** This is the second P0 from /ck:check 2026-04-27. F-101
+  (anti-enum dummy hash) is the next trace target. F-100 fix is
+  isolated to validate.go + the test — no cross-package dependencies,
+  no schema changes, no migration.
+
 ## Pattern category counts
 
 | Category | Count |
 |----------|-------|
 | kit-internal-inconsistency | 1 |
 | infrastructural-transient (no-op) | 1 |
+| unspecified-parser-contract | 1 |
