@@ -250,6 +250,10 @@ func (p *appProjection) Reducers() []handler.AggregateReducer {
 					Event:  project.ApplicationRegistrationAccessTokenRehashedType,
 					Reduce: p.reduceApplicationRegistrationAccessTokenRehashed,
 				},
+				{
+					Event:  project.ApplicationRegistrationAccessTokenRotatedType,
+					Reduce: p.reduceApplicationRegistrationAccessTokenRotated,
+				},
 			},
 		},
 		{
@@ -885,6 +889,46 @@ func (p *appProjection) reduceApplicationRegistrationAccessTokenRehashed(event e
 		[]handler.Column{
 			handler.NewCol(AppOIDCConfigColumnRegistrationAccessTokenHash, e.HashedToken),
 		},
+		[]handler.Condition{
+			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
+			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),
+		},
+		handler.WithTableSuffix(appOIDCTableSuffix),
+	), nil
+}
+
+// reduceApplicationRegistrationAccessTokenRotated handles
+// project.application.registration_access_token.rotated (T-055).
+// Updates BOTH the hash column AND the expires_at column — a PUT-side
+// rotation can re-stamp the lifetime. Same shape as the `.set` reducer
+// since the wire-event payloads have the same fields.
+//
+// Old-RAT invalidation falls out of overwriting the hash column: a
+// VerifyRAT against the old plaintext fails on Passwap.Verify against
+// the new stored hash. No explicit revocation event is needed.
+//
+// ExpiresAt is the zero-value time.Time when the rotation re-issues
+// the RAT with no lifetime; the column is NULL'd to mirror that
+// (handler.NewCol with a zero-value time.Time writes NULL).
+func (p *appProjection) reduceApplicationRegistrationAccessTokenRotated(event eventstore.Event) (*handler.Statement, error) {
+	e, ok := event.(*project.ApplicationRegistrationAccessTokenRotatedEvent)
+	if !ok {
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-DCR45", "reduce.wrong.event.type %s", project.ApplicationRegistrationAccessTokenRotatedType)
+	}
+	cols := []handler.Column{
+		handler.NewCol(AppOIDCConfigColumnRegistrationAccessTokenHash, e.HashedToken),
+	}
+	// Mirror the `.set` reducer: only stamp expires_at when the rotation
+	// carries a non-zero lifetime. A zero time means the operator opted
+	// for no expiry on the rotated RAT — leave the column as-is rather
+	// than NULL'ing it, so an existing finite-lifetime RAT cannot be
+	// silently extended by a rotation that fails to specify one.
+	if !e.ExpiresAt.IsZero() {
+		cols = append(cols, handler.NewCol(AppOIDCConfigColumnRegistrationAccessTokenExpiresAt, e.ExpiresAt))
+	}
+	return handler.NewUpdateStatement(
+		e,
+		cols,
 		[]handler.Condition{
 			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
 			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),

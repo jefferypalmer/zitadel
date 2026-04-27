@@ -364,6 +364,13 @@ type UpdateRegisteredClientInput struct {
 	OrgID     string
 	AppID     string
 	App       *domain.OIDCApp
+	// RATLifetime caps the rotated RAT (cavekit-manage-handler.md R5 /
+	// T-055). Mirrors `RegisterClientInput.RATLifetime`. Zero =
+	// "no expiry" — the rotated event carries a zero-value ExpiresAt
+	// and the projection reducer leaves the existing column untouched
+	// (so a previously-finite RAT cannot be silently extended by a
+	// rotation that fails to specify a lifetime).
+	RATLifetime time.Duration
 }
 
 // UpdateRegisteredClientResult mirrors the subset of the persisted state
@@ -381,6 +388,15 @@ type UpdateRegisteredClientResult struct {
 	RedirectURIs    []string
 	ClientName      string
 	ChangedAt       time.Time
+
+	// RATPlaintext is the rotated RAT (cavekit-manage-handler.md R5 AC7
+	// / T-055). Returned exactly once — the caller MUST surface it in
+	// the 200 response body and treat the previous RAT as invalid from
+	// this moment forward.
+	RATPlaintext string
+	// RATExpiresAt is the rotated RAT's expiry (zero = no expiry).
+	// Mirrors RegisterClientResult.RATExpiresAt.
+	RATExpiresAt time.Time
 }
 
 // UpdateRegisteredClient implements cavekit-manage-handler.md R5
@@ -469,7 +485,7 @@ func (c *Commands) UpdateRegisteredClient(ctx context.Context, in *UpdateRegiste
 		newAuth = oldAuth // no transition expressed → keep existing
 	}
 
-	cmds := make([]eventstore.Command, 0, 2)
+	cmds := make([]eventstore.Command, 0, 3)
 	if hasChanges && changedEvent != nil {
 		cmds = append(cmds, changedEvent)
 	}
@@ -496,15 +512,38 @@ func (c *Commands) UpdateRegisteredClient(ctx context.Context, in *UpdateRegiste
 		cmds = append(cmds, project_repo.NewOIDCConfigSecretChangedEvent(ctx, projectAgg, app.AppID, ""))
 	}
 
+	// RAT rotation (cavekit-manage-handler.md R5 AC7-9 / T-055). Every
+	// successful PUT mints a fresh RAT and pushes the rotated event
+	// atomically with any config / secret events. Old-RAT invalidation
+	// happens implicitly because the projection reducer overwrites the
+	// stored hash column — the next VerifyRAT against the previous
+	// plaintext fails on Passwap.Verify.
+	ratPlain, err := generateRATPlaintext()
+	if err != nil {
+		return nil, err
+	}
+	ratEncoded, err := c.secretHasher.Hash(ratPlain)
+	if err != nil {
+		return nil, zerrors.ThrowInternal(err, "DCR-UC005", "Errors.Internal")
+	}
 	now := time.Now().UTC()
-	if len(cmds) > 0 {
-		pushedEvents, pErr := c.eventstore.Push(ctx, cmds...)
-		if pErr != nil {
-			return nil, pErr
-		}
-		if appendErr := AppendAndReduce(existing, pushedEvents...); appendErr != nil {
-			return nil, appendErr
-		}
+	var ratExpiresAt time.Time
+	if in.RATLifetime > 0 {
+		ratExpiresAt = now.Add(in.RATLifetime)
+	}
+	cmds = append(cmds, project_repo.NewApplicationRegistrationAccessTokenRotatedEvent(ctx,
+		projectAgg,
+		app.AppID,
+		ratEncoded,
+		ratExpiresAt,
+	))
+
+	pushedEvents, pErr := c.eventstore.Push(ctx, cmds...)
+	if pErr != nil {
+		return nil, pErr
+	}
+	if appendErr := AppendAndReduce(existing, pushedEvents...); appendErr != nil {
+		return nil, appendErr
 	}
 
 	return &UpdateRegisteredClientResult{
@@ -517,6 +556,8 @@ func (c *Commands) UpdateRegisteredClient(ctx context.Context, in *UpdateRegiste
 		RedirectURIs:    existing.RedirectUris,
 		ClientName:      existing.AppName,
 		ChangedAt:       now,
+		RATPlaintext:    ratPlain,
+		RATExpiresAt:    ratExpiresAt,
 	}, nil
 }
 

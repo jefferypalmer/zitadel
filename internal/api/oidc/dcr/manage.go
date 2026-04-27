@@ -184,12 +184,15 @@ type UpdateRequest struct {
 
 // UpdateResult is the dcr-internal shape returned by the closure.
 // Mirrors the subset of `command.UpdateRegisteredClientResult` the
-// PUT response writer (T-055) will echo. ClientSecret is empty unless
-// this PUT minted a fresh secret via the auth-method `none → secret_*`
-// transition (R5 AC3).
+// PUT response writer echoes. ClientSecret is empty unless this PUT
+// minted a fresh secret via the auth-method `none → secret_*`
+// transition (R5 AC3). RATPlaintext is the rotated RAT (R5 AC7,
+// T-055) — every successful PUT carries a non-empty value.
 type UpdateResult struct {
 	ClientID     string
 	ClientSecret string
+	RATPlaintext string
+	RATExpiresAt time.Time
 }
 
 // Validate enforces non-nil/non-empty deps at boot. Called by

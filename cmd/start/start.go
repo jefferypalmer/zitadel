@@ -767,10 +767,11 @@ func startAPIs(
 				MaxBodyBytes:             config.OIDC.DCR.MaxRequestBodyBytes,
 				Update: func(ctx context.Context, req *dcr.UpdateRequest) (*dcr.UpdateResult, error) {
 					in := &command.UpdateRegisteredClientInput{
-						ProjectID: req.ProjectID,
-						OrgID:     req.OrgID,
-						AppID:     req.AppID,
-						App:       req.Clamped.ToOIDCApp(),
+						ProjectID:   req.ProjectID,
+						OrgID:       req.OrgID,
+						AppID:       req.AppID,
+						App:         req.Clamped.ToOIDCApp(),
+						RATLifetime: config.OIDC.DCR.RegistrationAccessToken.Lifetime,
 					}
 					res, err := commands.UpdateRegisteredClient(ctx, in)
 					if err != nil {
@@ -779,6 +780,8 @@ func startAPIs(
 					return &dcr.UpdateResult{
 						ClientID:     res.ClientID,
 						ClientSecret: res.ClientSecret,
+						RATPlaintext: res.RATPlaintext,
+						RATExpiresAt: res.RATExpiresAt,
 					}, nil
 				},
 			},

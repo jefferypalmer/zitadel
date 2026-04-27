@@ -18,11 +18,18 @@ import (
 // via the `none → client_secret_*` transition (R5 AC3). For all other
 // transitions the field is omitted via json:omitempty so an idempotent
 // PUT does not accidentally re-emit a stale secret to the caller.
+//
+// `registration_access_token` is emitted on EVERY successful PUT (R5
+// AC7-9 / T-055): every PUT rotates the RAT and the new plaintext is
+// returned exactly once. Old RAT becomes invalid the moment the
+// projection reducer overwrites the hash column.
 type ManageUpdateResponse struct {
-	ClientID                string   `json:"client_id"`
-	ClientSecret            string   `json:"client_secret,omitempty"`
-	ClientSecretExpiresAt   int64    `json:"client_secret_expires_at"`
-	RegistrationClientURI   string   `json:"registration_client_uri"`
+	ClientID                string `json:"client_id"`
+	ClientSecret            string `json:"client_secret,omitempty"`
+	ClientSecretExpiresAt   int64  `json:"client_secret_expires_at"`
+	RegistrationAccessToken string `json:"registration_access_token"`
+	RegistrationClientURI   string `json:"registration_client_uri"`
+
 	ClientName              string   `json:"client_name,omitempty"`
 	RedirectURIs            []string `json:"redirect_uris,omitempty"`
 	GrantTypes              []string `json:"grant_types,omitempty"`
@@ -120,6 +127,7 @@ func buildManageUpdateResponse(
 		ClientID:                mctx.ClientID,
 		ClientSecret:            result.ClientSecret,
 		ClientSecretExpiresAt:   0,
+		RegistrationAccessToken: result.RATPlaintext,
 		RegistrationClientURI:   buildRegistrationClientURI(ctx, mctx.ClientID),
 		ClientName:              clamped.ClientName,
 		RedirectURIs:            clamped.RedirectURIs,

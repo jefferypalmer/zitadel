@@ -1042,6 +1042,67 @@ func TestAppProjection_reduces(t *testing.T) {
 				},
 			},
 		}, {
+			// T-055 — Rotated event with no expiry updates ONLY the hash
+			// column. A rotation that doesn't specify a lifetime MUST NOT
+			// silently extend an existing finite-lifetime RAT, so the
+			// expires_at column is left untouched.
+			name: "project reduceApplicationRegistrationAccessTokenRotated no expiry",
+			args: args{
+				event: getEvent(
+					testEvent(
+						project.ApplicationRegistrationAccessTokenRotatedType,
+						project.AggregateType,
+						[]byte(`{"appId":"app-1","hashedToken":"$argon2id$put-rotated"}`),
+					), project.ApplicationRegistrationAccessTokenRotatedEventMapper),
+			},
+			reduce: (&appProjection{}).reduceApplicationRegistrationAccessTokenRotated,
+			want: wantReduce{
+				aggregateType: project.AggregateType,
+				sequence:      15,
+				executer: &testExecuter{
+					executions: []execution{
+						{
+							expectedStmt: "UPDATE projections.apps7_oidc_configs SET registration_access_token_hash = $1 WHERE (app_id = $2) AND (instance_id = $3)",
+							expectedArgs: []interface{}{
+								"$argon2id$put-rotated",
+								"app-1",
+								"instance-id",
+							},
+						},
+					},
+				},
+			},
+		}, {
+			// T-055 — Rotated event WITH expiry stamps both columns
+			// atomically — same shape the `.set` reducer uses.
+			name: "project reduceApplicationRegistrationAccessTokenRotated with expiry",
+			args: args{
+				event: getEvent(
+					testEvent(
+						project.ApplicationRegistrationAccessTokenRotatedType,
+						project.AggregateType,
+						[]byte(`{"appId":"app-1","hashedToken":"$argon2id$put-rotated","expiresAt":"2030-04-05T06:07:08Z"}`),
+					), project.ApplicationRegistrationAccessTokenRotatedEventMapper),
+			},
+			reduce: (&appProjection{}).reduceApplicationRegistrationAccessTokenRotated,
+			want: wantReduce{
+				aggregateType: project.AggregateType,
+				sequence:      15,
+				executer: &testExecuter{
+					executions: []execution{
+						{
+							expectedStmt: "UPDATE projections.apps7_oidc_configs SET (registration_access_token_hash, registration_access_token_expires_at) = ($1, $2) WHERE (app_id = $3) AND (instance_id = $4)",
+							expectedArgs: []interface{}{
+								"$argon2id$put-rotated",
+								time.Date(2030, 4, 5, 6, 7, 8, 0, time.UTC),
+								"app-1",
+								"instance-id",
+							},
+						},
+					},
+				},
+			},
+		}, {
 			name: "project.reduceOwnerRemoved",
 			args: args{
 				event: getEvent(

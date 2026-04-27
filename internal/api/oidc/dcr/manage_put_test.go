@@ -427,3 +427,91 @@ func TestManageDeps_Validate_PUT_RequiresConfigWhenUpdateSet(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Config is required when Update is set")
 }
+
+// TestPUT_RATRotation_AlwaysEmitsNewRAT covers cavekit-manage-handler.md
+// R5 AC7-9 (T-055): every successful PUT returns a freshly-rotated RAT
+// in the response body — independent of whether the auth method
+// transitioned. The RegistrationAccessToken field has NO json:omitempty
+// tag so a missing rotation in the result would surface as the
+// empty-string value and the assertion below would fail.
+func TestPUT_RATRotation_AlwaysEmitsNewRAT(t *testing.T) {
+	u := &fakeUpdate{result: &UpdateResult{
+		ClientID:     "client-1",
+		RATPlaintext: "zdrat_freshly_rotated_xyz",
+	}}
+	deps := newPUTDeps(u)
+
+	body := validPUTBody(t, &RFC7591Metadata{
+		ClientName:              "x",
+		RedirectURIs:            []string{"https://example.com/cb"},
+		GrantTypes:              []string{"authorization_code"},
+		ResponseTypes:           []string{"code"},
+		TokenEndpointAuthMethod: "client_secret_basic",
+		ApplicationType:         "web",
+	})
+	rec := servePUT(deps, "client-1", body, "application/json")
+
+	require.Equal(t, http.StatusOK, rec.Code, "body=%s", rec.Body.String())
+	var resp ManageUpdateResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.Equal(t, "zdrat_freshly_rotated_xyz", resp.RegistrationAccessToken,
+		"R5 AC7: every successful PUT MUST emit the new plaintext RAT")
+
+	// Raw-JSON check pins the field is always present (no omitempty
+	// shortcut hiding a missing rotation).
+	var raw map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &raw))
+	v, present := raw["registration_access_token"]
+	require.True(t, present, "R5 AC7: registration_access_token MUST be present on every PUT 200")
+	assert.Equal(t, "zdrat_freshly_rotated_xyz", v)
+}
+
+// TestPUT_RATRotation_PresentEvenWithoutAuthMethodTransition pins the
+// AC7 contract that rotation is independent of the auth-method matrix.
+// A no-op idempotent PUT (same auth method, same metadata) MUST still
+// rotate the RAT — that's the whole point: the caller's RAT was
+// presented once on this request and is now spent, so the PUT must
+// always issue a replacement.
+func TestPUT_RATRotation_PresentEvenWithoutAuthMethodTransition(t *testing.T) {
+	u := &fakeUpdate{result: &UpdateResult{
+		ClientID:     "client-1",
+		RATPlaintext: "zdrat_rotated_on_idempotent_put",
+		// ClientSecret deliberately empty — no auth-method change.
+	}}
+	deps := newPUTDeps(u)
+
+	body := validPUTBody(t, validHappyPathMetadata())
+	rec := servePUT(deps, "client-1", body, "application/json")
+
+	require.Equal(t, http.StatusOK, rec.Code, "body=%s", rec.Body.String())
+	var resp ManageUpdateResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.Equal(t, "zdrat_rotated_on_idempotent_put", resp.RegistrationAccessToken,
+		"R5 AC7: rotation MUST happen even on a no-op PUT")
+	assert.Empty(t, resp.ClientSecret, "no auth-method transition → no client_secret echo")
+}
+
+// TestPUT_RATRotation_NotEmittedOnError pins the negative — error
+// responses (clamp / decode / dispatch) MUST NOT carry the rotated
+// RAT. A failure path that leaks a non-existent rotated token would
+// confuse callers and burn audit-log entries unnecessarily.
+func TestPUT_RATRotation_NotEmittedOnError(t *testing.T) {
+	u := &fakeUpdate{}
+	deps := newPUTDeps(u)
+
+	// Trigger a clamp error — disallowed grant_type.
+	body := validPUTBody(t, &RFC7591Metadata{
+		ClientName:              "x",
+		RedirectURIs:            []string{"https://example.com/cb"},
+		GrantTypes:              []string{"client_credentials"}, // not in defaults
+		ResponseTypes:           []string{"code"},
+		TokenEndpointAuthMethod: "client_secret_basic",
+		ApplicationType:         "web",
+	})
+	rec := servePUT(deps, "client-1", body, "application/json")
+
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.NotContains(t, rec.Body.String(), "registration_access_token",
+		"R5 error path: rotated RAT MUST NOT appear in 4xx envelope bodies")
+	assert.Empty(t, u.calls, "clamp error MUST NOT reach the rotation step")
+}

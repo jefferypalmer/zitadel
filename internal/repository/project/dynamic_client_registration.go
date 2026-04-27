@@ -25,6 +25,20 @@ const (
 	// (T-055 .rotated)". Plaintext is unchanged; the projection updates
 	// the stored Passwap-encoded hash only.
 	ApplicationRegistrationAccessTokenRehashedType = applicationEventTypePrefix + "registration_access_token.rehashed"
+	// ApplicationRegistrationAccessTokenRotatedType records a RFC 7592
+	// PUT-side rotation of the RAT (cavekit-manage-handler.md R5 /
+	// T-055). Distinct wire-type from `.set` and `.rehashed` so audit
+	// logs separate the three operator actions:
+	//   - `.set`       → operator created the RAT at registration time
+	//   - `.rehashed`  → operator rotated the Passwap algorithm; the
+	//                    plaintext is unchanged.
+	//   - `.rotated`   → operator (or the caller) issued a NEW plaintext
+	//                    RAT via successful PUT; the previous plaintext
+	//                    is immediately invalid.
+	// The projection reducer for this event updates BOTH the hash column
+	// AND the expires_at column so a PUT can extend / shrink the RAT
+	// lifetime atomically with the rotation.
+	ApplicationRegistrationAccessTokenRotatedType = applicationEventTypePrefix + "registration_access_token.rotated"
 )
 
 // ApplicationDynamicallyRegisteredEvent records the audit context
@@ -199,6 +213,64 @@ func ApplicationRegistrationAccessTokenRehashedEventMapper(event eventstore.Even
 	}
 	if err := event.Unmarshal(e); err != nil {
 		return nil, zerrors.ThrowInternal(err, "DCR-r4Tp2", "unable to unmarshal application registration access token rehashed")
+	}
+	return e, nil
+}
+
+// ApplicationRegistrationAccessTokenRotatedEvent records a RFC 7592
+// PUT-side RAT rotation (cavekit-manage-handler.md R5 / T-055). Carries
+// the new Passwap-encoded hash AND the new expires_at — same shape as
+// [ApplicationRegistrationAccessTokenSetEvent] but a distinct
+// wire-type so audit consumers can distinguish "first issuance" from
+// "post-update rotation". Plaintext NEVER touches the event stream;
+// the new plaintext is returned to the caller in the PUT response body
+// exactly once.
+//
+// Old-RAT invalidation falls out of the projection reducer overwriting
+// the stored hash column — the next VerifyRAT against the presented old
+// plaintext fails on the Passwap.Verify step (no extra revocation
+// event needed).
+type ApplicationRegistrationAccessTokenRotatedEvent struct {
+	eventstore.BaseEvent `json:"-"`
+
+	AppID       string    `json:"appId"`
+	HashedToken string    `json:"hashedToken"`
+	ExpiresAt   time.Time `json:"expiresAt,omitempty"`
+}
+
+func (e *ApplicationRegistrationAccessTokenRotatedEvent) Payload() interface{} {
+	return e
+}
+
+func (e *ApplicationRegistrationAccessTokenRotatedEvent) UniqueConstraints() []*eventstore.UniqueConstraint {
+	return nil
+}
+
+func NewApplicationRegistrationAccessTokenRotatedEvent(
+	ctx context.Context,
+	aggregate *eventstore.Aggregate,
+	appID string,
+	hashedToken string,
+	expiresAt time.Time,
+) *ApplicationRegistrationAccessTokenRotatedEvent {
+	return &ApplicationRegistrationAccessTokenRotatedEvent{
+		BaseEvent: *eventstore.NewBaseEventForPush(
+			ctx,
+			aggregate,
+			ApplicationRegistrationAccessTokenRotatedType,
+		),
+		AppID:       appID,
+		HashedToken: hashedToken,
+		ExpiresAt:   expiresAt,
+	}
+}
+
+func ApplicationRegistrationAccessTokenRotatedEventMapper(event eventstore.Event) (eventstore.Event, error) {
+	e := &ApplicationRegistrationAccessTokenRotatedEvent{
+		BaseEvent: *eventstore.BaseEventFromRepo(event),
+	}
+	if err := event.Unmarshal(e); err != nil {
+		return nil, zerrors.ThrowInternal(err, "DCR-r4Tp3", "unable to unmarshal application registration access token rotated")
 	}
 	return e, nil
 }
