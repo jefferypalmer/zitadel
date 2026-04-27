@@ -518,13 +518,13 @@ func IsClampError(err error) (*ClampError, bool) {
 // redirect URI per cavekit-register-handler.md R4 amendment 2026-04-27 /
 // F-218. Lower-case keys; check is case-insensitive at the call site.
 var hardRejectedSchemes = map[string]struct{}{
-	"javascript":          {},
-	"data":                {},
-	"vbscript":            {},
-	"file":                {},
-	"about":               {},
-	"chrome":              {},
-	"chrome-extension":    {},
+	"javascript":           {},
+	"data":                 {},
+	"vbscript":             {},
+	"file":                 {},
+	"about":                {},
+	"chrome":               {},
+	"chrome-extension":     {},
 	"ms-browser-extension": {},
 }
 

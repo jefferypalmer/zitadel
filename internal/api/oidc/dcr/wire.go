@@ -189,22 +189,22 @@ type RegisterFn func(ctx context.Context, req *RegisterRequest) (*RegisterResult
 // closure. Mirrors the subset of `command.RegisterClientInput` fields
 // the dispatcher controls.
 type RegisterRequest struct {
-	Clamped              *RFC7591Metadata
-	OrgID                string
-	ProjectID            string
-	IATID                string
-	RegistrationMethod   string
-	ClientNameUnclamped  string
-	RemoteIPString       string
-	UserAgent            string
+	Clamped             *RFC7591Metadata
+	OrgID               string
+	ProjectID           string
+	IATID               string
+	RegistrationMethod  string
+	ClientNameUnclamped string
+	RemoteIPString      string
+	UserAgent           string
 }
 
 // RegisterResult is the dcr-internal shape returned by the closure.
 // Mirrors the subset of `command.RegisterClientResult` the dispatcher
 // echoes into the 201 response body.
 type RegisterResult struct {
-	ClientID              string
-	ClientSecret          string
+	ClientID     string
+	ClientSecret string
 	// ClientSecretExpiresIn echoes config.OIDC.DCR.ClientSecretExpiresIn
 	// so the response writer can compute `client_secret_expires_at`
 	// (R7 / F-201). Zero = "no expiry" sentinel per RFC 7591 §3.2.1.
