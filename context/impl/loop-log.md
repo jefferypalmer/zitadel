@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 41 — 2026-04-27 (Tier 6 — T-074 + translator fix)
+- T-074: DONE. R3 English-fallback contract. Discovered live defect: translator `localize()` discarded go-i18n's fallback template when MessageNotFoundErr fired, even though v2.4.0 localizer.go:200-214 returns BOTH the rendered default-language string AND the NotFound error. Fix: `errors.As(err, *MessageNotFoundErr) && s != ""` branch preserves `s`. Files (modified): internal/i18n/translator.go (fallback-tolerant branch + errors import). Files (new): internal/i18n/dcr_fallback_test.go (3 tests / 78 subtests: 5 unsupported locales × 11 keys × default lookup, per-method pin Localize/LocalizeWithoutArgs/LocalizeFromRequest, direct en/de lookup). Also moved earlier-iter dcr_keys_test.go from static/i18n/ to internal/i18n/ so statik regen doesn't embed it as a translation file (was causing init() panic "no unmarshaler registered for go"). Statik regenerated. Build P, Tests P (i18n + dcr + command + cmd/start + login + notification + grpc/server middleware all green). Tier 6 status: 5/21 done.
+
 ### Iteration 40 — 2026-04-27 (Tier 6 — T-073)
 - T-073: DONE. Backend `Errors.DCR.*` i18n keys (R3 AC4). 11 keys added to en.yaml + de.yaml under Errors.DCR (6 top-level + 5 IAT.*). German translations chosen for Phase-1 supported locale per kit. New i18n/dcr_keys_test.go pins: English canonical (key+value), German non-empty presence, absence in 20 unsupported locales (T-075 owns translation tickets). YAML structure validated via yaml.v3 + Python yaml.safe_load. Build P, Tests P. T-074 (fallback test) now unblocked. Tier 6 status: 4/21 done.
 

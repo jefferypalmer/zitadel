@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
@@ -167,6 +168,17 @@ func localize(localizer *i18n.Localizer, id string, args map[string]interface{})
 	})
 	if err != nil {
 		logging.WithFields("id", id, "args", args).WithError(err).Warnf("missing translation")
+		// go-i18n returns *MessageNotFoundErr together with the
+		// rendered fallback string when the matched tag is missing
+		// the message and the bundle's default language has it
+		// (see localizer.go:200-214 in v2.4.0). Preserve `s` in that
+		// case so unsupported locales receive the default-language
+		// fallback rather than the raw key — required by
+		// `cavekit-console-ui-docs-and-observability.md` R3 (T-074).
+		var notFound *i18n.MessageNotFoundErr
+		if errors.As(err, &notFound) && s != "" {
+			return s
+		}
 		return id
 	}
 	return s
