@@ -66,7 +66,7 @@ Cross-cutting feature: implement RFC 8707 (Resource Indicators) so Claude Code M
 
 **Acceptance Criteria:**
 - [ ] `internal/api/oidc/token_code.go` (authorization_code) propagates `resource` into the audience.
-- [ ] The refresh-token handler propagates `resource` (subject to RFC 8707 §2.2 — refresh token MAY narrow but not broaden audience).
+- [ ] **Both refresh-token paths** propagate `resource` per RFC 8707 §2.2 (narrow-only): (a) `refreshTokenV1` (legacy v1→v2 upgrade flow at `internal/api/oidc/token_refresh.go::refreshTokenV1`), AND (b) `RefreshToken` (primary v2 flow via `Commands.ExchangeOIDCSessionRefreshAndAccessToken`). Each path MUST call `narrowAudienceByTokenResources(ctx, originalAudience)` before issuing the new access token. Test coverage MUST include both paths so a future implementer cannot silently drop one. (added 2026-04-27 / F-203)
 - [ ] `internal/api/oidc/token_client_credentials.go` propagates `resource`.
 - [ ] `internal/api/oidc/token_device.go` (device_code) propagates `resource`.
 - [ ] `internal/api/oidc/token_exchange.go` propagates `resource` (after R1 removes the rejection).

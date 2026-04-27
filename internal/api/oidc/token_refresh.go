@@ -28,6 +28,15 @@ func (s *Server) RefreshToken(ctx context.Context, r *op.ClientRequest[oidc.Refr
 
 	session, err := s.command.ExchangeOIDCSessionRefreshAndAccessToken(ctx, r.Data.RefreshToken, r.Data.Scopes, refreshTokenComplianceChecker())
 	if err == nil {
+		// cavekit-rfc8707-resource.md R5 amendment 2026-04-27 / F-203:
+		// the v2 refresh path MUST narrow the issued access token's
+		// audience by any `resource` value the client supplied per
+		// RFC 8707 §2.2. The session's stored Audience is the original
+		// (broadest) set; narrowing happens here on the response object
+		// so downstream `accessTokenResponseFromSession` builds a token
+		// whose aud claim reflects the narrow request without mutating
+		// the persisted session state.
+		session.Audience = narrowAudienceByTokenResources(ctx, session.Audience)
 		return response(s.accessTokenResponseFromSession(ctx, client, session, "", client.client.ProjectID, client.client.ProjectRoleAssertion, client.client.AccessTokenRoleAssertion, client.client.IDTokenRoleAssertion, client.client.IDTokenUserinfoAssertion))
 	} else if errors.Is(err, zerrors.ThrowPreconditionFailed(nil, "OIDCS-JOI23", "Errors.OIDCSession.RefreshTokenInvalid")) {
 		// We try again for v1 tokens when we encountered specific parsing error

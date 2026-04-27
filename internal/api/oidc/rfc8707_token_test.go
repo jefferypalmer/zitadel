@@ -2,9 +2,12 @@ package oidc
 
 import (
 	"context"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestAudienceFromTokenResources_R5 pins the additive-merge semantics
@@ -117,4 +120,33 @@ func TestNarrowAudienceByTokenResources_RFC8707_2_2(t *testing.T) {
 func TestNarrowAudienceByTokenResources_NoCtxValue(t *testing.T) {
 	got := narrowAudienceByTokenResources(context.Background(), []string{"a"})
 	assert.Equal(t, []string{"a"}, got)
+}
+
+// TestF203_V2RefreshPathWiredToNarrow pins the cavekit-rfc8707-resource.md
+// R5 amendment 2026-04-27 / F-203 — the v2 refresh-token path
+// (Server.RefreshToken via ExchangeOIDCSessionRefreshAndAccessToken)
+// MUST narrow the issued access token's audience using
+// `narrowAudienceByTokenResources` before building the response.
+//
+// Without grpc / eventstore harness here we pin the contract by static
+// inspection: we read token_refresh.go and assert the v2 branch line
+// references `narrowAudienceByTokenResources`. Pre-fix, only the v1
+// branch (refreshTokenV1, line ~59) did the narrowing — the primary
+// v2 RefreshToken silently broadcast the original session audience.
+func TestF203_V2RefreshPathWiredToNarrow(t *testing.T) {
+	src, err := os.ReadFile("token_refresh.go")
+	require.NoError(t, err)
+
+	// V2 path is the body of `func (s *Server) RefreshToken(...)`.
+	// Cut from "func (s *Server) RefreshToken" to "func refreshTokenV1"
+	// (the V1 helper). The narrowing call MUST appear in that range.
+	contents := string(src)
+	v2Start := strings.Index(contents, "func (s *Server) RefreshToken(")
+	require.NotEqual(t, -1, v2Start, "v2 RefreshToken not found")
+	v1Start := strings.Index(contents, "func (s *Server) refreshTokenV1(")
+	require.NotEqual(t, -1, v1Start, "refreshTokenV1 not found")
+	v2Body := contents[v2Start:v1Start]
+
+	assert.Contains(t, v2Body, "narrowAudienceByTokenResources",
+		"F-203: v2 RefreshToken MUST call narrowAudienceByTokenResources before issuing the access token. Pre-fix only v1 was wired; the primary v2 path silently broadcast the original session audience.")
 }
