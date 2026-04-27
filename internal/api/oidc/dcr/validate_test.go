@@ -513,3 +513,102 @@ func TestValidateAndClampMetadata_R4_F103_ResponseTypeSetSemantics(t *testing.T)
 		})
 	}
 }
+
+// TestValidateAndClampMetadata_R5_AuthMethodMatrix pins the full
+// cavekit-register-handler.md R5 auth-method behavior matrix. Each row
+// covers one of the 5 token_endpoint_auth_method paths. The validator
+// is the gate; downstream T-040 RegisterClient consumes the clamped
+// result and SetNewClientSecretIfNeeded then issues a secret IFF the
+// clamped auth-method is basic/post (verified separately in
+// TestRegisterClient_BasicAuth_EmitsClientSecret +
+// TestRegisterClient_HappyPath_AnonymousMode_NoSecret in the command
+// package).
+func TestValidateAndClampMetadata_R5_AuthMethodMatrix(t *testing.T) {
+	cfg := defaultStubConfig()
+	const supportedSig = "RS256"
+
+	cases := []struct {
+		name        string
+		authMethod  string
+		jwksURI     string
+		wantErr     bool
+		wantErrCode string
+	}{
+		{
+			// AC1 — none → no validator-side rejection; secret-omission
+			// is enforced at the command layer (T-040).
+			name:       "none — accepted",
+			authMethod: "none",
+		},
+		{
+			// AC2 — basic → accepted; secret hashing is the command
+			// layer's job (T-040 SetNewClientSecretIfNeeded).
+			name:       "client_secret_basic — accepted",
+			authMethod: "client_secret_basic",
+		},
+		{
+			name:       "client_secret_post — accepted",
+			authMethod: "client_secret_post",
+		},
+		{
+			// AC3 — private_key_jwt MUST carry jwks_uri; missing → reject.
+			name:        "private_key_jwt without jwks_uri — invalid_client_metadata",
+			authMethod:  "private_key_jwt",
+			jwksURI:     "",
+			wantErr:     true,
+			wantErrCode: ErrCodeInvalidClientMetadata,
+		},
+		{
+			name:       "private_key_jwt with jwks_uri — accepted",
+			authMethod: "private_key_jwt",
+			jwksURI:    "https://example.com/jwks.json",
+		},
+		{
+			// AC4 — client_secret_jwt → policy rejection.
+			name:        "client_secret_jwt — invalid_client_metadata (policy)",
+			authMethod:  "client_secret_jwt",
+			wantErr:     true,
+			wantErrCode: ErrCodeInvalidClientMetadata,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			in := validHappyPathMetadata()
+			in.TokenEndpointAuthMethod = tc.authMethod
+			in.JwksURI = tc.jwksURI
+
+			got, err := ValidateAndClampMetadata(cfg, in, []string{supportedSig}, false)
+			if tc.wantErr {
+				require.Error(t, err)
+				var ce *ClampError
+				require.True(t, errors.As(err, &ce), "expected *ClampError, got %T", err)
+				assert.Equal(t, tc.wantErrCode, ce.Code)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			assert.Equal(t, tc.authMethod, got.TokenEndpointAuthMethod,
+				"clamp must preserve the requested auth_method when accepted")
+		})
+	}
+}
+
+// TestValidateAndClampMetadata_R5_PrivateKeyJWT_RejectsBlankJwksURI pins
+// the trim semantics: a jwks_uri of just whitespace MUST NOT satisfy the
+// AC3 requirement. Otherwise an attacker could probe the validator for
+// jwks_uri-presence behavior and a misconfigured client could ship a
+// blank-string config.
+func TestValidateAndClampMetadata_R5_PrivateKeyJWT_RejectsBlankJwksURI(t *testing.T) {
+	cfg := defaultStubConfig()
+	in := validHappyPathMetadata()
+	in.TokenEndpointAuthMethod = "private_key_jwt"
+	in.JwksURI = "   \t  "
+
+	_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+	require.Error(t, err)
+	var ce *ClampError
+	require.True(t, errors.As(err, &ce))
+	assert.Equal(t, ErrCodeInvalidClientMetadata, ce.Code)
+	assert.Contains(t, strings.ToLower(ce.Description), "jwks_uri")
+}

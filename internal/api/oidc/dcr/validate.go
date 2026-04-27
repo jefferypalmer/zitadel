@@ -129,6 +129,16 @@ func ValidateAndClampMetadata(
 		return nil, newClampError(ErrCodeInvalidClientMetadata, "token_endpoint_auth_method",
 			"not in DCR.AllowedAuthMethods", "DCR-Vt008")
 	}
+	// private_key_jwt REQUIRES jwks_uri per cavekit-register-handler.md
+	// R5 AC3 (and OIDC Reg 1.0 §5.2.1: when token_endpoint_auth_method
+	// is private_key_jwt, the client MUST register a key — Phase 1 only
+	// supports the by-reference form via jwks_uri; inline `jwks` is
+	// out-of-scope per kit). Missing jwks_uri here would otherwise leave
+	// the client unauthenticatable at /token.
+	if out.TokenEndpointAuthMethod == "private_key_jwt" && strings.TrimSpace(out.JwksURI) == "" {
+		return nil, newClampError(ErrCodeInvalidClientMetadata, "jwks_uri",
+			"jwks_uri is required when token_endpoint_auth_method=private_key_jwt", "DCR-Vt0R5")
+	}
 
 	// application_type
 	if !slices.Contains(cfg.AllowedApplicationTypes(), out.ApplicationType) {
