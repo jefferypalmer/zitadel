@@ -1154,15 +1154,11 @@ export class AdminService {
 
   /* Initial Access Tokens (DCR) */
 
-  public createInitialAccessToken(
-    req: CreateInitialAccessTokenRequest,
-  ): Promise<CreateInitialAccessTokenResponse.AsObject> {
+  public createInitialAccessToken(req: CreateInitialAccessTokenRequest): Promise<CreateInitialAccessTokenResponse.AsObject> {
     return this.grpcService.admin.createInitialAccessToken(req, null).then((resp) => resp.toObject());
   }
 
-  public listInitialAccessTokens(
-    projectId: string | null,
-  ): Promise<ListInitialAccessTokensResponse.AsObject> {
+  public listInitialAccessTokens(projectId: string | null): Promise<ListInitialAccessTokensResponse.AsObject> {
     const req = new ListInitialAccessTokensRequest();
     if (projectId) {
       req.setProjectId(projectId);
@@ -1170,10 +1166,7 @@ export class AdminService {
     return this.grpcService.admin.listInitialAccessTokens(req, null).then((resp) => resp.toObject());
   }
 
-  public revokeInitialAccessToken(
-    iatId: string,
-    projectId: string,
-  ): Promise<RevokeInitialAccessTokenResponse.AsObject> {
+  public revokeInitialAccessToken(iatId: string, projectId: string): Promise<RevokeInitialAccessTokenResponse.AsObject> {
     const req = new RevokeInitialAccessTokenRequest();
     req.setIatId(iatId);
     req.setProjectId(projectId);

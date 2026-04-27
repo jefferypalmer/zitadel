@@ -24,7 +24,10 @@ export class DynamicClientsComponent implements OnChanges {
   public readonly clients$ = new BehaviorSubject<DcrClientRow[]>([]);
   public readonly loading$ = new BehaviorSubject<boolean>(false);
 
-  constructor(private readonly mgmt: ManagementService, private readonly toast: ToastService) {}
+  constructor(
+    private readonly mgmt: ManagementService,
+    private readonly toast: ToastService,
+  ) {}
 
   public ngOnChanges(changes: SimpleChanges): void {
     if (changes['projectId'] && this.projectId) {

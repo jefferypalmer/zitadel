@@ -21,12 +21,7 @@ import { IatPlaintextDialogComponent } from './iat-plaintext-dialog/iat-plaintex
 import { IatRevokeDialogComponent } from './iat-revoke-dialog/iat-revoke-dialog.component';
 
 @NgModule({
-  declarations: [
-    IatAdminComponent,
-    IatIssueDialogComponent,
-    IatPlaintextDialogComponent,
-    IatRevokeDialogComponent,
-  ],
+  declarations: [IatAdminComponent, IatIssueDialogComponent, IatPlaintextDialogComponent, IatRevokeDialogComponent],
   imports: [
     CommonModule,
     FormsModule,
