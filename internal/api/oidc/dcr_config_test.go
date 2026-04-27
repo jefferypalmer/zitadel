@@ -28,6 +28,7 @@ func TestDCRConfig_Validate_R4_AnonymousModeNeedsDefaults(t *testing.T) {
 			name: "enabled + IAT-required — defaults optional",
 			cfg: DCRConfig{
 				Enabled:                   true,
+				MaxRequestBodyBytes:       65536,
 				RequireInitialAccessToken: true,
 			},
 			wantErr: false,
@@ -36,6 +37,7 @@ func TestDCRConfig_Validate_R4_AnonymousModeNeedsDefaults(t *testing.T) {
 			name: "enabled + anonymous + both defaults — ok",
 			cfg: DCRConfig{
 				Enabled:                   true,
+				MaxRequestBodyBytes:       65536,
 				RequireInitialAccessToken: false,
 				DefaultProjectID:          "p",
 				DefaultOrgID:              "o",
@@ -46,6 +48,7 @@ func TestDCRConfig_Validate_R4_AnonymousModeNeedsDefaults(t *testing.T) {
 			name: "enabled + anonymous + empty DefaultProjectID — refuse",
 			cfg: DCRConfig{
 				Enabled:                   true,
+				MaxRequestBodyBytes:       65536,
 				RequireInitialAccessToken: false,
 				DefaultProjectID:          "",
 				DefaultOrgID:              "o",
@@ -57,6 +60,7 @@ func TestDCRConfig_Validate_R4_AnonymousModeNeedsDefaults(t *testing.T) {
 			name: "enabled + anonymous + empty DefaultOrgID — refuse",
 			cfg: DCRConfig{
 				Enabled:                   true,
+				MaxRequestBodyBytes:       65536,
 				RequireInitialAccessToken: false,
 				DefaultProjectID:          "p",
 				DefaultOrgID:              "",
@@ -68,6 +72,7 @@ func TestDCRConfig_Validate_R4_AnonymousModeNeedsDefaults(t *testing.T) {
 			name: "enabled + anonymous + both empty — refuse, names both",
 			cfg: DCRConfig{
 				Enabled:                   true,
+				MaxRequestBodyBytes:       65536,
 				RequireInitialAccessToken: false,
 			},
 			wantErr: true,
@@ -77,6 +82,7 @@ func TestDCRConfig_Validate_R4_AnonymousModeNeedsDefaults(t *testing.T) {
 			name: "whitespace-only defaults treated as empty",
 			cfg: DCRConfig{
 				Enabled:                   true,
+				MaxRequestBodyBytes:       65536,
 				RequireInitialAccessToken: false,
 				DefaultProjectID:          "   ",
 				DefaultOrgID:              "\t\n",
@@ -173,6 +179,7 @@ func TestDCRConfig_Validate_R5_IssuerPathWarning(t *testing.T) {
 			cfg := DCRConfig{
 				Enabled:                   tt.enabled,
 				RequireInitialAccessToken: true, // bypass R4
+				MaxRequestBodyBytes:       65536,
 			}
 			buf := &bytes.Buffer{}
 			logger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelWarn}))
@@ -235,5 +242,42 @@ func TestDCRConfig_NoTLSKnobs_R10(t *testing.T) {
 					"not in TLS-specific DCR config (R10 forbids DCR-specific TLS knobs).",
 				name, needle)
 		}
+	}
+}
+
+// TestDCRConfig_Validate_R1_F204_MaxRequestBodyBytes_Sentinel pins the
+// cavekit-config.md R1 amendment 2026-04-27 / F-204 — MaxRequestBodyBytes
+// sentinel semantics. 0 is INVALID at startup (it silently triggered a
+// 64 KiB default fallback in earlier builds, hiding operator intent).
+// To disable the cap entirely, set -1. Any other negative is invalid.
+func TestDCRConfig_Validate_R1_F204_MaxRequestBodyBytes_Sentinel(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       int64
+		wantErr bool
+		errSubs string
+	}{
+		{"positive cap (default 65536) — accepted", 65536, false, ""},
+		{"positive cap (small) — accepted", 1024, false, ""},
+		{"-1 = no cap — accepted", -1, false, ""},
+		{"0 — REJECTED (silent default fallback was the F-204 bug)", 0, true, "must be > 0"},
+		{"-2 — REJECTED (only -1 disables cap)", -2, true, "is invalid"},
+		{"-65536 — REJECTED", -65536, true, "is invalid"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := DCRConfig{
+				Enabled:                   true,
+				RequireInitialAccessToken: true, // bypass R4
+				MaxRequestBodyBytes:       tt.v,
+			}
+			err := cfg.Validate(context.Background(), true, "example.com", 443)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errSubs)
+				return
+			}
+			require.NoError(t, err)
+		})
 	}
 }

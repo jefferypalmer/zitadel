@@ -25,6 +25,7 @@ Defines the `OIDC.DCR.*` configuration tree shipped in `cmd/defaults.yaml`, the 
 - [ ] `RequireInitialAccessToken` defaults to `false` (anonymous-mode-by-default for Claude Code).
 - [ ] `DefaultProjectID` and `DefaultOrgID` are present with empty-string defaults.
 - [ ] `MaxRedirectURIs: 10` and `MaxRequestBodyBytes: 65536` present.
+- [ ] **`MaxRequestBodyBytes` sentinel semantics (added 2026-04-27 / F-204).** Positive integer = enforced cap. `0` is INVALID — startup MUST refuse with an error naming the field rather than silently substituting the package default. To DISABLE the body cap (e.g. for clients posting large `software_statement` JWTs), the operator MUST set `-1`. Any other negative value is invalid and MUST cause startup to refuse. The decoder MUST NOT silently invent a default when the operator's intent was "no cap" — the only way to disable is the explicit `-1` sentinel.
 - [ ] `AllowedGrantTypes` defaults to `[authorization_code, refresh_token]` and OMITS `client_credentials` (admin opt-in only).
 - [ ] `AllowedResponseTypes` defaults to `[code]`.
 - [ ] `AllowedAuthMethods` defaults to `[none, client_secret_basic, client_secret_post, private_key_jwt]` (`none` REQUIRED for Claude Code; `client_secret_jwt` excluded).

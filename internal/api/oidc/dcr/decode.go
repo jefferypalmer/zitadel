@@ -96,11 +96,25 @@ func Decode(r *http.Request, opts DecodeOptions) (*RFC7591Metadata, error) {
 
 	// 413 — body cap. http.MaxBytesReader returns *MaxBytesError on
 	// overflow during io.ReadAll; we map that to the 413 envelope.
+	//
+	// cavekit-config.md R1 amendment 2026-04-27 / F-204:
+	// -1 = no cap (operator opt-in, e.g. for large software_statement
+	// JWTs). Any value == 0 means no opts were passed (test path);
+	// substitute DefaultMaxBodyBytes. Production wiring rejects 0 at
+	// startup via DCRConfig.Validate, so the test-fallback is
+	// unreachable from real callers.
 	max := opts.MaxBodyBytes
-	if max <= 0 {
+	switch {
+	case max == 0:
 		max = DefaultMaxBodyBytes
+	case max < 0:
+		max = -1 // sentinel: no cap
 	}
-	body, readErr := io.ReadAll(http.MaxBytesReader(nil, r.Body, max))
+	var bodyReader io.Reader = r.Body
+	if max > 0 {
+		bodyReader = http.MaxBytesReader(nil, r.Body, max)
+	}
+	body, readErr := io.ReadAll(bodyReader)
 	if readErr != nil {
 		var mbe *http.MaxBytesError
 		if errors.As(readErr, &mbe) {

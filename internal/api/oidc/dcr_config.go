@@ -26,6 +26,23 @@ func (c DCRConfig) Validate(ctx context.Context, externalSecure bool, externalDo
 		return nil
 	}
 
+	// cavekit-config.md R1 amendment 2026-04-27 / F-204:
+	// MaxRequestBodyBytes sentinel semantics. 0 is INVALID — refuse
+	// startup rather than silently substitute the package default.
+	// To disable the cap entirely, the operator MUST set -1.
+	switch {
+	case c.MaxRequestBodyBytes == 0:
+		return fmt.Errorf(
+			"OIDC.DCR.MaxRequestBodyBytes must be > 0 (positive cap) or -1 (no cap). " +
+				"0 is forbidden because it silently triggered a 64 KiB default fallback in earlier " +
+				"builds, hiding the operator's intent. See cavekit-config.md R1 / F-204")
+	case c.MaxRequestBodyBytes < -1:
+		return fmt.Errorf(
+			"OIDC.DCR.MaxRequestBodyBytes=%d is invalid: only positive integers (enforced cap) "+
+				"or -1 (no cap) are accepted. See cavekit-config.md R1 / F-204",
+			c.MaxRequestBodyBytes)
+	}
+
 	if !c.RequireInitialAccessToken {
 		var missing []string
 		if strings.TrimSpace(c.DefaultProjectID) == "" {
