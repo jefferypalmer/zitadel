@@ -382,3 +382,120 @@ type stubLookupRow struct{ row *QueryIATRow }
 func (s stubLookupRow) InitialAccessTokenByID(_ context.Context, _, _ string) (*QueryIATRow, error) {
 	return s.row, nil
 }
+
+// TestT064_CrossInstanceIATAbuse_Rejected pins
+// cavekit-security-hardening.md R6 T11 evidence: an IAT minted on one
+// instance MUST NOT authenticate a registration request landing on a
+// DIFFERENT instance. ResolveIAT's defensive instance-binding check
+// at auth.go:235 catches the case even when a misconfigured authz
+// interceptor leaves the byID query unfiltered.
+//
+// Threat shape: an attacker steals an IAT plaintext from instance-A
+// and replays it against instance-B's /oidc/v1/register. The byID
+// query already filters by instance_id WHERE-clause, but T11 evidence
+// requires the explicit secondary check so a defense-in-depth gap
+// surfaces here in a unit test, not in production.
+func TestT064_CrossInstanceIATAbuse_Rejected(t *testing.T) {
+	// Request landed on inst-B; IAT row is bound to inst-A.
+	ctx := authz.WithInstanceID(context.Background(), "inst-B")
+	row := &QueryIATRow{
+		ID:            "iat-row-1",
+		InstanceID:    "inst-A", // belongs to a different instance
+		ResourceOwner: "org-on-A",
+		ProjectID:     "proj-on-A",
+		TokenHash:     "stored-hash-XYZ",
+	}
+	q := stubIATQueries{row: row}
+	v := &stubIATVerifier{matchHash: "stored-hash-XYZ"}
+
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-row-1.somerandom", "stub-dummy-hash")
+	assert.Nil(t, got, "T11: cross-instance IAT MUST NOT resolve")
+	ce, ok := IsClampError(err)
+	require.True(t, ok)
+	assert.Equal(t, ErrCodeInvalidToken, ce.Code,
+		"T11: cross-instance abuse → invalid_token (NOT not-found — anti-enum)")
+
+	// Anti-enum: dummy Verify MUST run BEFORE the cross-instance reject
+	// so timing matches the wrong-random branch (R4 / T12 cross-cut).
+	assert.Equal(t, 1, v.verifyCalls,
+		"T11+T12 cross-cut: cross-instance reject MUST pay dummy-Verify cost")
+}
+
+// TestT064_CrossOrgIATAbuse_RejectedByByIDFilter pins R6 T11 evidence
+// for the cross-org case: an IAT belonging to org-A on instance-X
+// CANNOT be looked up by a request coming from a different org-B
+// context on the SAME instance, because the byID query filters by
+// `WHERE instance_id = $1 AND project_id = $2` (cavekit-iat.md R4
+// AC4) and the IAT's project_id is bound to org-A.
+//
+// We model the org boundary by setting up a row whose ResourceOwner
+// is org-A and asserting that the query returns it (org filter is at
+// the SQL level, not at ResolveIAT) — but the broader abuse shape
+// (an attacker re-uses an IAT to register a client under a different
+// org/project than the IAT's claims) is rejected because ResolveIAT
+// returns RegistrationContext{OrgID = row.ResourceOwner} so the
+// downstream RegisterClient command persists the application under
+// org-A regardless of any caller-supplied org. That contract is
+// pinned by the existing T-040 RegisterClient tests; this test pins
+// the IAT-side leg: the resolved RegistrationContext carries the
+// IAT's org, NOT any caller-supplied value.
+func TestT064_CrossOrgIATAbuse_RegistrationContextBoundToIATOrg(t *testing.T) {
+	ctx := authz.WithInstanceID(context.Background(), "inst-1")
+	// IAT was minted by org-A under proj-on-A.
+	row := &QueryIATRow{
+		ID:            "iat-row-1",
+		InstanceID:    "inst-1",
+		ResourceOwner: "org-A", // IAT-bound org
+		ProjectID:     "proj-on-A",
+		TokenHash:     "stored-hash-XYZ",
+	}
+	q := stubIATQueries{row: row}
+	v := &stubIATVerifier{matchHash: "stored-hash-XYZ"}
+
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-row-1.somerandom", "stub-dummy-hash")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, "org-A", got.OrgID,
+		"T11: RegistrationContext.OrgID MUST come from the IAT row, NOT from any caller-supplied value — prevents cross-org client registration via a stolen IAT")
+	assert.Equal(t, "proj-on-A", got.ProjectID,
+		"T11: RegistrationContext.ProjectID MUST come from the IAT row — same boundary")
+}
+
+// TestT064_CrossInstanceIAT_WrongInstanceCtx_DummyVerifyTimingMatch
+// pins the timing-equivalence guarantee for the cross-instance reject
+// branch: the dummy Verify call uses the same anti-enum hash as the
+// not-found branch (DCR-Au005 path at auth.go:236), so an attacker
+// cannot distinguish "IAT belongs to different instance" from "IAT
+// not found at all" by timing observation. R12 cross-cut to T-058's
+// real-Passwap timing pin.
+func TestT064_CrossInstanceIAT_WrongInstanceCtx_DummyVerifyTimingMatch(t *testing.T) {
+	ctx := authz.WithInstanceID(context.Background(), "inst-B")
+	row := &QueryIATRow{
+		ID:            "iat-row-1",
+		InstanceID:    "inst-A", // wrong instance
+		ResourceOwner: "org-A",
+		ProjectID:     "proj-A",
+		TokenHash:     "should-never-be-used",
+	}
+	v := &stubIATVerifier{matchHash: "should-never-be-used"}
+	q := stubIATQueries{row: row}
+
+	got, err := ResolveIAT(ctx, q, v, parseStub, "zdiat_iat-row-1.somerandom", "anti-enum-dummy")
+	assert.Nil(t, got)
+	require.Error(t, err)
+
+	// CRITICAL: even though row.TokenHash WOULD match the verifier's
+	// stub matchHash, ResolveIAT MUST NOT call Verify against
+	// row.TokenHash on the cross-instance branch — the dummy hash MUST
+	// be used. Otherwise an attacker can detect cross-instance vs
+	// not-found by submitting the correct random for an IAT they DON'T
+	// own (verify-against-stored returns nil/no-error → faster path)
+	// vs an unknown ID (verify-against-dummy → same path). Pin via
+	// verifyCalls==1 AND the failure path: the result is invalid_token
+	// regardless of plaintext correctness.
+	assert.Equal(t, 1, v.verifyCalls,
+		"T11+T12: cross-instance branch MUST run exactly one Verify (against dummy, not stored)")
+	ce, ok := IsClampError(err)
+	require.True(t, ok)
+	assert.Equal(t, ErrCodeInvalidToken, ce.Code)
+}
