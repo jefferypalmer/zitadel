@@ -355,3 +355,73 @@ at sketch time.
 2. `unspecified-handler-contract` (2 entries) — emerging. F-101 (dummy hash provenance) and F-200 (IAT consume call site) both shipped because the kit AC described a defensive mechanism in plain English without pinning which layer/file/function owns the call. If a third entry lands, escalate to a cavekit-writing skill amendment: every AC mentioning a defensive call (consume / verify / hash / log-redact) MUST also name (a) the producer interface and (b) the consumer call site.
 
 Recommend running `/ck:design` (or a dedicated cavekit-writing skill amendment) to address both meta-patterns before the next sketch cycle.
+
+---
+
+## Entry #12 — F-205 (size-anchor that doesn't anchor)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — inspector found `var _ = unsafe.Sizeof(a) - unsafe.Sizeof(b)` evaluates to a uintptr regardless of equality; the compile-time anchor was a no-op. Mirror could silently misread `nullable` as `defaultValue` if upstream struct grew by a field.
+- **Classification:** `wrong_criterion` (test-implementation defect, not a kit gap).
+- **Kit amendment:** NONE — this was a pure test artifact.
+- **Regression test:** `internal/query/projection/dcr_rollback_test.go::TestDCRRollback_F205_SizeGuardCatchesDrift` constructs a hypothetical drifted mirror, asserts size-mismatch, asserts the production mirror still matches.
+- **Fix commit:** `4a747d2ad`. Replaced `var _ = unsafe.Sizeof(a) - unsafe.Sizeof(b)` with `func init() { panic if sizes differ }`.
+- **Pattern category:** test-method-defect (1 entry — not a recurring pattern).
+
+## Entry #13 — F-204 (`MaxRequestBodyBytes=0` silent default fallback)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — inspector found `if max <= 0 { max = DefaultMaxBodyBytes }` silently rewrote operator-set 0 to 64 KiB. No way to disable the cap.
+- **Classification:** `incomplete_criterion` (pattern: `unspecified-config-sentinel`).
+- **Kit amendment:** cavekit-config.md R1 — added MaxRequestBodyBytes sentinel ACs: positive = cap, 0 = INVALID (startup refuses), -1 = no cap, any other negative = INVALID.
+- **Regression test:** `internal/api/oidc/dcr_config_test.go::TestDCRConfig_Validate_R1_F204_MaxRequestBodyBytes_Sentinel` (6 cases: positive ×2, -1 accept, 0/−2/−65536 reject).
+- **Fix commit:** `8e0849438`. DCRConfig.Validate refuses 0 + any < -1; decode.go honours -1 as no-cap.
+- **Pattern category:** unspecified-config-sentinel (1 entry — emerging).
+
+## Entry #14 — F-202 (internal-error text leak + reflected-input pollution)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — inspector found `writeDispatchError` fallback wrote `err.Error()` to the 500 body, leaking zerror IDs (COMMA-IAT99 etc), wrapped error chains, possibly SQL state. Wrong envelope code (DB failure labeled invalid_client_metadata).
+- **Classification:** `missing_criterion` (pattern: `unspecified-error-envelope-redaction`).
+- **Kit amendment:** cavekit-register-handler.md R8 — 2 ACs: 500 envelope MUST use new `server_error` code with fixed "internal server error" description; user-input echoed in error_description MUST be capped at 256 bytes after stripping ASCII control chars.
+- **Regression test:** `internal/api/oidc/dcr/dispatcher_test.go::TestDispatch_R8_F202_InternalError_RedactedAndServerError` + `TestSanitiseErrorDescription_F202`.
+- **Fix commit:** `5a1ae4989`. Added ErrCodeServerError + SanitiseErrorDescription helper; WriteError sanitises every description; writeDispatchError logs via slog and emits fixed body.
+- **Pattern category:** unspecified-error-envelope-redaction (1 entry — emerging).
+
+## Entry #15 — F-219 (auth-before-decode sequencing)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — security audit found dispatcher ran Decode BEFORE auth, leaking MaxRequestBodyBytes (via 413), accepted Content-Types (via 415), JSON-decoder behavior (via 400) to anonymous attackers when RequireInitialAccessToken=true.
+- **Classification:** `missing_criterion` (pattern: **`unspecified-handler-contract` — 3rd entry in this loop** 🚨).
+- **Kit amendment:** cavekit-register-handler.md R3 — 2 ACs: auth-first short-circuit when require-IAT + no Bearer; pinned by 100 KiB + text/plain + no-Bearer probe regression.
+- **Regression test:** `internal/api/oidc/dcr/dispatcher_test.go::TestDispatch_R3_F219_AuthBeforeDecode_Sequencing` (3 cases: oversized+wrong-CT+no-Bearer → 401 not 413/415, malformed JSON+no-Bearer → 401 not 400, anonymous mode → decoder runs).
+- **Fix commit:** `b9e97d701`. Reordered dispatcher: ClassifyAuthMode first; auth-required path 401s immediately.
+
+---
+
+## 🚨 Pattern threshold reached: `unspecified-handler-contract` (3 entries)
+
+| Entry | Finding | Layer that owned the unspecified call |
+|-------|---------|---------------------------------------|
+| #4 (F-101) | dummy-hash provenance | construction site (which file builds it from which hasher) |
+| #10 (F-200) | IAT slot consume | dispatcher call site (consume + register sequencing) |
+| #15 (F-219) | auth-before-decode | dispatcher call site (auth gate vs decoder ordering) |
+
+All three findings shipped to production because the kit AC described a defensive mechanism in plain English ("consume one use", "anti-enum dummy hash", "401 first when IAT required") without pinning **which layer / file / function owns the call** AND **what the sequencing constraint is relative to other dispatcher stages**.
+
+**Recommended cross-kit amendment** (route via `/ck:design` or a dedicated cavekit-writing skill amendment):
+
+> Every AC mentioning a defensive call (consume / verify / hash / log-redact / auth-gate / rate-limit) MUST also pin (a) the producer interface (where the call is implemented), (b) the consumer call site (where the dispatcher invokes it), and (c) the sequencing constraint relative to other dispatcher stages (e.g. "MUST run before X", "MUST run after Y", "MUST run inside the same transaction as Z").
+
+This recommendation is the second cross-kit-amendment trigger from this build (the first was `unspecified-parser-contract` at entry #6). Both are open and not yet acted on at the cavekit-writing skill level.
+
+## Pattern category summary (cumulative across 15 entries)
+| Category | Count |
+|----------|-------|
+| **unspecified-parser-contract** | **4** 🚨 (F-100, F-101, F-103, F-218) — cross-kit amendment recommended at entry #6 |
+| **unspecified-handler-contract** | **3** 🚨 (F-101, F-200, F-219) — cross-kit amendment recommended NOW (this entry) |
+| unspecified-config-plumbing | 1 (F-201) |
+| unspecified-config-sentinel | 1 (F-204) |
+| unspecified-error-envelope-redaction | 1 (F-202) |
+| ambiguous-handler-scope | 1 (F-203) |
+| unspecified-mount-contract | 1 (F-217) |
+| kit-internal-inconsistency | 1 (DE-001) |
+| infrastructural-transient (no-op) | 1 (F-102) |
+| closed-by-bundled-fix (no-op) | 1 |
+| test-method-defect | 1 (F-205) |
