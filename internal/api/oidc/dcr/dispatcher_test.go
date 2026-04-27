@@ -508,3 +508,75 @@ func TestDispatch_R6_F200_IAT_ConsumeFailure_Returns401(t *testing.T) {
 	assert.Equal(t, 201, w.Code, "anonymous mode MUST proceed without invoking ConsumeIAT")
 	assert.Equal(t, 0, consumeCalled, "ConsumeIAT MUST NOT fire for anonymous mode")
 }
+
+// TestDispatch_R8_F202_InternalError_RedactedAndServerError pins the
+// cavekit-register-handler.md R8 amendment 2026-04-27 / F-202 — a
+// non-ClampError returned by the Register closure (DB push failure /
+// eventstore unavailable / panic-recovery) MUST NOT leak err.Error()
+// into the response body. The envelope MUST carry a fixed
+// "internal server error" description and the `error` code MUST be
+// `server_error`, not `invalid_client_metadata`.
+//
+// Pre-fix the dispatcher fell back to:
+//   WriteError(w, 500, ErrCodeInvalidClientMetadata, err.Error())
+// leaking zerror IDs (COMMA-..., DCR-RC005), wrapped error chains, and
+// possibly SQL state to unauthenticated callers.
+func TestDispatch_R8_F202_InternalError_RedactedAndServerError(t *testing.T) {
+	// Register closure returns a NON-ClampError carrying obviously-
+	// internal text that MUST NOT appear in the response body.
+	internalErr := errors.New("COMMA-IAT99: postgres SQLSTATE 23505 unique_violation on apps7_oidc_configs (instance_id=acme-corp, internal-detail-LEAKED)")
+	registerFn := func(_ context.Context, _ *RegisterRequest) (*RegisterResult, error) {
+		return nil, internalErr
+	}
+	h := newDispatchHandler(t, registerFn,
+		stubAnonConfig{defaultOrgID: "o", defaultProject: "p"})
+
+	body := `{
+		"client_name": "x",
+		"redirect_uris": ["https://example.com/cb"],
+		"grant_types": ["authorization_code"],
+		"response_types": ["code"],
+		"token_endpoint_auth_method": "client_secret_basic"
+	}`
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, newJSONPostReq(t, body))
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	respBody := w.Body.String()
+	assert.Contains(t, respBody, `"error":"server_error"`,
+		"F-202: 500 envelope code MUST be server_error, NOT invalid_client_metadata")
+	assert.Contains(t, respBody, `"error_description":"internal server error"`,
+		"F-202: 500 description MUST be the fixed 'internal server error' string")
+
+	// The leaky internal text MUST NOT appear in the body.
+	assert.NotContains(t, respBody, "COMMA-IAT99",
+		"F-202: zerror IDs MUST NOT leak in 500 body")
+	assert.NotContains(t, respBody, "SQLSTATE",
+		"F-202: SQL state MUST NOT leak in 500 body")
+	assert.NotContains(t, respBody, "internal-detail-LEAKED",
+		"F-202: arbitrary internal err.Error() text MUST NOT leak in 500 body")
+	assert.NotContains(t, respBody, "acme-corp",
+		"F-202: instance ids inside err.Error() MUST NOT leak — tenant disclosure")
+}
+
+// TestSanitiseErrorDescription_F202 pins the redaction helper —
+// strips control chars (< 0x20 except \t) and caps at 256 bytes.
+func TestSanitiseErrorDescription_F202(t *testing.T) {
+	t.Run("control chars stripped", func(t *testing.T) {
+		got := SanitiseErrorDescription("hello\nworld\x00 \x01tail")
+		assert.Equal(t, "helloworld tail", got, "F-202: \\n, \\x00, \\x01 stripped; \\t/space preserved")
+	})
+	t.Run("tab preserved", func(t *testing.T) {
+		got := SanitiseErrorDescription("a\tb")
+		assert.Equal(t, "a\tb", got)
+	})
+	t.Run("256-byte cap", func(t *testing.T) {
+		input := strings.Repeat("x", 1000)
+		got := SanitiseErrorDescription(input)
+		assert.Len(t, got, MaxErrorDescriptionBytes)
+	})
+	t.Run("empty input safe", func(t *testing.T) {
+		assert.Equal(t, "", SanitiseErrorDescription(""))
+	})
+}

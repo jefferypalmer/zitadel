@@ -145,6 +145,8 @@ Defines the HTTP handler for `POST /oidc/v1/register`: request parsing, RFC 7591
 - [ ] 429 — instance access quota exceeded (inherited from `limitingAccessInterceptor`).
 - [ ] 404 — DCR disabled at config (handler unmounted).
 - [ ] 403 with code `feature_disabled` — startup gate on but runtime feature flag off (`cavekit-config.md` R3).
+- [ ] **500 — internal error envelope (added 2026-04-27 / F-202).** Internal errors (DB push failure, eventstore unavailable, panic-recovery) MUST NOT echo `err.Error()` to the response body. The envelope MUST carry a fixed `error_description` (`"internal server error"`) and the `error` code MUST be `server_error` (mirrors RFC 6749 §5.2 — NOT one of the RFC 7591 §3.2.2 metadata-codes since this is not a metadata fault). The full error chain MUST be logged server-side at WARN+ severity for operator recovery; the response body is never the diagnostic surface.
+- [ ] **`error_description` input redaction (added 2026-04-27 / F-202).** Any `error_description` value derived from user input (malformed Content-Type, malformed redirect URI, JSON parse error message) MUST be capped at 256 bytes after stripping ASCII control characters (< 0x20 except `\t`). Prevents log-injection and oversized reflected-input flow into log aggregators.
 
 **Dependencies:** R1, R2, R3, R4.
 

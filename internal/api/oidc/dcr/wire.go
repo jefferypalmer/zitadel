@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -377,16 +378,24 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 
 // writeDispatchError emits the RFC 7591 envelope for any error
 // returned by the pipeline stages. Maps *ClampError directly via
-// HTTPStatus+Code; falls back to 500/invalid_client_metadata for
-// unexpected errors (the pipeline stages are exhaustive — an unwrapped
-// error here is a programming bug, not a user-input failure).
+// HTTPStatus+Code; non-ClampError errors map to 500 + server_error
+// (cavekit-register-handler.md R8 amendment 2026-04-27 / F-202).
+//
+// Per R8 AC: internal errors MUST NOT echo `err.Error()` to the body.
+// The full error chain is logged server-side via slog at WARN+ severity
+// for operator recovery; the response carries only a fixed
+// `internal server error` description so an unauthenticated caller
+// cannot fingerprint the database, eventstore, or other internal state.
 func writeDispatchError(w http.ResponseWriter, err error) {
 	var ce *ClampError
 	if errors.As(err, &ce) {
 		WriteError(w, ce.HTTPStatus(), ce.Code, ce.Description)
 		return
 	}
-	WriteError(w, http.StatusInternalServerError, ErrCodeInvalidClientMetadata, err.Error())
+	slog.WarnContext(context.Background(), "dcr: dispatcher internal error",
+		slog.Any("err", err))
+	WriteError(w, http.StatusInternalServerError, ErrCodeServerError,
+		"internal server error")
 }
 
 // writeAuthError is writeDispatchError + WWW-Authenticate header for

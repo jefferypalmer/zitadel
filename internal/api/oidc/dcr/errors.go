@@ -34,6 +34,13 @@ const (
 	// extensions per R8.
 	ErrCodeUnsupportedMediaType = "unsupported_media_type"
 	ErrCodePayloadTooLarge      = "payload_too_large"
+
+	// ErrCodeServerError is the envelope `error` code for 500
+	// responses (cavekit-register-handler.md R8 amendment / F-202).
+	// Mirrors RFC 6749 §5.2's `server_error` family; intentionally
+	// distinct from the RFC 7591 §3.2.2 metadata codes so consumers
+	// can distinguish an internal fault from a client-input fault.
+	ErrCodeServerError = "server_error"
 )
 
 // ErrorEnvelope is the RFC 7591 §3.2.2 client-registration error body.
@@ -45,6 +52,7 @@ type ErrorEnvelope struct {
 	ErrorDescription string `json:"error_description,omitempty"`
 }
 
+// WriteError sanitizes the description (F-202) before writing.
 // WriteError is the single error-response writer for the DCR package.
 // Sets the RFC 7591 Content-Type plus the no-store / no-cache pair that
 // every DCR response (success or failure) carries — caching a DCR
@@ -58,7 +66,7 @@ func WriteError(w http.ResponseWriter, status int, code, description string) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(ErrorEnvelope{
 		Error:            code,
-		ErrorDescription: description,
+		ErrorDescription: SanitiseErrorDescription(description),
 	})
 }
 
@@ -66,3 +74,27 @@ func WriteError(w http.ResponseWriter, status int, code, description string) {
 // `DCR-<5 alphanumeric>` prefix (e.g., `DCR-Wx2Y9`) so log scans can
 // disambiguate DCR failures from sibling OIDC code paths. Tasks
 // T-033/T-034/T-036/T-040/T-054 will introduce concrete IDs.
+
+// MaxErrorDescriptionBytes caps user-input echoed in the
+// `error_description` envelope field per cavekit-register-handler.md
+// R8 amendment 2026-04-27 / F-202. Prevents log-injection (control
+// chars) and oversized reflected-input flow into log aggregators.
+const MaxErrorDescriptionBytes = 256
+
+// SanitiseErrorDescription strips ASCII control characters (< 0x20
+// except \t) and caps the length per F-202. Safe to call on
+// any string; nil-safe on empty input.
+func SanitiseErrorDescription(s string) string {
+	if s == "" {
+		return s
+	}
+	var b []byte
+	for i := 0; i < len(s) && len(b) < MaxErrorDescriptionBytes; i++ {
+		c := s[i]
+		if c < 0x20 && c != '\t' {
+			continue
+		}
+		b = append(b, c)
+	}
+	return string(b)
+}
