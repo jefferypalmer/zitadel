@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -238,6 +239,16 @@ func CheckRedirectURIs(cfg DCRConfigSubset, appType string, grantTypes []string,
 		if parsed.User != nil {
 			return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
 				"MUST NOT carry userinfo (RFC 7591 / OAuth 2.1 §4.1.2): "+raw, "DCR-Vt024")
+		}
+		// cavekit-register-handler.md R4 amendment 2026-04-27 / F-218:
+		// scheme allow-list. Hard-reject `javascript:`/`data:`/`vbscript:`/
+		// `file:`/`about:`/`chrome:`/`chrome-extension:`/`ms-browser-extension:`
+		// (XSS / file-disclosure vectors). For non-http(s), allow custom
+		// schemes ONLY when application_type=native AND the scheme is a
+		// reverse-domain identifier (matches `^[a-z][a-z0-9+.-]*$` AND
+		// contains at least one `.`) per RFC 8252 §7.1.
+		if err := checkRedirectURIScheme(parsed.Scheme, appType, raw); err != nil {
+			return err
 		}
 		if isLoopbackHTTP(raw) && appType == "native" {
 			// Loopback HTTP is allowed for native per RFC 8252 §7.3 and
@@ -501,4 +512,52 @@ func IsClampError(err error) (*ClampError, bool) {
 		return ce, true
 	}
 	return nil, false
+}
+
+// hardRejectedSchemes carries schemes that are NEVER valid for an OAuth
+// redirect URI per cavekit-register-handler.md R4 amendment 2026-04-27 /
+// F-218. Lower-case keys; check is case-insensitive at the call site.
+var hardRejectedSchemes = map[string]struct{}{
+	"javascript":          {},
+	"data":                {},
+	"vbscript":            {},
+	"file":                {},
+	"about":               {},
+	"chrome":              {},
+	"chrome-extension":    {},
+	"ms-browser-extension": {},
+}
+
+// schemePattern is the RFC 3986 §3.1 scheme syntax plus a lower-case
+// requirement (we lower the input before matching). Reverse-domain
+// custom schemes (RFC 8252 §7.1) ALSO require at least one `.`.
+var schemePattern = regexp.MustCompile(`^[a-z][a-z0-9+.\-]*$`)
+
+// checkRedirectURIScheme enforces the F-218 scheme allow-list:
+//   - http / https accepted unconditionally.
+//   - hardRejectedSchemes always rejected (even for native — the headline
+//     attack is `redirect_uris=["javascript:..."]` for application_type=native).
+//   - any other scheme accepted ONLY when appType == "native" AND the
+//     scheme is reverse-domain shaped.
+func checkRedirectURIScheme(scheme, appType, raw string) error {
+	s := strings.ToLower(scheme)
+	if _, blocked := hardRejectedSchemes[s]; blocked {
+		return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
+			"scheme "+scheme+" is not allowed (XSS / file-disclosure vector): "+raw,
+			"DCR-Vt025")
+	}
+	if s == "http" || s == "https" {
+		return nil
+	}
+	if appType != "native" {
+		return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
+			"custom scheme "+scheme+" is allowed only for application_type=native: "+raw,
+			"DCR-Vt026")
+	}
+	if !schemePattern.MatchString(s) || !strings.Contains(s, ".") {
+		return newClampError(ErrCodeInvalidRedirectURI, "redirect_uris",
+			"custom scheme "+scheme+" is not a reverse-domain identifier (RFC 8252 §7.1): "+raw,
+			"DCR-Vt027")
+	}
+	return nil
 }

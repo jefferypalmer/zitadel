@@ -612,3 +612,73 @@ func TestValidateAndClampMetadata_R5_PrivateKeyJWT_RejectsBlankJwksURI(t *testin
 	assert.Equal(t, ErrCodeInvalidClientMetadata, ce.Code)
 	assert.Contains(t, strings.ToLower(ce.Description), "jwks_uri")
 }
+
+// TestValidateAndClampMetadata_R4_F218_RedirectURISchemeAllowList pins
+// the cavekit-register-handler.md R4 amendment 2026-04-27 / F-218 —
+// scheme allow-list. Hard-rejected schemes (javascript:, data:, etc)
+// MUST be refused even when application_type=native; custom schemes
+// MUST be reverse-domain shaped (one+ dot); plain `com:` MUST be
+// rejected; case-insensitivity MUST be enforced.
+//
+// Pre-fix the dispatcher accepted `redirect_uris=["javascript:..."]`
+// for native, turning DCR into an XSS-distribution channel — see the
+// F-218 finding in impl-review-findings.md.
+func TestValidateAndClampMetadata_R4_F218_RedirectURISchemeAllowList(t *testing.T) {
+	cfg := defaultStubConfig()
+
+	hardReject := []string{
+		"javascript:alert(1)",
+		"data:text/html,<script>alert(1)</script>",
+		"vbscript:msgbox",
+		"file:///etc/passwd",
+		"JAVASCRIPT:alert(1)", // case-insensitivity
+	}
+	for _, badURI := range hardReject {
+		t.Run("native rejects "+badURI, func(t *testing.T) {
+			in := validHappyPathMetadata()
+			in.ApplicationType = "native"
+			in.RedirectURIs = []string{badURI}
+			_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+			require.Error(t, err)
+			var ce *ClampError
+			require.True(t, errors.As(err, &ce))
+			assert.Equal(t, ErrCodeInvalidRedirectURI, ce.Code,
+				"F-218: hard-rejected scheme MUST yield invalid_redirect_uri envelope")
+		})
+		t.Run("web rejects "+badURI, func(t *testing.T) {
+			in := validHappyPathMetadata()
+			in.ApplicationType = "web"
+			in.RedirectURIs = []string{badURI}
+			_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+			require.Error(t, err)
+		})
+	}
+
+	t.Run("native accepts reverse-domain custom scheme", func(t *testing.T) {
+		in := validHappyPathMetadata()
+		in.ApplicationType = "native"
+		in.TokenEndpointAuthMethod = "none" // OIDC v1 compliance: native MUST use none
+		in.RedirectURIs = []string{"com.example.app:/callback"}
+		_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+		assert.NoError(t, err, "RFC 8252 §7.1 reverse-domain scheme MUST be accepted for native")
+	})
+
+	t.Run("native rejects no-dot scheme", func(t *testing.T) {
+		in := validHappyPathMetadata()
+		in.ApplicationType = "native"
+		in.RedirectURIs = []string{"com:/callback"}
+		_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+		require.Error(t, err, "non-reverse-domain custom scheme MUST be rejected (RFC 8252 §7.1)")
+		var ce *ClampError
+		require.True(t, errors.As(err, &ce))
+		assert.Equal(t, ErrCodeInvalidRedirectURI, ce.Code)
+	})
+
+	t.Run("web rejects custom scheme even if reverse-domain shaped", func(t *testing.T) {
+		in := validHappyPathMetadata()
+		in.ApplicationType = "web"
+		in.RedirectURIs = []string{"com.example.app:/callback"}
+		_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+		require.Error(t, err, "custom schemes are native-only per RFC 8252 §7.1")
+	})
+}
