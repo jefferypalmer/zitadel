@@ -535,5 +535,18 @@ Errors:
       RegistrationNotAllowed: Реєстрація не дозволена
   DeviceAuth:
     NotExisting: Код користувача не існує
+  DCR:
+    FeatureDisabled: Динамічну реєстрацію клієнтів вимкнено.
+    InvalidClientMetadata: Недійсні метадані клієнта.
+    InvalidRedirectURI: Недійсний URI перенаправлення.
+    InvalidSoftwareStatement: Недійсний software statement.
+    UnapprovedSoftwareStatement: Software statement не схвалено.
+    InvalidToken: Недійсний або відсутній токен доступу.
+    IAT:
+      Exhausted: Initial access token вичерпано.
+      SlotAlreadyConsumed: Слот initial access token уже використано.
+      NotFound: Initial access token не знайдено.
+      Expired: Термін дії initial access token завершився.
+      Revoked: Initial access token відкликано.
 
 optional: (необов'язково)

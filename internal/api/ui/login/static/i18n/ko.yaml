@@ -534,5 +534,18 @@ Errors:
       RegistrationNotAllowed: 등록이 허용되지 않습니다
   DeviceAuth:
     NotExisting: 사용자 코드가 존재하지 않습니다
+  DCR:
+    FeatureDisabled: 동적 클라이언트 등록이 비활성화되어 있습니다.
+    InvalidClientMetadata: 클라이언트 메타데이터가 유효하지 않습니다.
+    InvalidRedirectURI: 리디렉션 URI가 유효하지 않습니다.
+    InvalidSoftwareStatement: software statement가 유효하지 않습니다.
+    UnapprovedSoftwareStatement: software statement가 승인되지 않았습니다.
+    InvalidToken: 액세스 토큰이 유효하지 않거나 없습니다.
+    IAT:
+      Exhausted: initial access token을 모두 사용했습니다.
+      SlotAlreadyConsumed: initial access token 슬롯이 이미 사용되었습니다.
+      NotFound: initial access token을 찾을 수 없습니다.
+      Expired: initial access token이 만료되었습니다.
+      Revoked: initial access token이 해지되었습니다.
 
 optional: (선택 사항)

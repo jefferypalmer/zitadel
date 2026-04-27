@@ -534,5 +534,18 @@ Errors:
       RegistrationNotAllowed: Registrace není povolena
   DeviceAuth:
     NotExisting: Kód uživatelského zařízení neexistuje
+  DCR:
+    FeatureDisabled: Dynamická registrace klienta je deaktivována.
+    InvalidClientMetadata: Neplatná metadata klienta.
+    InvalidRedirectURI: Neplatný redirect URI.
+    InvalidSoftwareStatement: Neplatný software statement.
+    UnapprovedSoftwareStatement: Software statement není schválen.
+    InvalidToken: Neplatný nebo chybějící přístupový token.
+    IAT:
+      Exhausted: Initial access token byl vyčerpán.
+      SlotAlreadyConsumed: Slot initial access tokenu již byl spotřebován.
+      NotFound: Initial access token nebyl nalezen.
+      Expired: Platnost initial access tokenu vypršela.
+      Revoked: Initial access token byl zneplatněn.
 
 optional: (volitelné)

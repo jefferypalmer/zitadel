@@ -531,5 +531,18 @@ Errors:
       RegistrationNotAllowed: O registro não é permitido
   DeviceAuth:
     NotExisting: Código do usuário não existe
+  DCR:
+    FeatureDisabled: O registo dinâmico de clientes está desativado.
+    InvalidClientMetadata: Metadados de cliente inválidos.
+    InvalidRedirectURI: URI de redirecionamento inválido.
+    InvalidSoftwareStatement: Software statement inválido.
+    UnapprovedSoftwareStatement: O software statement não está aprovado.
+    InvalidToken: Token de acesso inválido ou em falta.
+    IAT:
+      Exhausted: O initial access token está esgotado.
+      SlotAlreadyConsumed: O slot do initial access token já foi consumido.
+      NotFound: Initial access token não encontrado.
+      Expired: O initial access token expirou.
+      Revoked: O initial access token foi revogado.
 
 optional: (opcional)

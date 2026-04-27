@@ -15,29 +15,30 @@ import (
 // T-074 — DCR i18n English-fallback contract
 // (cavekit-console-ui-docs-and-observability.md R3 AC).
 //
-// The 11 backend `Errors.DCR.*` keys (T-073) ship for English +
-// German only. R3 explicitly states "other 19 locales receive English
-// fallback" — meaning a request carrying `Accept-Language: ja` (or
-// any other supported-but-untranslated locale) MUST resolve the key
-// to its English string, NOT leak the raw key (e.g.
-// `Errors.DCR.IAT.Exhausted`) into the HTTP response.
+// As of T-075 every supported locale ships its own translation of the
+// 11 backend `Errors.DCR.*` keys, so the original "ja → English
+// fallback" probe no longer holds (ja resolves to its own translation).
+// The fallback CONTRACT — "an unsupported locale MUST resolve to the
+// English string, never the raw translation key" — still matters for
+// any future locale-tag the bundle has not seen, so this file pins
+// it via:
 //
-// `localize()` (translator.go:163) returns the message id verbatim
+//   1. A synthetic locale tag (`zz`) the bundle has not loaded — the
+//      only way to exercise go-i18n's MessageNotFoundErr path now
+//      that every loaded locale ships translations.
+//   2. Every loaded supported locale (de + 20 translated locales)
+//      MUST resolve every DCR key to a non-empty, non-raw-key, non-
+//      English (where applicable per T-075) string.
+//
+// `localize()` (translator.go) returns the message id verbatim only
 // when the localizer can find no translation in any of the requested
-// languages OR the bundle's default. Our setup uses
-// `language.English` as the default, so go-i18n's Localizer falls
-// back to the English string when an unsupported lang is requested.
-// This test pins that contract.
-//
-// If a future refactor changes the default language away from
-// English (e.g. to language.Und), this test fires — at which point
-// the kit's Phase-1 fallback contract has been broken at the
-// translator layer and the maintainer must either (a) restore the
-// English default or (b) translate every key into every supported
-// locale before changing the default.
+// languages AND the bundle's default language. The T-074 patch made
+// that branch tolerate `*MessageNotFoundErr` carrying a non-empty
+// rendered English fallback; the synthetic-locale test below pins
+// that branch directly.
 
 // dcrEnglishCanonical is the source-of-truth lookup for the 11 keys.
-// Mirrors the table in `internal/api/ui/login/static/i18n/dcr_keys_test.go`.
+// Mirrors the table in `dcr_keys_test.go` in this package.
 var dcrEnglishCanonical = map[string]string{
 	"Errors.DCR.FeatureDisabled":             "Dynamic client registration is disabled.",
 	"Errors.DCR.InvalidClientMetadata":       "Invalid client metadata.",
@@ -52,60 +53,50 @@ var dcrEnglishCanonical = map[string]string{
 	"Errors.DCR.IAT.Revoked":                 "Initial access token has been revoked.",
 }
 
-// fallbackProbeLocales is a representative sample of the 20
-// untranslated locales — running the matrix against all 20 is
-// redundant since they share the same fallback path. We pick across
-// scripts (Latin, Cyrillic, CJK, RTL) so a future regression that
-// special-cases one script family doesn't slip through.
-var fallbackProbeLocales = []string{"ja", "es", "fr", "ko", "ar"}
+// translatedLocales is the set of locales beyond English that ship
+// hand-translated DCR strings (T-073 + T-075). Each MUST resolve every
+// DCR key to a non-empty, non-raw-key, non-English string.
+var translatedLocales = []string{
+	"de", "ar", "bg", "cs", "es", "fr", "hu", "id", "it", "ja",
+	"ko", "mk", "nl", "pl", "pt", "ro", "ru", "sv", "tr", "uk", "zh",
+}
 
-func TestT074_R3_DCR_EnglishFallbackOnUnsupportedLocale(t *testing.T) {
-	// SupportedLanguages must be initialised before
-	// NewLoginTranslator can resolve the bundle. Test binary doesn't
-	// run cmd/start/start.go's bootstrap, so call the loader here.
+// TestT074_R3_DCR_FallbackToEnglish_OnUnloadedLocale pins the
+// fallback CONTRACT — go-i18n's *MessageNotFoundErr path MUST
+// preserve the rendered English fallback string instead of leaking
+// the raw key. We exercise this with a synthetic locale tag (`zz`)
+// that the bundle has not loaded; every other supported locale
+// ships its own translation post-T-075 and would no longer fall
+// back at all.
+func TestT074_R3_DCR_FallbackToEnglish_OnUnloadedLocale(t *testing.T) {
 	i18n.MustLoadSupportedLanguagesFromDir()
-
 	translator := i18n.NewLoginTranslator(
 		language.English,
 		i18n.SupportedLanguages(),
 		"",
 	)
-
-	for _, lang := range fallbackProbeLocales {
-		for key, want := range dcrEnglishCanonical {
-			t.Run(lang+"/"+key, func(t *testing.T) {
-				// Plain Accept-Language: <lang> request shape — no
-				// explicit `en` tail. The translator's localize() in
-				// translator.go preserves the rendered English
-				// fallback string when go-i18n returns
-				// `*MessageNotFoundErr` together with the
-				// default-language template (T-074 fix). Without that
-				// fix this assertion catches the raw-key leak.
-				got := translator.LocalizeWithoutArgs(key, lang)
-				require.NotEqual(t, key, got,
-					"R3 fallback violation: locale %q resolved %q to its "+
-						"raw key. Either the translator regressed (drop the "+
-						"NotFound-tolerant branch in localize()) OR en.yaml "+
-						"lost the entry — production HTTP responses would "+
-						"emit `error_description: %q`.",
-					lang, key, key)
-				assert.Equal(t, want, got,
-					"R3 fallback contract: locale %q MUST resolve %q to the "+
-						"English canonical string (no German leakage, no "+
-						"partial translation, no raw key)",
-					lang, key)
-			})
-		}
+	const unloadedTag = "zz" // ISO 639 reserved-private; never present in i18n/.
+	for key, want := range dcrEnglishCanonical {
+		t.Run(key, func(t *testing.T) {
+			got := translator.LocalizeWithoutArgs(key, unloadedTag)
+			require.NotEqual(t, key, got,
+				"R3 fallback violation: unloaded locale %q resolved %q to its "+
+					"raw key. The translator's MessageNotFoundErr-tolerant "+
+					"branch in localize() (T-074 patch) regressed — production "+
+					"would emit `error_description: %q`.",
+				unloadedTag, key, key)
+			assert.Equal(t, want, got,
+				"R3 fallback contract: unloaded locale %q MUST resolve %q to "+
+					"the English canonical string (no partial translation, no raw key)",
+				unloadedTag, key)
+		})
 	}
 }
 
-// TestT074_R3_DCR_LocalizeBranches_HonourEnglishFallback is the
-// per-branch pin on the translator's `localize()` helper. It
-// exercises every public lookup the production code uses to
-// translate an `Errors.DCR.*` key — Localize, LocalizeWithoutArgs,
-// LocalizeFromRequest. Drift in any one branch is a regression of
-// the R3 fallback contract.
-func TestT074_R3_DCR_LocalizeBranches_HonourEnglishFallback(t *testing.T) {
+// TestT074_R3_DCR_LocalizeBranches_HonourFallback pins the same
+// fallback contract through every public lookup branch the
+// production code uses. Drift in any one branch is a regression.
+func TestT074_R3_DCR_LocalizeBranches_HonourFallback(t *testing.T) {
 	i18n.MustLoadSupportedLanguagesFromDir()
 	translator := i18n.NewLoginTranslator(
 		language.English,
@@ -114,20 +105,21 @@ func TestT074_R3_DCR_LocalizeBranches_HonourEnglishFallback(t *testing.T) {
 	)
 	const key = "Errors.DCR.IAT.Exhausted"
 	want := dcrEnglishCanonical[key]
+	const unloadedTag = "zz"
 
 	t.Run("Localize", func(t *testing.T) {
-		got := translator.Localize(key, nil, "ja")
+		got := translator.Localize(key, nil, unloadedTag)
 		assert.Equal(t, want, got, "Localize MUST honour English fallback")
 	})
 
 	t.Run("LocalizeWithoutArgs", func(t *testing.T) {
-		got := translator.LocalizeWithoutArgs(key, "ko")
+		got := translator.LocalizeWithoutArgs(key, unloadedTag)
 		assert.Equal(t, want, got, "LocalizeWithoutArgs MUST honour English fallback")
 	})
 
 	t.Run("LocalizeFromRequest", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/probe", nil)
-		req.Header.Set("Accept-Language", "ar")
+		req.Header.Set("Accept-Language", unloadedTag)
 		got := translator.LocalizeFromRequest(req, key, nil)
 		assert.Equal(t, want, got, "LocalizeFromRequest MUST honour English fallback")
 	})
@@ -154,34 +146,35 @@ func TestT074_R3_DCR_EnglishCanonical_Direct(t *testing.T) {
 	}
 }
 
-// TestT074_R3_DCR_GermanDirectLookup pins that German requests get
-// the German translation (NOT English fallback). Drift here means
-// the de.yaml load failed silently OR the bundle's allowed-languages
-// list excluded de — either way the production deployment would
-// regress German-speaking customers.
-func TestT074_R3_DCR_GermanDirectLookup(t *testing.T) {
+// TestT075_R3_DCR_AllSupportedLocales_ResolveDistinct pins that every
+// loaded supported locale (de + 20 T-075 translations) resolves every
+// DCR key to a non-empty, non-raw-key, non-English string. Drift here
+// means either the locale's yaml regressed (key removed or copied
+// English text) OR the translator fell back to English when it
+// shouldn't have.
+func TestT075_R3_DCR_AllSupportedLocales_ResolveDistinct(t *testing.T) {
 	i18n.MustLoadSupportedLanguagesFromDir()
-
 	translator := i18n.NewLoginTranslator(
 		language.English,
 		i18n.SupportedLanguages(),
 		"",
 	)
-	for key := range dcrEnglishCanonical {
-		t.Run(key, func(t *testing.T) {
-			got := translator.LocalizeWithoutArgs(key, "de")
-			require.NotEqual(t, key, got,
-				"R3: de.yaml MUST translate %q (raw key leaked)", key)
-			require.NotEmpty(t, got)
-			// Negative pin: German MUST NOT match the English string
-			// for the keys we shipped explicit German translations for.
-			// If they ever match, either de.yaml regressed to copying
-			// English (translator quality issue) or the lookup fell
-			// back to English (bundle wiring issue).
-			assert.NotEqual(t, dcrEnglishCanonical[key], got,
-				"R3: de.yaml lookup for %q returned the English string — "+
-					"either de.yaml regressed or bundle fallback fired (kit pins "+
-					"distinct German translations for all 11 DCR keys)", key)
-		})
+	for _, locale := range translatedLocales {
+		for key, english := range dcrEnglishCanonical {
+			t.Run(locale+"/"+key, func(t *testing.T) {
+				got := translator.LocalizeWithoutArgs(key, locale)
+				require.NotEmpty(t, got)
+				require.NotEqual(t, key, got,
+					"R3 (T-075): locale %q resolved %q to the raw key — "+
+						"the locale's Errors.DCR.* block is missing or "+
+						"the translator regressed",
+					locale, key)
+				assert.NotEqual(t, english, got,
+					"R3 (T-075): locale %q resolved %q to the English string — "+
+						"either the yaml regressed to copying English or "+
+						"the bundle fell back unexpectedly",
+					locale, key)
+			})
+		}
 	}
 }

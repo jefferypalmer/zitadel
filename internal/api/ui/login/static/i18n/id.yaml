@@ -494,4 +494,18 @@ Errors:
       RegistrationNotAllowed: Pendaftaran tidak diperbolehkan
   DeviceAuth:
     NotExisting: Kode Pengguna tidak ada
+  DCR:
+    FeatureDisabled: Pendaftaran klien dinamis dinonaktifkan.
+    InvalidClientMetadata: Metadata klien tidak valid.
+    InvalidRedirectURI: URI pengalihan tidak valid.
+    InvalidSoftwareStatement: Software statement tidak valid.
+    UnapprovedSoftwareStatement: Software statement tidak disetujui.
+    InvalidToken: Token akses tidak valid atau hilang.
+    IAT:
+      Exhausted: Initial access token telah habis.
+      SlotAlreadyConsumed: Slot initial access token sudah digunakan.
+      NotFound: Initial access token tidak ditemukan.
+      Expired: Initial access token telah kedaluwarsa.
+      Revoked: Initial access token telah dicabut.
+
 optional: (opsional)

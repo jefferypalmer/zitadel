@@ -535,5 +535,18 @@ Errors:
       RegistrationNotAllowed: Не е дозволена регистрација
   DeviceAuth:
     NotExisting: Кодот на корисникот не постои
+  DCR:
+    FeatureDisabled: Динамичката регистрација на клиенти е оневозможена.
+    InvalidClientMetadata: Невалидни метаподатоци на клиентот.
+    InvalidRedirectURI: Невалиден URI за пренасочување.
+    InvalidSoftwareStatement: Невалиден software statement.
+    UnapprovedSoftwareStatement: Software statement не е одобрен.
+    InvalidToken: Невалиден или непостоен токен за пристап.
+    IAT:
+      Exhausted: Initial access token е исцрпен.
+      SlotAlreadyConsumed: Слотот на initial access token е веќе искористен.
+      NotFound: Initial access token не е пронајден.
+      Expired: Initial access token е истечен.
+      Revoked: Initial access token е отповикан.
 
 optional: (опционално)

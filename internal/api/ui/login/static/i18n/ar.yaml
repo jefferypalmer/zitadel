@@ -530,5 +530,18 @@ Errors:
       RegistrationNotAllowed: التسجيل غير مسموح به
   DeviceAuth:
     NotExisting: رمز المستخدم غير موجود
+  DCR:
+    FeatureDisabled: تم تعطيل التسجيل الديناميكي للعميل.
+    InvalidClientMetadata: بيانات تعريف العميل غير صالحة.
+    InvalidRedirectURI: عنوان URI لإعادة التوجيه غير صالح.
+    InvalidSoftwareStatement: بيان البرنامج غير صالح.
+    UnapprovedSoftwareStatement: بيان البرنامج غير معتمد.
+    InvalidToken: رمز الوصول غير صالح أو مفقود.
+    IAT:
+      Exhausted: تم استنفاد رمز الوصول الأولي.
+      SlotAlreadyConsumed: تم استهلاك خانة رمز الوصول الأولي بالفعل.
+      NotFound: رمز الوصول الأولي غير موجود.
+      Expired: انتهت صلاحية رمز الوصول الأولي.
+      Revoked: تم إلغاء رمز الوصول الأولي.
 
 optional: (اختياري)

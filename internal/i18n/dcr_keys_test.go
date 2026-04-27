@@ -72,13 +72,17 @@ func TestT073_R3_AC4_DCRBackendKeys_GermanTranslated(t *testing.T) {
 	}
 }
 
-func TestT073_R3_AC4_DCRBackendKeys_NotInUnsupportedLocales(t *testing.T) {
-	// R3 wording: "other 19 locales receive English fallback" — i.e.
-	// the DCR keys MUST NOT be present in any locale beyond en + de
-	// for Phase 1 (T-075 opens the translation tickets to reach
-	// completeness). Drift here means a contributor translated DCR
-	// strings ahead of the team-coordination workflow, which the
-	// fallback test in T-074 will then NOT exercise.
+func TestT075_R3_AC4_DCRBackendKeys_AllLocalesTranslated(t *testing.T) {
+	// T-075 — DCR error keys translated into all 20 supported locales
+	// beyond en + de. Each key MUST be present and non-empty per
+	// locale; the value MUST NOT collide with the English canonical
+	// (translation regression guard) AND MUST NOT contain a literal
+	// translation key like `Errors.DCR.SomeKey` (raw-key-leak guard).
+	//
+	// If you are intentionally regressing a locale to English-fallback
+	// (e.g. the translation needs review), DELETE the `Errors.DCR.*`
+	// block from that locale's yaml entirely — go-i18n will then fall
+	// back to en.yaml at runtime via the translator fix in T-074.
 	otherLocales := []string{
 		"ar.yaml", "bg.yaml", "cs.yaml", "es.yaml", "fr.yaml", "hu.yaml",
 		"id.yaml", "it.yaml", "ja.yaml", "ko.yaml", "mk.yaml", "nl.yaml",
@@ -88,14 +92,30 @@ func TestT073_R3_AC4_DCRBackendKeys_NotInUnsupportedLocales(t *testing.T) {
 	for _, name := range otherLocales {
 		t.Run(name, func(t *testing.T) {
 			tree := loadI18nYAML(t, name)
-			// Look up the parent path. If `Errors.DCR` itself is absent,
-			// the locale is in the documented Phase-1 fallback state
-			// (correct). If present, fail and point at T-075.
-			if _, ok := lookupDottedKey(tree, "Errors.DCR.FeatureDisabled"); ok {
-				t.Fatalf("R3 AC4: %s contains DCR translations ahead of T-075 — "+
-					"if you are submitting Phase-1+ DCR translations, also extend "+
-					"requiredEnglishStrings above to pin every key",
-					name)
+			for key, english := range requiredEnglishStrings {
+				got, ok := lookupDottedKey(tree, key)
+				require.True(t, ok,
+					"R3 AC4 (T-075): %s MUST translate %q — drop the entire "+
+						"Errors.DCR.* block from this locale if you intentionally "+
+						"regress it to English fallback (translator handles the "+
+						"fallback per T-074)",
+					name, key)
+				require.NotEmpty(t, got,
+					"R3 AC4 (T-075): %s value for %q MUST be non-empty", name, key)
+				assert.NotEqual(t, english, got,
+					"R3 AC4 (T-075): %s value for %q matches the English canonical — "+
+						"either the translator copied English (translation quality issue) "+
+						"or this locale needs to be regressed to English-fallback by "+
+						"deleting its Errors.DCR.* block",
+					name, key)
+				// Defence-in-depth: a translation that accidentally contains
+				// the literal key fragment is a structural regression — the
+				// raw-key-leak fallback test (T-074) would not catch it
+				// because the translator would happily emit that string.
+				assert.NotContains(t, got, "Errors.DCR.",
+					"R3 AC4 (T-075): %s value for %q contains a raw key fragment — "+
+						"likely a translation tooling bug",
+					name, key)
 			}
 		})
 	}

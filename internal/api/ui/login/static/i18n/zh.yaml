@@ -534,5 +534,18 @@ Errors:
       RegistrationNotAllowed: 不允许注册
   DeviceAuth:
     NotExisting: 用户代码不存在
+  DCR:
+    FeatureDisabled: 动态客户端注册已禁用。
+    InvalidClientMetadata: 客户端元数据无效。
+    InvalidRedirectURI: 重定向 URI 无效。
+    InvalidSoftwareStatement: software statement 无效。
+    UnapprovedSoftwareStatement: software statement 未获批准。
+    InvalidToken: 访问令牌无效或缺失。
+    IAT:
+      Exhausted: initial access token 已用尽。
+      SlotAlreadyConsumed: initial access token 槽位已被使用。
+      NotFound: 未找到 initial access token。
+      Expired: initial access token 已过期。
+      Revoked: initial access token 已被吊销。
 
 optional: (可选)

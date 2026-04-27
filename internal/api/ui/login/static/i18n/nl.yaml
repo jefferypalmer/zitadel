@@ -534,5 +534,18 @@ Errors:
       RegistrationNotAllowed: Registratie is niet toegestaan
   DeviceAuth:
     NotExisting: Gebruikerscode bestaat niet
+  DCR:
+    FeatureDisabled: Dynamische clientregistratie is uitgeschakeld.
+    InvalidClientMetadata: Ongeldige clientmetadata.
+    InvalidRedirectURI: Ongeldige redirect-URI.
+    InvalidSoftwareStatement: Ongeldige software statement.
+    UnapprovedSoftwareStatement: Software statement is niet goedgekeurd.
+    InvalidToken: Ongeldige of ontbrekende toegangstoken.
+    IAT:
+      Exhausted: Initial access token is uitgeput.
+      SlotAlreadyConsumed: Slot van initial access token is al gebruikt.
+      NotFound: Initial access token niet gevonden.
+      Expired: Initial access token is verlopen.
+      Revoked: Initial access token is ingetrokken.
 
 optional: (optioneel)

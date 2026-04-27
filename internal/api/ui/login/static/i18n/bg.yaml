@@ -522,4 +522,18 @@ Errors:
       RegistrationNotAllowed: Регистрацията не е разрешена
   DeviceAuth:
     NotExisting: Потребителският код не съществува
+  DCR:
+    FeatureDisabled: Динамичната регистрация на клиенти е изключена.
+    InvalidClientMetadata: Невалидни метаданни на клиента.
+    InvalidRedirectURI: Невалиден URI за пренасочване.
+    InvalidSoftwareStatement: Невалиден software statement.
+    UnapprovedSoftwareStatement: Software statement не е одобрен.
+    InvalidToken: Невалиден или липсващ токен за достъп.
+    IAT:
+      Exhausted: Първоначалният токен за достъп е изчерпан.
+      SlotAlreadyConsumed: Слотът на първоначалния токен за достъп вече е използван.
+      NotFound: Първоначалният токен за достъп не е намерен.
+      Expired: Първоначалният токен за достъп е изтекъл.
+      Revoked: Първоначалният токен за достъп е отменен.
+
 optional: (по избор)

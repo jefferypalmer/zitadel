@@ -535,5 +535,18 @@ Errors:
       RegistrationNotAllowed: 新規登録は許可されていません
   DeviceAuth:
     NotExisting: ユーザーコードが存在しません
+  DCR:
+    FeatureDisabled: 動的クライアント登録は無効です。
+    InvalidClientMetadata: クライアントメタデータが無効です。
+    InvalidRedirectURI: リダイレクト URI が無効です。
+    InvalidSoftwareStatement: software statement が無効です。
+    UnapprovedSoftwareStatement: software statement が承認されていません。
+    InvalidToken: アクセストークンが無効または存在しません。
+    IAT:
+      Exhausted: initial access token が使い切られました。
+      SlotAlreadyConsumed: initial access token のスロットは既に使用されています。
+      NotFound: initial access token が見つかりません。
+      Expired: initial access token の有効期限が切れています。
+      Revoked: initial access token は取り消されました。
 
 optional: "（オプション）"

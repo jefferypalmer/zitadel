@@ -494,4 +494,18 @@ Errors:
       RegistrationNotAllowed: A regisztráció nem engedélyezett
   DeviceAuth:
     NotExisting: A felhasználói kód nem létezik
+  DCR:
+    FeatureDisabled: A dinamikus ügyfélregisztráció le van tiltva.
+    InvalidClientMetadata: Érvénytelen ügyfél-metaadatok.
+    InvalidRedirectURI: Érvénytelen átirányítási URI.
+    InvalidSoftwareStatement: Érvénytelen software statement.
+    UnapprovedSoftwareStatement: A software statement nincs jóváhagyva.
+    InvalidToken: Érvénytelen vagy hiányzó hozzáférési token.
+    IAT:
+      Exhausted: Az initial access token kimerült.
+      SlotAlreadyConsumed: Az initial access token slot már fel lett használva.
+      NotFound: Initial access token nem található.
+      Expired: Az initial access token lejárt.
+      Revoked: Az initial access tokent visszavonták.
+
 optional: (opcionális)

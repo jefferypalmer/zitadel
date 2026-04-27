@@ -534,5 +534,18 @@ Errors:
       RegistrationNotAllowed: Kayıt olmasına izin verilmiyor
   DeviceAuth:
     NotExisting: Kullanıcı Kodu mevcut değil
+  DCR:
+    FeatureDisabled: Dinamik istemci kaydı devre dışı bırakılmış.
+    InvalidClientMetadata: Geçersiz istemci meta verileri.
+    InvalidRedirectURI: Geçersiz yönlendirme URI'si.
+    InvalidSoftwareStatement: Geçersiz software statement.
+    UnapprovedSoftwareStatement: Software statement onaylanmamış.
+    InvalidToken: Geçersiz veya eksik erişim belirteci.
+    IAT:
+      Exhausted: Initial access token tükendi.
+      SlotAlreadyConsumed: Initial access token yuvası zaten kullanılmış.
+      NotFound: Initial access token bulunamadı.
+      Expired: Initial access token süresi doldu.
+      Revoked: Initial access token iptal edildi.
 
 optional: (isteğe bağlı)

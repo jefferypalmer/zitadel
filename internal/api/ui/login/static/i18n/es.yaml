@@ -515,5 +515,18 @@ Errors:
   Org:
     LoginPolicy:
       RegistrationNotAllowed: El registro no está permitido
+  DCR:
+    FeatureDisabled: El registro dinámico de clientes está deshabilitado.
+    InvalidClientMetadata: Metadatos del cliente no válidos.
+    InvalidRedirectURI: URI de redireccionamiento no válido.
+    InvalidSoftwareStatement: Software statement no válido.
+    UnapprovedSoftwareStatement: El software statement no está aprobado.
+    InvalidToken: Token de acceso inválido o ausente.
+    IAT:
+      Exhausted: El initial access token está agotado.
+      SlotAlreadyConsumed: La franja del initial access token ya fue consumida.
+      NotFound: Initial access token no encontrado.
+      Expired: El initial access token ha expirado.
+      Revoked: El initial access token ha sido revocado.
 
 optional: (opcional)

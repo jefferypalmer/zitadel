@@ -534,5 +534,18 @@ Errors:
       RegistrationNotAllowed: Înregistrarea nu este permisă
   DeviceAuth:
     NotExisting: Codul de utilizator nu există
+  DCR:
+    FeatureDisabled: Înregistrarea dinamică a clienților este dezactivată.
+    InvalidClientMetadata: Metadate ale clientului nevalide.
+    InvalidRedirectURI: URI de redirecționare nevalid.
+    InvalidSoftwareStatement: Software statement nevalid.
+    UnapprovedSoftwareStatement: Software statement nu este aprobat.
+    InvalidToken: Token de acces nevalid sau lipsă.
+    IAT:
+      Exhausted: Initial access token este epuizat.
+      SlotAlreadyConsumed: Slotul de initial access token a fost deja consumat.
+      NotFound: Initial access token negăsit.
+      Expired: Initial access token a expirat.
+      Revoked: Initial access token a fost revocat.
 
 optional: (opțional)

@@ -535,5 +535,18 @@ Errors:
       RegistrationNotAllowed: L'enregistrement n'est pas autorisé
   DeviceAuth:
     NotExisting: Le code utilisateur n'existe pas
+  DCR:
+    FeatureDisabled: L'enregistrement dynamique des clients est désactivé.
+    InvalidClientMetadata: Métadonnées client invalides.
+    InvalidRedirectURI: URI de redirection invalide.
+    InvalidSoftwareStatement: Software statement invalide.
+    UnapprovedSoftwareStatement: Le software statement n'est pas approuvé.
+    InvalidToken: Jeton d'accès invalide ou manquant.
+    IAT:
+      Exhausted: Le jeton d'accès initial est épuisé.
+      SlotAlreadyConsumed: L'emplacement du jeton d'accès initial est déjà utilisé.
+      NotFound: Jeton d'accès initial introuvable.
+      Expired: Le jeton d'accès initial a expiré.
+      Revoked: Le jeton d'accès initial a été révoqué.
 
 optional: (facultatif)

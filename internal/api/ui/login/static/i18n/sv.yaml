@@ -534,5 +534,18 @@ Errors:
       RegistrationNotAllowed: Registrering är inte tillåten
   DeviceAuth:
     NotExisting: Användarkoden finns inte
+  DCR:
+    FeatureDisabled: Dynamisk klientregistrering är inaktiverad.
+    InvalidClientMetadata: Ogiltiga klientmetadata.
+    InvalidRedirectURI: Ogiltig redirect-URI.
+    InvalidSoftwareStatement: Ogiltigt software statement.
+    UnapprovedSoftwareStatement: Software statement är inte godkänt.
+    InvalidToken: Ogiltig eller saknad åtkomsttoken.
+    IAT:
+      Exhausted: Initial access token är förbrukad.
+      SlotAlreadyConsumed: Slotten för initial access token har redan använts.
+      NotFound: Initial access token hittades inte.
+      Expired: Initial access token har gått ut.
+      Revoked: Initial access token har återkallats.
 
 optional: (frivilligt)
