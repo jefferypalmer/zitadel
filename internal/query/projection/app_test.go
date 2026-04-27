@@ -903,6 +903,115 @@ func TestAppProjection_reduces(t *testing.T) {
 			},
 		},
 		{
+			// T-041 — DCR audit event with non-empty dcr_meta updates the
+			// JSONB column. The audit-only fields (initial_access_token_id,
+			// remote_addr_sha256, etc.) intentionally stay in the
+			// eventstore — they are NOT projection material.
+			name: "project reduceApplicationDynamicallyRegistered with dcr_meta",
+			args: args{
+				event: getEvent(
+					testEvent(
+						project.ApplicationDynamicallyRegisteredType,
+						project.AggregateType,
+						[]byte(`{"appId":"app-1","registrationMethod":"anonymous","dcrMeta":{"contacts":["a@example.com"],"software_id":"xyz"}}`),
+					), project.ApplicationDynamicallyRegisteredEventMapper),
+			},
+			reduce: (&appProjection{}).reduceApplicationDynamicallyRegistered,
+			want: wantReduce{
+				aggregateType: project.AggregateType,
+				sequence:      15,
+				executer: &testExecuter{
+					executions: []execution{
+						{
+							expectedStmt: "UPDATE projections.apps7_oidc_configs SET dcr_meta = $1 WHERE (app_id = $2) AND (instance_id = $3)",
+							expectedArgs: []interface{}{
+								[]byte(`{"contacts":["a@example.com"],"software_id":"xyz"}`),
+								"app-1",
+								"instance-id",
+							},
+						},
+					},
+				},
+			},
+		}, {
+			// T-041 — empty dcr_meta is a no-op (keeps the projection
+			// row narrow for clients that send no pass-through fields).
+			name: "project reduceApplicationDynamicallyRegistered empty dcr_meta noop",
+			args: args{
+				event: getEvent(
+					testEvent(
+						project.ApplicationDynamicallyRegisteredType,
+						project.AggregateType,
+						[]byte(`{"appId":"app-1","registrationMethod":"iat","initialAccessTokenId":"iat-9","remoteAddrSha256":"deadbeef"}`),
+					), project.ApplicationDynamicallyRegisteredEventMapper),
+			},
+			reduce: (&appProjection{}).reduceApplicationDynamicallyRegistered,
+			want: wantReduce{
+				aggregateType: project.AggregateType,
+				sequence:      15,
+				executer: &testExecuter{
+					executions: []execution{},
+				},
+			},
+		}, {
+			// T-041 — RAT set with no expiry → ExpiresAt column omitted
+			// (NULL means never-expires per cavekit-manage-handler.md R2).
+			name: "project reduceApplicationRegistrationAccessTokenSet no expiry",
+			args: args{
+				event: getEvent(
+					testEvent(
+						project.ApplicationRegistrationAccessTokenSetType,
+						project.AggregateType,
+						[]byte(`{"appId":"app-1","hashedToken":"$argon2id$..."}`),
+					), project.ApplicationRegistrationAccessTokenSetEventMapper),
+			},
+			reduce: (&appProjection{}).reduceApplicationRegistrationAccessTokenSet,
+			want: wantReduce{
+				aggregateType: project.AggregateType,
+				sequence:      15,
+				executer: &testExecuter{
+					executions: []execution{
+						{
+							expectedStmt: "UPDATE projections.apps7_oidc_configs SET registration_access_token_hash = $1 WHERE (app_id = $2) AND (instance_id = $3)",
+							expectedArgs: []interface{}{
+								"$argon2id$...",
+								"app-1",
+								"instance-id",
+							},
+						},
+					},
+				},
+			},
+		}, {
+			// T-041 — RAT set WITH expiry stamps both columns.
+			name: "project reduceApplicationRegistrationAccessTokenSet with expiry",
+			args: args{
+				event: getEvent(
+					testEvent(
+						project.ApplicationRegistrationAccessTokenSetType,
+						project.AggregateType,
+						[]byte(`{"appId":"app-1","hashedToken":"$argon2id$xyz","expiresAt":"2030-01-02T03:04:05Z"}`),
+					), project.ApplicationRegistrationAccessTokenSetEventMapper),
+			},
+			reduce: (&appProjection{}).reduceApplicationRegistrationAccessTokenSet,
+			want: wantReduce{
+				aggregateType: project.AggregateType,
+				sequence:      15,
+				executer: &testExecuter{
+					executions: []execution{
+						{
+							expectedStmt: "UPDATE projections.apps7_oidc_configs SET (registration_access_token_hash, registration_access_token_expires_at) = ($1, $2) WHERE (app_id = $3) AND (instance_id = $4)",
+							expectedArgs: []interface{}{
+								"$argon2id$xyz",
+								time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC),
+								"app-1",
+								"instance-id",
+							},
+						},
+					},
+				},
+			},
+		}, {
 			name: "project.reduceOwnerRemoved",
 			args: args{
 				event: getEvent(

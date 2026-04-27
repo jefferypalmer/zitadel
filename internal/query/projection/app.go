@@ -2,6 +2,7 @@ package projection
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/zitadel/zitadel/internal/crypto"
 	"github.com/zitadel/zitadel/internal/database"
@@ -61,6 +62,12 @@ const (
 	AppOIDCConfigColumnBackChannelLogoutURI     = "back_channel_logout_uri"
 	AppOIDCConfigColumnLoginVersion             = "login_version"
 	AppOIDCConfigColumnLoginBaseURI             = "login_base_uri"
+	// DCR (cavekit-register-handler.md R6 / T-040 + T-041) — RFC 7591/7592
+	// support columns. Nullable so existing non-DCR-registered apps stay
+	// untouched and the schema migration is purely additive.
+	AppOIDCConfigColumnRegistrationAccessTokenHash      = "registration_access_token_hash"
+	AppOIDCConfigColumnRegistrationAccessTokenExpiresAt = "registration_access_token_expires_at"
+	AppOIDCConfigColumnDCRMeta                          = "dcr_meta"
 
 	appSAMLTableSuffix              = "saml_configs"
 	AppSAMLConfigColumnAppID        = "app_id"
@@ -133,6 +140,11 @@ func (*appProjection) Init() *old_handler.Check {
 			handler.NewColumn(AppOIDCConfigColumnBackChannelLogoutURI, handler.ColumnTypeText, handler.Nullable()),
 			handler.NewColumn(AppOIDCConfigColumnLoginVersion, handler.ColumnTypeEnum, handler.Nullable()),
 			handler.NewColumn(AppOIDCConfigColumnLoginBaseURI, handler.ColumnTypeText, handler.Nullable()),
+			// DCR columns (cavekit-register-handler.md R6 / T-041).
+			// Nullable for back-compat with non-DCR-registered apps.
+			handler.NewColumn(AppOIDCConfigColumnRegistrationAccessTokenHash, handler.ColumnTypeText, handler.Nullable()),
+			handler.NewColumn(AppOIDCConfigColumnRegistrationAccessTokenExpiresAt, handler.ColumnTypeTimestamp, handler.Nullable()),
+			handler.NewColumn(AppOIDCConfigColumnDCRMeta, handler.ColumnTypeJSONB, handler.Nullable()),
 		},
 			handler.NewPrimaryKey(AppOIDCConfigColumnInstanceID, AppOIDCConfigColumnAppID),
 			appOIDCTableSuffix,
@@ -224,6 +236,15 @@ func (p *appProjection) Reducers() []handler.AggregateReducer {
 				{
 					Event:  project.SAMLConfigChangedType,
 					Reduce: p.reduceSAMLConfigChanged,
+				},
+				// DCR (cavekit-register-handler.md R6 / T-041).
+				{
+					Event:  project.ApplicationDynamicallyRegisteredType,
+					Reduce: p.reduceApplicationDynamicallyRegistered,
+				},
+				{
+					Event:  project.ApplicationRegistrationAccessTokenSetType,
+					Reduce: p.reduceApplicationRegistrationAccessTokenSet,
 				},
 			},
 		},
@@ -772,5 +793,74 @@ func (p *appProjection) reduceSAMLConfigChanged(event eventstore.Event) (*handle
 				handler.NewCond(AppColumnInstanceID, e.Aggregate().InstanceID),
 			},
 		),
+	), nil
+}
+
+// reduceApplicationDynamicallyRegistered handles
+// project.application.dynamically_registered (cavekit-register-handler.md
+// R6 / T-040). The audit fields (initial_access_token_id,
+// software_statement_jti, registration_method, client_name_unclamped,
+// remote_addr_sha256, user_agent) live ONLY in the eventstore — they
+// are the audit trail itself, not query material. The projection only
+// extracts the dcr_meta JSONB blob (RFC 7591 §2 pass-through fields)
+// because that's what the GET /oidc/v1/register/{client_id} handler
+// (T-053) needs to echo back per RFC 7592.
+//
+// When DCRMeta is nil/empty, the column is left untouched (oidc_configs
+// row default is NULL) — keeping the row narrow for the common case
+// where a client doesn't send any pass-through fields.
+func (p *appProjection) reduceApplicationDynamicallyRegistered(event eventstore.Event) (*handler.Statement, error) {
+	e, ok := event.(*project.ApplicationDynamicallyRegisteredEvent)
+	if !ok {
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-DCR41", "reduce.wrong.event.type %s", project.ApplicationDynamicallyRegisteredType)
+	}
+	if len(e.DCRMeta) == 0 {
+		return handler.NewNoOpStatement(e), nil
+	}
+	encoded, err := json.Marshal(e.DCRMeta)
+	if err != nil {
+		return nil, zerrors.ThrowInternal(err, "HANDL-DCR42", "marshal dcr_meta")
+	}
+	return handler.NewUpdateStatement(
+		e,
+		[]handler.Column{
+			handler.NewCol(AppOIDCConfigColumnDCRMeta, encoded),
+		},
+		[]handler.Condition{
+			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
+			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),
+		},
+		handler.WithTableSuffix(appOIDCTableSuffix),
+	), nil
+}
+
+// reduceApplicationRegistrationAccessTokenSet handles
+// project.application.registration_access_token.set (T-040). Persists
+// the Passwap-encoded RAT hash + expires_at on the OIDC config row so
+// the RFC 7592 manage handlers (T-051 RAT verify / T-055 RAT rotate)
+// can look up by client_id and Verify against the presented Bearer.
+//
+// ExpiresAt is the zero-value time.Time when no expiry is configured
+// (RegisterClient.RATLifetime=0). NULL on the column = no expiry — the
+// query layer (T-053) maps the NULL to "never expires".
+func (p *appProjection) reduceApplicationRegistrationAccessTokenSet(event eventstore.Event) (*handler.Statement, error) {
+	e, ok := event.(*project.ApplicationRegistrationAccessTokenSetEvent)
+	if !ok {
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-DCR43", "reduce.wrong.event.type %s", project.ApplicationRegistrationAccessTokenSetType)
+	}
+	cols := []handler.Column{
+		handler.NewCol(AppOIDCConfigColumnRegistrationAccessTokenHash, e.HashedToken),
+	}
+	if !e.ExpiresAt.IsZero() {
+		cols = append(cols, handler.NewCol(AppOIDCConfigColumnRegistrationAccessTokenExpiresAt, e.ExpiresAt))
+	}
+	return handler.NewUpdateStatement(
+		e,
+		cols,
+		[]handler.Condition{
+			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
+			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),
+		},
+		handler.WithTableSuffix(appOIDCTableSuffix),
 	), nil
 }

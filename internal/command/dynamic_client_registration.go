@@ -187,6 +187,7 @@ func (c *Commands) RegisterClient(ctx context.Context, in *RegisterClientInput) 
 			in.ClientNameUnclamped,
 			HashRemoteAddr(in.RemoteIPString),
 			in.UserAgent,
+			in.DCRMeta,
 		),
 		project_repo.NewApplicationRegistrationAccessTokenSetEvent(ctx,
 			&projectAgg,

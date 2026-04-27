@@ -28,13 +28,23 @@ const (
 type ApplicationDynamicallyRegisteredEvent struct {
 	eventstore.BaseEvent `json:"-"`
 
-	AppID                  string `json:"appId"`
-	InitialAccessTokenID   string `json:"initialAccessTokenId,omitempty"`
-	SoftwareStatementJTI   string `json:"softwareStatementJti,omitempty"`
-	RegistrationMethod     string `json:"registrationMethod"`
-	ClientNameUnclamped    string `json:"clientNameUnclamped,omitempty"`
-	RemoteAddrSHA256       string `json:"remoteAddrSha256,omitempty"`
-	UserAgent              string `json:"userAgent,omitempty"`
+	AppID                string         `json:"appId"`
+	InitialAccessTokenID string         `json:"initialAccessTokenId,omitempty"`
+	SoftwareStatementJTI string         `json:"softwareStatementJti,omitempty"`
+	RegistrationMethod   string         `json:"registrationMethod"`
+	ClientNameUnclamped  string         `json:"clientNameUnclamped,omitempty"`
+	RemoteAddrSHA256     string         `json:"remoteAddrSha256,omitempty"`
+	UserAgent            string         `json:"userAgent,omitempty"`
+	// DCRMeta carries the RFC 7591 §2 pass-through fields (contacts,
+	// logo_uri, client_uri, policy_uri, tos_uri, software_id,
+	// software_version, default_max_age, require_auth_time,
+	// default_acr_values, initiate_login_uri, scope) per
+	// cavekit-register-handler.md R6 AC. Stored here on the audit
+	// event so the projection (T-041) can write it to the apps7
+	// dcr_meta JSONB column without altering the existing
+	// OIDCConfigAddedEvent payload — additive (json:omitempty), older
+	// events unmarshal with DCRMeta=nil.
+	DCRMeta map[string]any `json:"dcrMeta,omitempty"`
 }
 
 func (e *ApplicationDynamicallyRegisteredEvent) Payload() interface{} {
@@ -55,6 +65,7 @@ func NewApplicationDynamicallyRegisteredEvent(
 	clientNameUnclamped string,
 	remoteAddrSHA256 string,
 	userAgent string,
+	dcrMeta map[string]any,
 ) *ApplicationDynamicallyRegisteredEvent {
 	return &ApplicationDynamicallyRegisteredEvent{
 		BaseEvent: *eventstore.NewBaseEventForPush(
@@ -69,6 +80,7 @@ func NewApplicationDynamicallyRegisteredEvent(
 		ClientNameUnclamped:  clientNameUnclamped,
 		RemoteAddrSHA256:     remoteAddrSHA256,
 		UserAgent:            userAgent,
+		DCRMeta:              dcrMeta,
 	}
 }
 
