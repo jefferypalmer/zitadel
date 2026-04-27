@@ -7,18 +7,25 @@
       mat-raised-button
       color="primary"
       type="button"
+      data-e2e="iat-issue-button"
       (click)="openIssueDialog()"
     >
       <i class="las la-plus"></i>
       {{ 'DESCRIPTIONS.DCR.IAT.ISSUE_BUTTON' | translate }}
     </button>
-    <button mat-icon-button type="button" (click)="refresh()" matTooltip="{{ 'ACTIONS.REFRESH' | translate }}">
+    <button
+      mat-icon-button
+      type="button"
+      data-e2e="iat-refresh-button"
+      (click)="refresh()"
+      matTooltip="{{ 'ACTIONS.REFRESH' | translate }}"
+    >
       <i class="las la-sync"></i>
     </button>
   </div>
 
   @if ((tokens$ | async)?.length) {
-    <table mat-table [dataSource]="(tokens$ | async) ?? []" class="iat-admin-table">
+    <table mat-table [dataSource]="(tokens$ | async) ?? []" class="iat-admin-table" data-e2e="iat-admin-table">
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.IAT.COL_ID' | translate }}</th>
         <td mat-cell *matCellDef="let row">{{ row.id }}</td>
@@ -67,6 +74,7 @@
               mat-icon-button
               type="button"
               color="warn"
+              data-e2e="iat-revoke-button"
               (click)="revoke(row)"
               matTooltip="{{ 'DESCRIPTIONS.DCR.IAT.REVOKE_BUTTON' | translate }}"
             >
@@ -79,7 +87,7 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
   } @else {
-    <div class="iat-admin-empty">
+    <div class="iat-admin-empty" data-e2e="iat-admin-empty">
       <p>{{ 'DESCRIPTIONS.DCR.IAT.EMPTY' | translate }}</p>
     </div>
   }

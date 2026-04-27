@@ -365,7 +365,8 @@
         "COL_USES_CONSUMED": "Verwendet",
         "COL_STATUS": "Status",
         "STATUS_ACTIVE": "Aktiv",
-        "STATUS_REVOKED": "Widerrufen"
+        "STATUS_REVOKED": "Widerrufen",
+        "COL_CREATED_AT": "Erstellt am"
       }
     }
   },

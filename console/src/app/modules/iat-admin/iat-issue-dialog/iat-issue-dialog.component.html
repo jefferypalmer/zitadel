@@ -40,8 +40,8 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button type="button" (click)="cancel()">{{ 'ACTIONS.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" type="button" [disabled]="form.invalid" (click)="submit()">
+  <button mat-button type="button" data-e2e="iat-issue-cancel" (click)="cancel()">{{ 'ACTIONS.CANCEL' | translate }}</button>
+  <button mat-raised-button color="primary" type="button" data-e2e="iat-issue-submit" [disabled]="form.invalid" (click)="submit()">
     {{ 'DESCRIPTIONS.DCR.IAT.ISSUE_BUTTON' | translate }}
   </button>
 </mat-dialog-actions>

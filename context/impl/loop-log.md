@@ -38,4 +38,13 @@ Dispatching both in parallel via ck:task-builder subagents in isolated worktrees
 - **Validation:** Build (tsc on new files): pre-existing `admin_pb` module-resolution error affects entire admin.service.ts, including unrelated existing methods — resolves in CI after `pnpm generate`. Acceptance: AC1 ✓ (Decision 2 = peer alongside SECURITY, sidenav id `initialaccesstokens`), AC2 ✓ (6 kit-pinned dialog fields), AC3 ✓ (one-time plaintext via `IatPlaintextDialogComponent` with `disableClose: true` + reveal toggle + clipboard + warning), AC4 ✓ (id/projectId/expiresAt/maxUses/usesConsumed/status columns), AC5 ✓ (revoke confirm via `DESCRIPTIONS.DCR.IAT.REVOKE_CONFIRM` then RPC), AC6 ✓ (`requiredRoles[ADMIN]=['iam.policy.read']`).
 - **Next:** T-072 (frontend i18n keys — review and harden the kit-required key set across en.json + de.json + add the column-label keys T-072 owns explicitly).
 
+### Iteration 3 — 2026-04-27 (Tier 6 — T-072 + T-076 + T-077 wave)
+- **Task:** T-072 (frontend i18n keys, AC compliance audit + missing COL_CREATED_AT) + T-076 (Cypress iat.cy.ts) + T-077 (Cypress dcr-clients.cy.ts)
+- **Tier:** 6
+- **Status:** all DONE
+- **Files:** console/src/assets/i18n/{en,de}.json (+COL_CREATED_AT under DCR.IAT); console/src/app/modules/iat-admin/iat-admin.component.html (+5 data-e2e attrs); console/src/app/modules/iat-admin/iat-issue-dialog/iat-issue-dialog.component.html (+2 data-e2e attrs); console/src/app/modules/iat-admin/iat-revoke-dialog/iat-revoke-dialog.component.html (+2 data-e2e attrs); console/src/app/modules/dynamic-clients/dynamic-clients.component.html (+2 data-e2e attrs); tests/functional-ui/cypress/e2e/dcr/iat.cy.ts (new — issue/list/revoke smoke); tests/functional-ui/cypress/e2e/dcr/dcr-clients.cy.ts (new — sidenav + empty-state smoke).
+- **Validation:** R3 AC1 + AC3 audit script: all 14 required keys present in en + de. Cypress specs follow `applications.cy.ts` convention (cy.context + ensureProjectExists). Cypress runtime not invoked locally (requires running Zitadel); T-078 will run `pnpm nx affected lint test build` to confirm clean baseline.
+- **Next:** T-078 (`pnpm nx affected lint test build` baseline).
+
+
 
