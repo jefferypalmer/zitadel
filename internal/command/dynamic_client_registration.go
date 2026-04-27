@@ -330,3 +330,193 @@ func (c *Commands) RehashRegistrationAccessToken(ctx context.Context, projectID,
 	)
 	return err
 }
+
+// UpdateRegisteredClientInput is the seam between the dcr PUT handler
+// (cavekit-manage-handler.md R5 / T-054) and the command layer. The
+// caller MUST have already passed the new metadata through
+// `dcr.ValidateAndClampMetadata` (R4 rules, T-034) so the App argument
+// here is the clamped form. UpdateRegisteredClient does no further
+// vocabulary validation.
+//
+// ProjectID + OrgID + AppID route the change events to the correct
+// aggregate — RFC 7592 RAT-only requests have no user CtxData, so the
+// caller passes the resolved triple explicitly (same pattern as
+// [Commands.RehashRegistrationAccessToken]).
+//
+// The auth-method transition matrix lives in this command (not the
+// handler) so the secret-mint / secret-clear event push is atomic with
+// the OIDCConfigChangedEvent push:
+//
+//   - old `none` + new `client_secret_basic`/`client_secret_post`
+//     → mint a new secret, push OIDCConfigSecretChangedEvent.
+//   - old `client_secret_*` + new `none`
+//     → push OIDCConfigSecretChangedEvent with empty hash to clear the
+//     stored column.
+//   - old `none` + new `private_key_jwt`
+//     → no secret event (auth uses jwks_uri; clamp already ensured a
+//     valid jwks_uri is present).
+//   - any other transition → no secret event.
+//
+// `client_secret_jwt` is rejected at the clamp layer (R5 AC), so this
+// command never sees that value.
+type UpdateRegisteredClientInput struct {
+	ProjectID string
+	OrgID     string
+	AppID     string
+	App       *domain.OIDCApp
+}
+
+// UpdateRegisteredClientResult mirrors the subset of the persisted state
+// the dcr PUT handler echoes to the client. ClientSecret is non-empty
+// only when this PUT minted a new secret (auth-method transition
+// `none → client_secret_*`); for all other transitions the field stays
+// empty so the response writer can json:omitempty it per RFC 7592 §2.
+type UpdateRegisteredClientResult struct {
+	ClientID        string
+	ClientSecret    string
+	AuthMethodType  domain.OIDCAuthMethodType
+	GrantTypes      []domain.OIDCGrantType
+	ResponseTypes   []domain.OIDCResponseType
+	ApplicationType domain.OIDCApplicationType
+	RedirectURIs    []string
+	ClientName      string
+	ChangedAt       time.Time
+}
+
+// UpdateRegisteredClient implements cavekit-manage-handler.md R5
+// (T-054): full-replacement PUT against an existing dynamically-
+// registered client. Re-clamp + auth-method transitions are atomic
+// against the project aggregate.
+//
+// RAT rotation (R5 AC7-9) is OUT OF SCOPE for T-054 and lives in T-055
+// — this command does not touch the RAT events. Layered separately so
+// a malformed PUT body cannot rotate the RAT.
+//
+// Returns ThrowNotFound when the AppID is unknown / removed (the dcr
+// handler maps that to 401 + WWW-Authenticate to avoid leaking the
+// existence-vs-state distinction; mapping happens in the dispatcher).
+func (c *Commands) UpdateRegisteredClient(ctx context.Context, in *UpdateRegisteredClientInput) (_ *UpdateRegisteredClientResult, err error) {
+	ctx, span := tracing.NewSpan(ctx)
+	defer func() { span.EndWithError(err) }()
+
+	if in == nil || in.App == nil {
+		return nil, zerrors.ThrowInvalidArgument(nil, "DCR-UC001", "Errors.Invalid.Argument")
+	}
+	if strings.TrimSpace(in.ProjectID) == "" || strings.TrimSpace(in.OrgID) == "" || strings.TrimSpace(in.AppID) == "" {
+		return nil, zerrors.ThrowInvalidArgument(nil, "DCR-UC002", "Errors.Invalid.Argument")
+	}
+
+	existing, err := c.getOIDCAppWriteModel(ctx, in.ProjectID, in.AppID, in.OrgID)
+	if err != nil {
+		return nil, err
+	}
+	if existing.State == domain.AppStateUnspecified || existing.State == domain.AppStateRemoved {
+		return nil, zerrors.ThrowNotFound(nil, "DCR-UC003", "Errors.Project.App.NotExisting")
+	}
+	if !existing.IsOIDC() {
+		return nil, zerrors.ThrowInvalidArgument(nil, "DCR-UC004", "Errors.Project.App.IsNotOIDC")
+	}
+
+	app := in.App
+	app.AggregateID = in.ProjectID
+	app.AppID = in.AppID
+
+	projectAgg := ProjectAggregateFromWriteModel(&existing.WriteModel)
+
+	var backChannelLogout, loginBaseURI *string
+	if app.BackChannelLogoutURI != nil {
+		backChannelLogout = gu.Ptr(strings.TrimSpace(*app.BackChannelLogoutURI))
+	}
+	if app.LoginBaseURI != nil {
+		loginBaseURI = gu.Ptr(strings.TrimSpace(*app.LoginBaseURI))
+	}
+
+	changedEvent, hasChanges, err := existing.NewChangedEvent(
+		ctx,
+		projectAgg,
+		app.AppID,
+		trimStringSliceWhiteSpaces(app.RedirectUris),
+		trimStringSliceWhiteSpaces(app.PostLogoutRedirectUris),
+		app.ResponseTypes,
+		app.GrantTypes,
+		app.ApplicationType,
+		app.AuthMethodType,
+		app.OIDCVersion,
+		app.AccessTokenType,
+		app.DevMode,
+		app.AccessTokenRoleAssertion,
+		app.IDTokenRoleAssertion,
+		app.IDTokenUserinfoAssertion,
+		app.ClockSkew,
+		trimStringSliceWhiteSpaces(app.AdditionalOrigins),
+		app.SkipNativeAppSuccessPage,
+		backChannelLogout,
+		app.LoginVersion,
+		loginBaseURI,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Auth-method transition decision. The new app's AuthMethodType is a
+	// pointer (domain.OIDCApp); clamp guarantees it's set when shaped via
+	// `domain.OIDCAppFromRFC7591Metadata`.
+	oldAuth := existing.AuthMethodType
+	var newAuth domain.OIDCAuthMethodType
+	if app.AuthMethodType != nil {
+		newAuth = *app.AuthMethodType
+	} else {
+		newAuth = oldAuth // no transition expressed → keep existing
+	}
+
+	cmds := make([]eventstore.Command, 0, 2)
+	if hasChanges && changedEvent != nil {
+		cmds = append(cmds, changedEvent)
+	}
+
+	var plainSecret string
+	switch {
+	case oldAuth == domain.OIDCAuthMethodTypeNone &&
+		(newAuth == domain.OIDCAuthMethodTypeBasic || newAuth == domain.OIDCAuthMethodTypePost):
+		// none → client_secret_*: mint a new secret atomically with the
+		// changed event. Same path RegisterClient uses for first-time
+		// secret issuance.
+		encoded, plain, hashErr := c.newHashedSecret(ctx, c.eventstore.Filter) //nolint:staticcheck
+		if hashErr != nil {
+			return nil, hashErr
+		}
+		plainSecret = plain
+		cmds = append(cmds, project_repo.NewOIDCConfigSecretChangedEvent(ctx, projectAgg, app.AppID, encoded))
+	case (oldAuth == domain.OIDCAuthMethodTypeBasic || oldAuth == domain.OIDCAuthMethodTypePost) &&
+		newAuth == domain.OIDCAuthMethodTypeNone:
+		// client_secret_* → none: clear the stored hash. The projection
+		// reducer writes the (empty) HashedSecret into the column —
+		// `crypto.SecretOrEncodedHash("", "")` yields nil, which the
+		// app-lookup path treats as "no secret stored".
+		cmds = append(cmds, project_repo.NewOIDCConfigSecretChangedEvent(ctx, projectAgg, app.AppID, ""))
+	}
+
+	now := time.Now().UTC()
+	if len(cmds) > 0 {
+		pushedEvents, pErr := c.eventstore.Push(ctx, cmds...)
+		if pErr != nil {
+			return nil, pErr
+		}
+		if appendErr := AppendAndReduce(existing, pushedEvents...); appendErr != nil {
+			return nil, appendErr
+		}
+	}
+
+	return &UpdateRegisteredClientResult{
+		ClientID:        existing.ClientID,
+		ClientSecret:    plainSecret,
+		AuthMethodType:  existing.AuthMethodType,
+		GrantTypes:      existing.GrantTypes,
+		ResponseTypes:   existing.ResponseTypes,
+		ApplicationType: existing.ApplicationType,
+		RedirectURIs:    existing.RedirectUris,
+		ClientName:      existing.AppName,
+		ChangedAt:       now,
+	}, nil
+}
+

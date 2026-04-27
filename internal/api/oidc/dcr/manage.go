@@ -129,6 +129,67 @@ type ManageDeps struct {
 	// store a per-secret expires_at column; the field is derived from
 	// the issued-at + this lifetime at response build time.
 	ClientSecretExpiresIn time.Duration
+
+	// Update is the function-shaped seam for invoking
+	// `command.Commands.UpdateRegisteredClient` (cavekit-manage-handler.md
+	// R5 / T-054). Production wiring (cmd/start/start.go) bridges
+	// dcr.UpdateRequest → command.UpdateRegisteredClientInput and the
+	// result back; tests stub it directly.
+	//
+	// Optional — when nil, the PUT route falls back to the 501 stub so
+	// deployments mid-rollout still emit a uniform error envelope while
+	// the wiring is staged. Production MUST set every field.
+	Update UpdateFn
+
+	// Config drives the PUT-side re-clamp (R5 AC1). Same DCRConfigSubset
+	// the POST register path uses (T-034) — passing the same operator
+	// allow-lists keeps PUT and POST symmetrical, which is the whole
+	// point of `validate.go` being a single source of truth.
+	Config DCRConfigSubset
+
+	// SupportedSigAlgs feeds the R4 `id_token_signed_response_alg`
+	// validation that re-runs on PUT (R5 AC1: every R4 clamp re-runs).
+	// Sourced from the OIDC server's `supportedSigningAlgs()` at startup
+	// — same value the register dispatcher passes to ValidateAndClampMetadata.
+	SupportedSigAlgs []string
+
+	// SoftwareStatementEnabled gates the R4 unapproved_software_statement
+	// rejection on PUT (R5 AC1). Sourced from
+	// `config.OIDC.DCR.SoftwareStatement.Enabled`. Must match the value
+	// the register dispatcher uses so a software_statement that was
+	// rejected at POST stays rejected at PUT.
+	SoftwareStatementEnabled bool
+
+	// MaxBodyBytes caps the PUT request body. Mirrors RegistrationDeps
+	// — keeps the per-request cap consistent across the DCR surface.
+	// Zero falls back to DefaultMaxBodyBytes inside Decode.
+	MaxBodyBytes int64
+}
+
+// UpdateFn is the function-shaped seam for invoking the PUT-side
+// command (cavekit-manage-handler.md R5 / T-054). Returns a *ClampError
+// on validation failure (mapped to 400 by the dispatcher); any other
+// error type is treated as 500.
+type UpdateFn func(ctx context.Context, req *UpdateRequest) (*UpdateResult, error)
+
+// UpdateRequest is the dcr-internal shape passed to the closure.
+// Mirrors the subset of `command.UpdateRegisteredClientInput` fields
+// the dispatcher controls.
+type UpdateRequest struct {
+	ProjectID string
+	OrgID     string
+	AppID     string
+	Clamped   *RFC7591Metadata
+}
+
+// UpdateResult is the dcr-internal shape returned by the closure.
+// Mirrors the subset of `command.UpdateRegisteredClientResult` the
+// PUT response writer (T-055) will echo. ClientSecret is empty unless
+// this PUT minted a fresh secret via the auth-method `none → secret_*`
+// transition (R5 AC3).
+type UpdateResult struct {
+	ClientID     string
+	ClientSecret string
 }
 
 // Validate enforces non-nil/non-empty deps at boot. Called by
@@ -146,6 +207,12 @@ func (d ManageDeps) Validate() error {
 	}
 	if d.AntiEnumDummyHash == "" {
 		return errors.New("dcr: ManageDeps.AntiEnumDummyHash is required (build via BuildAntiEnumDummyHash)")
+	}
+	// Update is optional — when nil, PUT falls back to the 501 stub. When
+	// set, the re-clamp surface (Config) MUST also be set; otherwise the
+	// PUT pipeline would have no allow-lists to enforce R5 AC1 against.
+	if d.Update != nil && d.Config == nil {
+		return errors.New("dcr: ManageDeps.Config is required when Update is set (PUT re-clamp uses the same DCRConfigSubset as POST register)")
 	}
 	return nil
 }

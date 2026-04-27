@@ -423,12 +423,25 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 func manageRoutes(deps RegistrationDeps) (get, put, del http.HandlerFunc) {
 	if deps.Manage != nil {
 		return manageVerifyDispatch(*deps.Manage, getClientHandler(*deps.Manage)),
-			manageVerifyDispatch(*deps.Manage, putClientStub),
+			manageVerifyDispatch(*deps.Manage, choosePUTHandler(*deps.Manage)),
 			manageVerifyDispatch(*deps.Manage, deleteClientStub)
 	}
 	return manageBearerGate(getClientStub),
 		manageBearerGate(putClientStub),
 		manageBearerGate(deleteClientStub)
+}
+
+// choosePUTHandler picks the real PUT body when the Update closure is
+// wired (T-054). When unset, falls back to the 501 stub so deployments
+// mid-rollout still emit a uniform error envelope. The decision lives
+// here (not inside putClientHandler) so the stub vs real-body branch
+// is structural — tests can wire a ManageDeps with Update=nil and pin
+// the 501 contract without spinning the whole pipeline.
+func choosePUTHandler(deps ManageDeps) http.HandlerFunc {
+	if deps.Update == nil {
+		return putClientStub
+	}
+	return putClientHandler(deps)
 }
 
 // writeDispatchError emits the RFC 7591 envelope for any error

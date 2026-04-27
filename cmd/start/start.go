@@ -756,6 +756,31 @@ func startAPIs(
 				Rehasher:              commands.RehashRegistrationAccessToken,
 				AntiEnumDummyHash:     dcrDummyHash, // reuse — same Swapper, same algorithm prefix
 				ClientSecretExpiresIn: config.OIDC.DCR.ClientSecretExpiresIn,
+				// PUT-side wiring (cavekit-manage-handler.md R5 / T-054).
+				// Re-clamp uses the SAME DCRConfigSubset / supported sig
+				// algs / software-statement gate the POST register path
+				// uses, so a value rejected at registration stays rejected
+				// at update.
+				Config:                   oidc.DCRClampAdapter{C: &config.OIDC.DCR},
+				SupportedSigAlgs:         oidc.SupportedSigningAlgs(),
+				SoftwareStatementEnabled: config.OIDC.DCR.SoftwareStatement.Enabled,
+				MaxBodyBytes:             config.OIDC.DCR.MaxRequestBodyBytes,
+				Update: func(ctx context.Context, req *dcr.UpdateRequest) (*dcr.UpdateResult, error) {
+					in := &command.UpdateRegisteredClientInput{
+						ProjectID: req.ProjectID,
+						OrgID:     req.OrgID,
+						AppID:     req.AppID,
+						App:       req.Clamped.ToOIDCApp(),
+					}
+					res, err := commands.UpdateRegisteredClient(ctx, in)
+					if err != nil {
+						return nil, err
+					}
+					return &dcr.UpdateResult{
+						ClientID:     res.ClientID,
+						ClientSecret: res.ClientSecret,
+					}, nil
+				},
 			},
 			ConsumeIAT: func(ctx context.Context, regCtx *dcr.RegistrationContext) error {
 				lookup := func(ctx context.Context) (*command.IATSnapshot, error) {
