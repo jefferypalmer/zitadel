@@ -7,12 +7,16 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/passwap"
+	"github.com/zitadel/passwap/argon2"
+	"github.com/zitadel/passwap/bcrypt"
 )
 
 // fakeManageQueries lets the verify-path tests stub the projection-read
@@ -186,6 +190,89 @@ func TestVerifyRAT_SilentRehash(t *testing.T) {
 	assert.Equal(t, "org-1", c.orgID, "rehash routes to the project's resource owner")
 	assert.Equal(t, "app-1", c.appID)
 	assert.Equal(t, "$argon2id$updated", c.hash, "must persist the updatedHash from Verify")
+}
+
+// TestT059_HashRotation_RealPasswap_TwoReturnForm is the
+// cavekit-security-hardening.md R5 cross-cut pin (T-059): exercises
+// the RFC 7592 verify path through a REAL passwap.Swapper configured
+// for algorithm rotation (active=argon2id, verifier=bcrypt). Stores a
+// bcrypt-hashed RAT, runs VerifyRAT, asserts:
+//
+//   AC1: Passwap returns a non-empty `updatedHash` re-encoded with the
+//        active algorithm (proof the two-return form is wired through
+//        production paths, not just stubbed in tests).
+//   AC2: Rehasher is invoked with that `updatedHash` (the
+//        `project.application.registration_access_token.rehashed`
+//        event would persist it via Commands.RehashRegistrationAccessToken).
+//   AC3: ManageContext.Rehashed=true (caller-visible signal that the
+//        silent-rehash succeeded).
+//
+// Distinct from `TestVerifyRAT_SilentRehash` which uses a fake
+// verifier returning a hardcoded updated string. This test goes
+// through real Passwap so a future regression that breaks the
+// algorithm-rotation contract — e.g. wiring a Swapper with no fallback
+// verifier — fails here even when the unit-style fake-verifier test
+// still passes.
+func TestT059_HashRotation_RealPasswap_TwoReturnForm(t *testing.T) {
+	// Active hasher = argon2id; fallback verifier = bcrypt (mirrors
+	// the production rotation pattern from bcrypt → argon2id).
+	activeArgon := argon2.NewArgon2id(argon2.RecommendedIDParams)
+	swapper := passwap.NewSwapper(activeArgon, bcrypt.Verifier)
+
+	// Store a bcrypt-encoded RAT — simulates a RAT minted before the
+	// operator rotated the active algorithm to argon2id.
+	const ratPlaintext = "zdrat_aGVsbG8td29ybGQtdGVzdC10b2tlbi1hYmM"
+	bcryptOnly := passwap.NewSwapper(bcrypt.New(bcrypt.MinCost))
+	storedBcryptHash, err := bcryptOnly.Hash(ratPlaintext)
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(storedBcryptHash, "$2"),
+		"sanity: stored hash must be bcrypt-encoded, got %q", storedBcryptHash)
+
+	row := &ManageRATRow{
+		AppID: "app-1", ProjectID: "proj-1", ResourceOwner: "org-1",
+		TokenHash: storedBcryptHash,
+	}
+	q := &fakeManageQueries{row: row}
+
+	// Real verifier — wraps the rotated swapper, returns the two-return
+	// form direct from Passwap.
+	v := &realRotationVerifier{swapper: swapper}
+	r := &fakeRehasher{}
+	deps := newDeps(q, v, r.fn, "$argon2id$dummy")
+
+	mctx, err := VerifyRAT(context.Background(), deps, "client-1", ratPlaintext)
+	require.NoError(t, err, "real-Passwap verify with bcrypt-stored hash + argon2id-active swapper MUST succeed")
+	require.NotNil(t, mctx)
+
+	// AC3: Rehashed flag flipped.
+	assert.True(t, mctx.Rehashed,
+		"R5 AC1+AC2: silent rehash MUST flip the flag when active algorithm rotated")
+
+	// AC1+AC2: Rehasher received an argon2id-encoded hash distinct
+	// from the original bcrypt encoding.
+	require.Len(t, r.calls, 1, "rehash event MUST fire exactly once")
+	c := r.calls[0]
+	assert.Equal(t, "proj-1", c.projectID)
+	assert.Equal(t, "org-1", c.orgID)
+	assert.Equal(t, "app-1", c.appID)
+	assert.True(t, strings.HasPrefix(c.hash, "$argon2id$"),
+		"R5 AC1: updatedHash MUST be re-encoded with the active algorithm, got %q", c.hash)
+	assert.NotEqual(t, storedBcryptHash, c.hash,
+		"R5 AC2: persisted hash MUST differ from the original (otherwise rotation didn't happen)")
+}
+
+// realRotationVerifier wraps a real passwap.Swapper as a
+// [RATVerifier]. Distinct from fakeRATVerifier which returns
+// programmable strings; this one exercises the live Passwap two-return
+// contract end-to-end, so a regression in the active-vs-verifier
+// wiring fails the T-059 test even when fake-verifier-based tests
+// still pass.
+type realRotationVerifier struct {
+	swapper *passwap.Swapper
+}
+
+func (r *realRotationVerifier) Verify(encoded, presented string) (string, error) {
+	return r.swapper.Verify(encoded, presented)
 }
 
 // TestVerifyRAT_RehashFailureLogsWarn covers T-090 / F-007 — silent
