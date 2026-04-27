@@ -6,6 +6,10 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 37 — 2026-04-27 (Tier 6 entry — T-066)
+- T-066: DONE. OTel spans 5/5 (R7 AC1-5). `tracing.NewNamedSpan` at handler entries: `oidc.dcr.register` (wire.go postRegisterDispatch), `oidc.dcr.read` (manage_get.go), `oidc.dcr.update` (manage_put.go), `oidc.dcr.delete` (manage_delete.go), `oidc.dcr.iat.consume` (wire.go around deps.ConsumeIAT). Zero span attributes — R7 AC6 (no client_secret/RAT/IAT/software_statement in span data) satisfied structurally. Files (new): internal/api/oidc/dcr/dcr_otel_spans_test.go (6 tests, in-memory tracetest.SpanRecorder via init()-time otel.SetTracerProvider — sync.OnceValue cache means the swap must run before first NewNamedSpan; verified via empirical test pass). Files (modified): wire.go, manage_get.go, manage_put.go, manage_delete.go (span wraps), dispatcher_test.go (F-200 source-string assertion updated to match `deps.ConsumeIAT(consumeCtx, regCtx)` — consume call uses span-scoped child ctx so log lines inherit consume trace). Build P, Tests P (dcr + oidc + as_metadata + command + query + projection + cmd/start all green). Tier 6 status: 1/21 done.
+
+
 ### Iteration 1 — 2026-04-24
 - T-001: OIDC.DCR yaml block — DONE. Files: cmd/defaults.yaml. Build P (yaml-parse), Tests N/A. Next: T-002
 - T-002: KeyDynamicClientRegistration=17 + Features field + enumer — DONE. Files: internal/feature/feature.go, internal/feature/key_enumer.go. Build P, Tests P (`go test ./internal/feature/...`). Next: T-003

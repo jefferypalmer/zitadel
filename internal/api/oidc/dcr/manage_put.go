@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 )
 
 // ManageUpdateResponse is the wire-format struct emitted by a successful
@@ -79,7 +81,9 @@ type ManageUpdateResponse struct {
 // + HTTP status are uniform across POST + PUT paths.
 func putClientHandler(deps ManageDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		// cavekit-console-ui-docs-and-observability.md R7 AC3 (T-066).
+		ctx, span := tracing.NewNamedSpan(r.Context(), "oidc.dcr.update")
+		defer span.End()
 		mctx := ManageFromContext(ctx)
 		if mctx == nil {
 			// Defensive: dispatch wrapper sets this; missing means the

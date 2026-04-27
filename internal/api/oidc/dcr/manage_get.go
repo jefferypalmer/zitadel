@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+
+	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 )
 
 // ManageReadResponse is the wire-format struct emitted by a successful
@@ -92,7 +94,11 @@ type dcrMetaPassthrough struct {
 //  4. Write 200 with the canonical no-store / no-cache headers.
 func getClientHandler(deps ManageDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		// cavekit-console-ui-docs-and-observability.md R7 AC2 (T-066) —
+		// `oidc.dcr.read` covers the GET body. No attributes set so
+		// AC6 (no client_secret / RAT in span data) holds structurally.
+		ctx, span := tracing.NewNamedSpan(r.Context(), "oidc.dcr.read")
+		defer span.End()
 		mctx := ManageFromContext(ctx)
 		if mctx == nil {
 			// Defensive: the dispatch wrapper sets this; missing means

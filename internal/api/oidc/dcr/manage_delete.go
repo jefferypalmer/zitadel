@@ -3,6 +3,8 @@ package dcr
 import (
 	"log/slog"
 	"net/http"
+
+	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 )
 
 // deleteClientHandler implements cavekit-manage-handler.md R6 (T-056) —
@@ -24,7 +26,9 @@ import (
 // caller).
 func deleteClientHandler(deps ManageDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		// cavekit-console-ui-docs-and-observability.md R7 AC4 (T-066).
+		ctx, span := tracing.NewNamedSpan(r.Context(), "oidc.dcr.delete")
+		defer span.End()
 		mctx := ManageFromContext(ctx)
 		if mctx == nil {
 			slog.WarnContext(ctx, "dcr: DELETE /register handler invoked without ManageContext on ctx — wiring bug")

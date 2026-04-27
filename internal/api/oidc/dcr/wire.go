@@ -13,6 +13,7 @@ import (
 
 	"github.com/zitadel/zitadel/internal/api/authz"
 	http_util "github.com/zitadel/zitadel/internal/api/http"
+	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 )
 
 // IATHasher is the subset of [internal/crypto.Hasher] (which embeds
@@ -313,7 +314,14 @@ func NewHandler(deps RegistrationDeps) http.Handler {
 // per R8 AC.
 func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		// cavekit-console-ui-docs-and-observability.md R7 AC1 (T-066) —
+		// span name is the literal identifier asserted by the kit.
+		// No attributes are set: AC6 (never carry client_secret / RAT /
+		// IAT plaintext / software_statement content) is satisfied
+		// structurally by emitting zero attributes here.
+		ctx, span := tracing.NewNamedSpan(r.Context(), "oidc.dcr.register")
+		defer span.End()
+		r = r.WithContext(ctx)
 
 		// 1. Auth-first short-circuit (R3 amendment 2026-04-27 / F-219).
 		// When RequireInitialAccessToken=true and no Bearer is present,
@@ -366,7 +374,15 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 		// circuits before any application events are pushed. Anonymous
 		// mode (regCtx.IATID == "") skips the call.
 		if regCtx.IATID != "" {
-			if cErr := deps.ConsumeIAT(ctx, regCtx); cErr != nil {
+			// cavekit-console-ui-docs-and-observability.md R7 AC5
+			// (T-066) — `oidc.dcr.iat.consume` covers the IAT slot
+			// reservation. AC6 satisfied: no attributes carry the
+			// IAT plaintext or its hash (we already have only the
+			// resolved IATID at this point, never the bearer).
+			consumeCtx, consumeSpan := tracing.NewNamedSpan(ctx, "oidc.dcr.iat.consume")
+			cErr := deps.ConsumeIAT(consumeCtx, regCtx)
+			consumeSpan.EndWithError(cErr)
+			if cErr != nil {
 				writeAuthError(ctx, w, cErr)
 				return
 			}

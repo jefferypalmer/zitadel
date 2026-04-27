@@ -477,8 +477,10 @@ func TestDispatch_R6_F200_IAT_ConsumeFailure_Returns401(t *testing.T) {
 	src, err := os.ReadFile("wire.go")
 	require.NoError(t, err)
 	body := string(src)
-	require.Contains(t, body, "deps.ConsumeIAT(ctx, regCtx)",
-		"F-200: dispatcher MUST invoke ConsumeIAT after ResolveIAT and before Register")
+	require.Contains(t, body, "deps.ConsumeIAT(consumeCtx, regCtx)",
+		"F-200: dispatcher MUST invoke ConsumeIAT after ResolveIAT and before Register "+
+			"(T-066 wraps the call in an `oidc.dcr.iat.consume` span — the call site uses "+
+			"the span-scoped context so child spans / log lines inherit the consume trace)")
 	require.Contains(t, body, `if regCtx.IATID != ""`,
 		"F-200: ConsumeIAT MUST be skipped for anonymous mode (IATID empty)")
 
