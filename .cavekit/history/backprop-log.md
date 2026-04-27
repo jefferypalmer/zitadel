@@ -227,7 +227,7 @@ fix, and pattern category so cross-iteration trends become visible.
   unchanged, disallowed-token rejected even with whitespace
   permutation. 3 of 5 fail pre-fix; all 5 pass post-fix.
 - **Test commit:** `8c7907404`
-- **Fix commit:** (next commit after this log entry)
+- **Fix commit:** `97c862836`
 - **Pattern category:** `unspecified-parser-contract` — **THIRD**
   entry in this family (F-100 host parser, F-101 dummy hash, F-103
   set-equality semantics). Triggers the cross-kit amendment
