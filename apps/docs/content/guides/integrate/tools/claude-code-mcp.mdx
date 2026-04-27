@@ -1,0 +1,128 @@
+---
+title: Claude Code (MCP)
+description: "Connect Anthropic's Claude Code CLI to a ZITADEL-protected MCP server using OAuth 2.0 Dynamic Client Registration."
+---
+
+This guide shows how to connect [Claude Code](https://claude.com/claude-code)
+to an MCP server fronted by ZITADEL. Claude Code uses
+[OAuth 2.0 Dynamic Client Registration](../../../apis/openidoauth/dynamic-client-registration)
+(RFC 7591) to provision its own OIDC client at first contact — no operator
+intervention is required once DCR is enabled on the instance.
+
+The full DCR API reference, including the metadata clamp rules and the
+RFC 7592 management endpoints, lives at
+[Dynamic Client Registration](../../../apis/openidoauth/dynamic-client-registration).
+This page is the integration walkthrough.
+
+## Prerequisites
+
+- A ZITADEL instance reachable on a **hostname-root issuer**
+  (e.g. `https://example.zitadel.cloud/`, NOT
+  `https://example.com/zitadel/`). MCP clients resolve
+  `registration_endpoint` against the issuer host; subpath issuers are
+  not supported.
+- DCR enabled on the instance:
+  - `OIDC.DCR.Enabled: true` in your config (`defaults.yaml` or env override).
+  - `OIDC.DCR.DefaultProjectID` and `OIDC.DCR.DefaultOrgID` set to the
+    project + org the dynamically-registered clients should land in.
+  - The `dynamic_client_registration` instance feature flag turned on.
+  - Anonymous mode (`OIDC.DCR.RequireInitialAccessToken: false`) is the
+    Claude-Code-compatible default. IAT-required mode is incompatible —
+    Claude Code cannot supply an Initial Access Token today.
+- An MCP server you control, fronted by an OAuth 2.0 / OIDC token
+  introspection check that points at your ZITADEL instance.
+- The Claude Code CLI installed locally (`claude --version`).
+
+## Connect Claude Code to your MCP server
+
+```bash
+claude mcp add my-zitadel-tool \
+  --transport http \
+  https://example.zitadel.cloud/mcp/my-tool
+```
+
+On first invocation Claude Code:
+
+1. Resolves your issuer's discovery document at
+   `${ISSUER}/.well-known/openid-configuration` and reads
+   `registration_endpoint`. (When DCR is disabled the field is
+   omitted entirely and Claude Code falls back to manual client config.)
+2. POSTs the following body to `${ISSUER}/oidc/v1/register`:
+   ```json
+   {
+     "redirect_uris": ["http://localhost:<random-port>/callback"],
+     "grant_types": ["authorization_code", "refresh_token"],
+     "response_types": ["code"],
+     "token_endpoint_auth_method": "none",
+     "application_type": "native"
+   }
+   ```
+3. Receives a 201 with `client_id` and `registration_access_token`. No
+   `client_secret` is issued because the auth method is `none` —
+   Claude Code authenticates the token request with PKCE S256 alone.
+4. Drives the standard authorization-code + PKCE flow against
+   `/oauth/v2/authorize` and `/oauth/v2/token`. ZITADEL's existing OIDC
+   surface handles this leg unchanged.
+5. Persists the `registration_access_token` for any future RFC 7592
+   management calls (e.g. when Claude Code rotates its keys).
+
+You can verify the registration succeeded by viewing the new client in
+the ZITADEL Console under your project's Dynamic Clients view.
+
+## Hardening that ZITADEL applies automatically
+
+Even in anonymous mode the registration is hardened:
+
+- The `redirect_uris` are clamped against
+  `OIDC.DCR.AllowedRedirectURIHostPatterns`. Loopback HTTP
+  (`http://localhost:<port>/cb`, `http://127.0.0.1:<port>/cb`,
+  `http://[::1]:<port>/cb`) is accepted for native apps per RFC 8252;
+  any other plaintext-HTTP redirect is rejected.
+- PKCE S256 is enforced server-side on every authorization request from
+  this client.
+- Body size is capped at `OIDC.DCR.MaxRequestBodyBytes` (default 64 KiB).
+- The instance access quota inherited from
+  `limitingAccessInterceptor` rate-limits the endpoint per-instance.
+- Every successful registration emits a
+  `project.application.dynamically.registered` audit event carrying the
+  source-IP SHA-256 and User-Agent. View it in the Console under the
+  application's Changes tab.
+
+## Restricting access by `resource`
+
+If your MCP server should only accept tokens scoped to itself,
+[advertise it as a Resource](../../../apis/openidoauth/dynamic-client-registration#related-links)
+via the RFC 8707 `resource` parameter on `/authorize` and `/token`.
+ZITADEL will narrow the issued access token's audience accordingly,
+and your MCP server's introspection check can reject tokens whose
+audience does not include the expected resource URL.
+
+## Troubleshooting
+
+- **404 on POST /oidc/v1/register:** DCR is yaml-disabled. Set
+  `OIDC.DCR.Enabled: true` and restart.
+- **403 `feature_disabled`:** the yaml flag is on but the
+  `dynamic_client_registration` instance feature flag is off — turn it
+  on for the target instance.
+- **400 `invalid_client_metadata` or `invalid_redirect_uri`:** the
+  loopback port Claude Code chose did not match the host-pattern
+  allow-list. Either widen `OIDC.DCR.AllowedRedirectURIHostPatterns`
+  to permit `http://localhost:*/callback` or pre-register a client
+  manually.
+- **401 `invalid_token`:** the instance is in IAT-required mode, which
+  Claude Code cannot satisfy. Switch to anonymous mode.
+- **Subpath issuer warnings at startup:** the deployment is on a
+  non-hostname-root issuer; Claude Code will fail to resolve the
+  registration endpoint. Move the issuer to the host root.
+
+## See also
+
+- [Dynamic Client Registration API reference](../../../apis/openidoauth/dynamic-client-registration)
+- [OpenID Connect endpoints](../../../apis/openidoauth/endpoints)
+- [Authentication methods](../../../apis/openidoauth/authn-methods) — including
+  the `none` public-client method that Claude Code uses.
+- [SECURITY.md threat model](https://github.com/zitadel/zitadel/blob/main/SECURITY.md)
+  — operational considerations for anonymous-mode DCR (T16 rotating-IP
+  residual risk).
+- [ADR-0001 Dynamic Client Registration](https://github.com/zitadel/zitadel/blob/main/docs/adr/ADR-0001-dynamic-client-registration.md)
+  — architecture decisions backing this feature.

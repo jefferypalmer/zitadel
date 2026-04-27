@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 49 — 2026-04-27 (Tier 6 — T-080 Claude Code MCP MDX)
+- T-080: DONE. New file `apps/docs/content/guides/integrate/tools/claude-code-mcp.mdx`. Walkthrough sections: prerequisites (hostname-root + DCR-on + anon mode + Claude Code installed), `claude mcp add --transport http` invocation, 5-step Claude Code DCR flow narrative, hardening-applied-automatically summary, RFC 8707 resource-narrowing pointer, troubleshooting matrix (404/403/400/401/subpath), see-also footer. 5 cross-refs into T-079 API reference. Validates (frontmatter + balanced fences). Tier 6 status: 13/21.
+
 ### Iteration 48 — 2026-04-27 (Tier 6 — T-081 existing-MDX updates)
 - T-081: DONE. `authn-methods.mdx`: new top section "None (public clients)" pinning `token_endpoint_auth_method=none` as Phase-1 supported via DCR + Claude Code/MCP with server-side PKCE S256 enforcement (R5 AC `authn-methods.mdx notes none Phase-1 supported` ✓). `endpoints.mdx`: discovery section gains note about RFC 7591 registration_endpoint + RFC 8414 byte-identity guarantee with omit-on-disabled (never null); replaced outdated "ZITADEL does not yet provide a OAuth 2.0 Metadata endpoint" stub with a real RFC 8414 description; new `## registration_endpoint` subsection links to T-079 DCR API ref (R5 AC `endpoints.mdx gains DCR subsection + RFC 8414 note` ✓). Both MDX files validate (frontmatter + balanced fences). Tier 6 status: 12/21.
 
