@@ -14,6 +14,7 @@ import (
 	"github.com/zitadel/zitadel/internal/api/authz"
 	"github.com/zitadel/zitadel/internal/domain"
 	"github.com/zitadel/zitadel/internal/eventstore"
+	"github.com/zitadel/zitadel/internal/repository/oidcsession"
 	project_repo "github.com/zitadel/zitadel/internal/repository/project"
 	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 	"github.com/zitadel/zitadel/internal/zerrors"
@@ -559,5 +560,250 @@ func (c *Commands) UpdateRegisteredClient(ctx context.Context, in *UpdateRegiste
 		RATPlaintext:    ratPlain,
 		RATExpiresAt:    ratExpiresAt,
 	}, nil
+}
+
+// applicationTokenRevocations enumerates active OIDC sessions whose
+// AddedEvent.ClientID matches the target client_id, tracking which
+// sessions still have outstanding access / refresh tokens. Used by
+// [Commands.RevokeApplicationTokens] (cavekit-manage-handler.md R6 /
+// T-056) to decide which revocation events to push.
+//
+// Layout note: the OIDC session aggregate has no projection today
+// (T-007 M4 worker report), so this write model walks the eventstore
+// directly. It implements [eventstore.QueryReducer] so the same
+// FilterToQueryReducer helper used everywhere else can drive it.
+//
+// Reduce is a streaming reducer — `Sessions` is keyed by aggregate ID
+// and updated in-place as events arrive. After Reduce, [revocations]
+// returns the sessions that still need a revocation event.
+type applicationTokenRevocations struct {
+	eventstore.WriteModel
+
+	InstanceID string
+	ClientID   string
+
+	// Sessions is keyed by oidc_session aggregate ID. A session enters
+	// the map on AddedEvent (only when ClientID matches the target);
+	// access / refresh state flips on the per-token events.
+	Sessions map[string]*revocationSessionState
+}
+
+type revocationSessionState struct {
+	AggregateID    string
+	ResourceOwner  string
+	HasAccessToken bool
+	HasRefreshToken bool
+}
+
+func newApplicationTokenRevocations(instanceID, clientID string) *applicationTokenRevocations {
+	return &applicationTokenRevocations{
+		WriteModel: eventstore.WriteModel{InstanceID: instanceID},
+		InstanceID: instanceID,
+		ClientID:   clientID,
+		Sessions:   make(map[string]*revocationSessionState),
+	}
+}
+
+// Query returns the eventstore search query — every oidc_session
+// AddedEvent for the target instance, plus the per-token events the
+// reducer needs to track active state. EventData filtering at the
+// AddedEvent level lets the database narrow before any reduction
+// runs (cuts the transferred row count by orders of magnitude on
+// busy instances).
+func (wm *applicationTokenRevocations) Query() *eventstore.SearchQueryBuilder {
+	builder := eventstore.NewSearchQueryBuilder(eventstore.ColumnsEvent)
+	if wm.InstanceID != "" {
+		builder.InstanceID(wm.InstanceID)
+	}
+	// Branch 1: AddedEvents narrowed by EventData{clientID}. This is the
+	// expensive filter (warning on `EventData`); narrow first so the
+	// follow-up branch only inflates by event-count not row count.
+	builder.AddQuery().
+		AggregateTypes(oidcsession.AggregateType).
+		EventTypes(oidcsession.AddedType).
+		EventData(map[string]interface{}{"clientID": wm.ClientID}).
+		Builder()
+	// Branch 2: per-token events for ANY session aggregate. Reduce
+	// drops them on the floor when their aggregate ID isn't in the
+	// known-clientID set — the cost is one map lookup per event.
+	builder.AddQuery().
+		AggregateTypes(oidcsession.AggregateType).
+		EventTypes(
+			oidcsession.AccessTokenAddedType,
+			oidcsession.AccessTokenRevokedType,
+			oidcsession.RefreshTokenAddedType,
+			oidcsession.RefreshTokenRenewedType,
+			oidcsession.RefreshTokenRevokedType,
+		).
+		Builder()
+	return builder
+}
+
+// Reduce is the streaming reducer. AddedEvent enters the per-aggregate
+// state when ClientID matches. The per-token events flip the active
+// flags only when the aggregate ID is already in the map (any other
+// session is unrelated to our client).
+func (wm *applicationTokenRevocations) Reduce() error {
+	for _, e := range wm.Events {
+		switch ev := e.(type) {
+		case *oidcsession.AddedEvent:
+			if ev.ClientID != wm.ClientID {
+				continue
+			}
+			id := ev.Aggregate().ID
+			if _, exists := wm.Sessions[id]; !exists {
+				wm.Sessions[id] = &revocationSessionState{
+					AggregateID:   id,
+					ResourceOwner: ev.Aggregate().ResourceOwner,
+				}
+			}
+		case *oidcsession.AccessTokenAddedEvent:
+			if s, ok := wm.Sessions[ev.Aggregate().ID]; ok {
+				s.HasAccessToken = true
+			}
+		case *oidcsession.AccessTokenRevokedEvent:
+			if s, ok := wm.Sessions[ev.Aggregate().ID]; ok {
+				s.HasAccessToken = false
+			}
+		case *oidcsession.RefreshTokenAddedEvent, *oidcsession.RefreshTokenRenewedEvent:
+			if s, ok := wm.Sessions[ev.Aggregate().ID]; ok {
+				s.HasRefreshToken = true
+			}
+		case *oidcsession.RefreshTokenRevokedEvent:
+			if s, ok := wm.Sessions[ev.Aggregate().ID]; ok {
+				s.HasRefreshToken = false
+				// RefreshTokenRevoked also invalidates the access token
+				// per the existing session model contract; mirror it
+				// here so the revocation pass doesn't double-emit a
+				// stale access-token revocation.
+				s.HasAccessToken = false
+			}
+		}
+	}
+	wm.Events = nil
+	return nil
+}
+
+// AppendEvents satisfies the QueryReducer requirement.
+func (wm *applicationTokenRevocations) AppendEvents(events ...eventstore.Event) {
+	wm.WriteModel.AppendEvents(events...)
+}
+
+// revocations returns the sessions that still need a revocation event.
+// A session contributes at most one access-token revocation and one
+// refresh-token revocation; both are pushed in the same eventstore
+// transaction so the projection sees them atomically.
+func (wm *applicationTokenRevocations) revocations() []*revocationSessionState {
+	out := make([]*revocationSessionState, 0, len(wm.Sessions))
+	for _, s := range wm.Sessions {
+		if s.HasAccessToken || s.HasRefreshToken {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// RevokeApplicationTokens emits revocation events for every active
+// access / refresh token owned by sessions whose AddedEvent.ClientID
+// matches the target client (cavekit-manage-handler.md R6 / T-056
+// path-(a) per the M4 worker decision). Returns the count of sessions
+// touched so the DCR DELETE handler can audit-log it.
+//
+// Volume note (kit residual risk): on a busy instance with thousands
+// of active sessions per client, this writes thousands of events in a
+// single Push. Phase 1 accepts the cost; Phase 2 may batch in chunks
+// or async-defer.
+//
+// The aggregate boundary: revocation events live on the per-session
+// `oidc_session` aggregates (not on the project aggregate). One Push
+// is multi-aggregate — supported by the eventstore.
+func (c *Commands) RevokeApplicationTokens(ctx context.Context, clientID string) (count int, err error) {
+	ctx, span := tracing.NewSpan(ctx)
+	defer func() { span.EndWithError(err) }()
+
+	if strings.TrimSpace(clientID) == "" {
+		return 0, zerrors.ThrowInvalidArgument(nil, "DCR-RA001", "Errors.Invalid.Argument")
+	}
+	instanceID := authz.GetInstance(ctx).InstanceID()
+
+	wm := newApplicationTokenRevocations(instanceID, clientID)
+	if err := c.eventstore.FilterToQueryReducer(ctx, wm); err != nil {
+		return 0, zerrors.ThrowInternal(err, "DCR-RA002", "Errors.Internal")
+	}
+
+	candidates := wm.revocations()
+	if len(candidates) == 0 {
+		return 0, nil
+	}
+
+	cmds := make([]eventstore.Command, 0, len(candidates)*2)
+	for _, s := range candidates {
+		agg := &oidcsession.NewAggregate(s.AggregateID, s.ResourceOwner).Aggregate
+		// Refresh-token revocation is the strict superset (it implicitly
+		// invalidates the access-token in the session model). Push it
+		// alone when both flags were set; push access-token revocation
+		// by itself otherwise. Cuts the event count in half for the
+		// common case (sessions with both an access and a refresh
+		// token, which is most of them).
+		if s.HasRefreshToken {
+			cmds = append(cmds, oidcsession.NewRefreshTokenRevokedEvent(ctx, agg))
+			continue
+		}
+		if s.HasAccessToken {
+			cmds = append(cmds, oidcsession.NewAccessTokenRevokedEvent(ctx, agg))
+		}
+	}
+
+	if len(cmds) == 0 {
+		return 0, nil
+	}
+	if _, err := c.eventstore.Push(ctx, cmds...); err != nil {
+		return 0, err
+	}
+	return len(candidates), nil
+}
+
+// DeleteRegisteredClient implements cavekit-manage-handler.md R6
+// (T-056) — RFC 7592 DELETE. Sequence:
+//   1. RevokeApplicationTokens — emit revocation events for every
+//      outstanding access / refresh token belonging to the client.
+//   2. ApplicationRemovedEvent — push on the project aggregate.
+//
+// The two pushes are NOT a single transaction (different aggregate
+// types). Order: revocations first, then removal — if step 2 fails
+// after step 1 succeeds we end up with revoked tokens on a still-
+// existing app, which is strictly safer than the inverse (app removed
+// but tokens still introspect as active until they expire).
+//
+// Bypasses the [Commands.RemoveApplication] permission check because
+// RFC 7592 RAT-only requests carry no user CtxData — the RAT is the
+// authorization (verified upstream by [dcr.VerifyRAT] / T-051).
+func (c *Commands) DeleteRegisteredClient(ctx context.Context, projectID, orgID, appID, clientID string) (revokedSessions int, err error) {
+	ctx, span := tracing.NewSpan(ctx)
+	defer func() { span.EndWithError(err) }()
+
+	if strings.TrimSpace(projectID) == "" || strings.TrimSpace(orgID) == "" || strings.TrimSpace(appID) == "" {
+		return 0, zerrors.ThrowInvalidArgument(nil, "DCR-DC001", "Errors.Invalid.Argument")
+	}
+
+	revokedSessions, err = c.RevokeApplicationTokens(ctx, clientID)
+	if err != nil {
+		return 0, err
+	}
+
+	existing, err := c.getOIDCAppWriteModel(ctx, projectID, appID, orgID)
+	if err != nil {
+		return revokedSessions, err
+	}
+	if existing.State == domain.AppStateUnspecified || existing.State == domain.AppStateRemoved {
+		return revokedSessions, zerrors.ThrowNotFound(nil, "DCR-DC002", "Errors.Project.App.NotExisting")
+	}
+	projectAgg := ProjectAggregateFromWriteModel(&existing.WriteModel)
+	if _, err := c.eventstore.Push(ctx,
+		project_repo.NewApplicationRemovedEvent(ctx, projectAgg, appID, existing.AppName, ""),
+	); err != nil {
+		return revokedSessions, err
+	}
+	return revokedSessions, nil
 }
 

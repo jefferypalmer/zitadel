@@ -784,6 +784,9 @@ func startAPIs(
 						RATExpiresAt: res.RATExpiresAt,
 					}, nil
 				},
+				Delete: func(ctx context.Context, req *dcr.DeleteRequest) (int, error) {
+					return commands.DeleteRegisteredClient(ctx, req.ProjectID, req.OrgID, req.AppID, req.ClientID)
+				},
 			},
 			ConsumeIAT: func(ctx context.Context, regCtx *dcr.RegistrationContext) error {
 				lookup := func(ctx context.Context) (*command.IATSnapshot, error) {

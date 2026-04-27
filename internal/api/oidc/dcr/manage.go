@@ -141,6 +141,11 @@ type ManageDeps struct {
 	// the wiring is staged. Production MUST set every field.
 	Update UpdateFn
 
+	// Delete is the function-shaped seam for the RFC 7592 DELETE-side
+	// command (cavekit-manage-handler.md R6 / T-056). Optional — when
+	// nil, the DELETE route falls back to the 501 stub.
+	Delete DeleteFn
+
 	// Config drives the PUT-side re-clamp (R5 AC1). Same DCRConfigSubset
 	// the POST register path uses (T-034) — passing the same operator
 	// allow-lists keeps PUT and POST symmetrical, which is the whole
@@ -180,6 +185,29 @@ type UpdateRequest struct {
 	OrgID     string
 	AppID     string
 	Clamped   *RFC7591Metadata
+}
+
+// DeleteFn is the function-shaped seam for invoking the RFC 7592
+// DELETE-side command (cavekit-manage-handler.md R6 / T-056). Returns
+// the count of revoked sessions for audit purposes; non-nil error
+// follows the same ClampError-or-server-error convention as UpdateFn.
+//
+// Optional on ManageDeps — when nil, the DELETE route falls back to
+// the 501 stub so deployments mid-rollout still emit a uniform error
+// envelope while the wiring is staged. Production MUST set every
+// field.
+type DeleteFn func(ctx context.Context, req *DeleteRequest) (revokedSessions int, err error)
+
+// DeleteRequest is the dcr-internal shape passed to the DELETE
+// closure. Carries the resolved (project, org, app, client) tuple
+// from the ManageContext; the command layer uses ClientID for the
+// session-revocation lookup and (project, org, app) for the
+// ApplicationRemovedEvent push.
+type DeleteRequest struct {
+	ProjectID string
+	OrgID     string
+	AppID     string
+	ClientID  string
 }
 
 // UpdateResult is the dcr-internal shape returned by the closure.

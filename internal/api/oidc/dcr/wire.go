@@ -424,7 +424,7 @@ func manageRoutes(deps RegistrationDeps) (get, put, del http.HandlerFunc) {
 	if deps.Manage != nil {
 		return manageVerifyDispatch(*deps.Manage, getClientHandler(*deps.Manage)),
 			manageVerifyDispatch(*deps.Manage, choosePUTHandler(*deps.Manage)),
-			manageVerifyDispatch(*deps.Manage, deleteClientStub)
+			manageVerifyDispatch(*deps.Manage, chooseDELETEHandler(*deps.Manage))
 	}
 	return manageBearerGate(getClientStub),
 		manageBearerGate(putClientStub),
@@ -442,6 +442,17 @@ func choosePUTHandler(deps ManageDeps) http.HandlerFunc {
 		return putClientStub
 	}
 	return putClientHandler(deps)
+}
+
+// chooseDELETEHandler is the same stub-vs-real selector as
+// [choosePUTHandler] for the DELETE route (T-056). When the Delete
+// closure is unset, the route returns 501 so deployments mid-rollout
+// still emit a uniform error envelope.
+func chooseDELETEHandler(deps ManageDeps) http.HandlerFunc {
+	if deps.Delete == nil {
+		return deleteClientStub
+	}
+	return deleteClientHandler(deps)
 }
 
 // writeDispatchError emits the RFC 7591 envelope for any error
