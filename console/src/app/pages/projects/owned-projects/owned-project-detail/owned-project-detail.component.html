@@ -205,6 +205,11 @@
         >
         </cnsl-user-grants>
       }
+      @if (currentSetting.id === 'dynamicclients') {
+        <h2 class="section-h2">{{ 'DESCRIPTIONS.DCR.CLIENTS.TITLE' | translate }}</h2>
+        <p class="desc cnsl-secondary-text">{{ 'DESCRIPTIONS.DCR.CLIENTS.DESCRIPTION' | translate }}</p>
+        <cnsl-dynamic-clients [projectId]="projectId"></cnsl-dynamic-clients>
+      }
     </cnsl-sidenav>
     <div metainfo>
       @if (project) {

@@ -31,6 +31,7 @@ import { WarnDialogModule } from 'src/app/modules/warn-dialog/warn-dialog.module
 import { HasRolePipeModule } from 'src/app/pipes/has-role-pipe/has-role-pipe.module';
 import { LocalizedDatePipeModule } from 'src/app/pipes/localized-date-pipe/localized-date-pipe.module';
 import { TimestampToDatePipeModule } from 'src/app/pipes/timestamp-to-date-pipe/timestamp-to-date-pipe.module';
+import DynamicClientsModule from 'src/app/modules/dynamic-clients/dynamic-clients.module';
 import ProjectGrantsModule from '../project-grants/project-grants.module';
 import ProjectRolesModule from '../project-roles/project-roles.module';
 import { ApplicationGridComponent } from './application-grid/application-grid.component';
@@ -65,6 +66,7 @@ import { OwnedProjectDetailComponent } from './owned-project-detail.component';
     PaginatorModule,
     ProjectGrantsModule,
     ProjectRolesModule,
+    DynamicClientsModule,
     MatRippleModule,
     TopViewModule,
     MatCheckboxModule,

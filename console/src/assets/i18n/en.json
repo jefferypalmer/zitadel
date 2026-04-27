@@ -319,6 +319,22 @@
           }
         }
       }
+    },
+    "DCR": {
+      "CLIENTS": {
+        "TITLE": "Dynamic Clients",
+        "DESCRIPTION": "Clients that registered themselves through the Dynamic Client Registration endpoint. Read-only — clients manage their own metadata via RFC 7592.",
+        "EMPTY": "No dynamically registered clients yet. Clients that register through /oidc/v1/register will appear here.",
+        "REGISTRATION_METHOD": "Registration Method",
+        "METHOD_ANONYMOUS": "Anonymous",
+        "METHOD_IAT": "Initial Access Token",
+        "IAT_USED": "Initial Access Token Used",
+        "COL_CLIENT_ID": "Client ID",
+        "COL_CLIENT_NAME": "Client Name",
+        "COL_CREATED_AT": "Registered At",
+        "COL_AUDIT": "Audit",
+        "VIEW_AUDIT": "View audit events"
+      }
     }
   },
   "PAGINATOR": {
@@ -430,6 +446,7 @@
     "IAMADMIN": "You are an IAM Administrator. Note that you have extended permissions.",
     "SHOWORGS": "Show All Organizations",
     "GRANTS": "Role Assignments",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Actions",
     "TARGETS": "Targets",
     "PRIVACY": "Privacy",

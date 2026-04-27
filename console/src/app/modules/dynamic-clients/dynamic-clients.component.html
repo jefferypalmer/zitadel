@@ -1,0 +1,57 @@
+<cnsl-card
+  title="{{ 'DESCRIPTIONS.DCR.CLIENTS.TITLE' | translate }}"
+  description="{{ 'DESCRIPTIONS.DCR.CLIENTS.DESCRIPTION' | translate }}"
+>
+  @if ((clients$ | async)?.length) {
+    <table mat-table [dataSource]="(clients$ | async) ?? []" class="dcr-clients-table">
+      <ng-container matColumnDef="clientId">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.CLIENTS.COL_CLIENT_ID' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ row.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="clientName">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.CLIENTS.COL_CLIENT_NAME' | translate }}</th>
+        <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="registrationMethod">
+        <th mat-header-cell *matHeaderCellDef>
+          {{ 'DESCRIPTIONS.DCR.CLIENTS.REGISTRATION_METHOD' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let row">
+          {{ 'DESCRIPTIONS.DCR.CLIENTS.METHOD_' + row.registrationMethod | translate }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="creationDate">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.CLIENTS.COL_CREATED_AT' | translate }}</th>
+        <td mat-cell *matCellDef="let row">
+          @if (row.creationDate) {
+            {{ row.creationDate | timestampToDate | localizedDate: 'EEE dd. MMM, HH:mm' }}
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="audit">
+        <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.CLIENTS.COL_AUDIT' | translate }}</th>
+        <td mat-cell *matCellDef="let row">
+          <a
+            mat-icon-button
+            [routerLink]="['/projects', projectId, 'apps', row.id]"
+            matTooltip="{{ 'DESCRIPTIONS.DCR.CLIENTS.VIEW_AUDIT' | translate }}"
+            aria-label="View application audit events"
+          >
+            <i class="las la-history"></i>
+          </a>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  } @else {
+    <div class="dcr-clients-empty">
+      <p>{{ 'DESCRIPTIONS.DCR.CLIENTS.EMPTY' | translate }}</p>
+    </div>
+  }
+</cnsl-card>

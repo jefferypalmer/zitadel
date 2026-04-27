@@ -319,6 +319,22 @@
           }
         }
       }
+    },
+    "DCR": {
+      "CLIENTS": {
+        "TITLE": "Dynamische Clients",
+        "DESCRIPTION": "Clients, die sich über den Dynamic-Client-Registration-Endpunkt selbst registriert haben. Schreibgeschützt — Clients verwalten ihre Metadaten über RFC 7592.",
+        "EMPTY": "Noch keine dynamisch registrierten Clients. Clients, die sich über /oidc/v1/register registrieren, erscheinen hier.",
+        "REGISTRATION_METHOD": "Registrierungsmethode",
+        "METHOD_ANONYMOUS": "Anonym",
+        "METHOD_IAT": "Initial Access Token",
+        "IAT_USED": "Initial Access Token verwendet",
+        "COL_CLIENT_ID": "Client-ID",
+        "COL_CLIENT_NAME": "Client-Name",
+        "COL_CREATED_AT": "Registriert am",
+        "COL_AUDIT": "Audit",
+        "VIEW_AUDIT": "Audit-Ereignisse anzeigen"
+      }
     }
   },
   "PAGINATOR": {
@@ -435,7 +451,8 @@
     "TOS": "AGB",
     "OPENSHORTCUTSTOOLTIP": "Tippe ? um die Tastaturkürzel anzuzeigen",
     "SETTINGS": "Einstellungen",
-    "CUSTOMERPORTAL": "Kundenportal"
+    "CUSTOMERPORTAL": "Kundenportal",
+    "DYNAMICCLIENTS": "Dynamische Clients"
   },
   "QUICKSTART": {
     "TITEL": "Integriere Zitadel in deine Anwendung",

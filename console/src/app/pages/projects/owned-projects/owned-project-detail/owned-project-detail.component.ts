@@ -26,6 +26,7 @@ const GENERAL: SidenavSetting = { id: 'general', i18nKey: 'USER.SETTINGS.GENERAL
 const ROLES: SidenavSetting = { id: 'roles', i18nKey: 'MENU.ROLES' };
 const PROJECTGRANTS: SidenavSetting = { id: 'projectgrants', i18nKey: 'MENU.PROJECTGRANTS' };
 const GRANTS: SidenavSetting = { id: 'grants', i18nKey: 'MENU.GRANTS' };
+const DYNAMICCLIENTS: SidenavSetting = { id: 'dynamicclients', i18nKey: 'MENU.DYNAMICCLIENTS' };
 
 @Component({
   selector: 'cnsl-owned-project-detail',
@@ -53,7 +54,7 @@ export class OwnedProjectDetailComponent implements OnInit {
   public loading$: Observable<boolean> = this.loadingSubject.asObservable();
   public refreshChanges$: EventEmitter<void> = new EventEmitter();
 
-  public settingsList: SidenavSetting[] = [GENERAL, ROLES, PROJECTGRANTS, GRANTS];
+  public settingsList: SidenavSetting[] = [GENERAL, ROLES, PROJECTGRANTS, GRANTS, DYNAMICCLIENTS];
   public currentSetting = this.settingsList[0];
 
   constructor(
