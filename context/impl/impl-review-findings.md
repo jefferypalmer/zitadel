@@ -219,3 +219,50 @@ Recommended skill amendment: any /ck:revise --trace fix that touches the dispatc
 2. **`gofmt -w internal/api/oidc/dcr/validate.go internal/api/oidc/dcr/wire.go`** — fix the CI breakers immediately. (Could be done now, NOT through `/ck:revise --trace` since it's no kit gap.)
 3. **Bundle F-300, N-4, N-5, N-6 into one `/ck:revise --trace --from-finding F-301,F-300,N-4,N-5,N-6`** — they all touch the same dispatcher / config layer.
 4. **Defer P2/P3 to a later cycle** — they're real but not urgent.
+
+
+---
+
+# /ck:check Findings — 2026-04-27 (4th-iteration verification)
+
+Build site: context/plans/build-site.md
+Reviewed window: 4500cc15c..HEAD = 4 commits (2 substantive: gofmt fix + 5-finding revise; 2 logs)
+Base ref: 4500cc15c (previous /ck:check REVISE — N-4/N-5/F-300/F-301/N-6 the targets)
+Reviewers: ck:inspector (opus, code+security combined) + ck:verifier (opus). Both converged on REVISE.
+Review date: 2026-04-27
+
+## NEW findings
+
+| ID | Severity | Vector | File | Description | Status |
+|----|----------|--------|------|-------------|--------|
+| F-400 | **P0** | ci/build-break | internal/api/oidc/dcr_config.go + dcr_config_test.go | **gofmt re-broken — THIRD instance in this build window.** The 5-finding revise pass appended `"log/slog"` to dcr_config.go imports and `"time"` to dcr_config_test.go imports at the TOP of the import block instead of in alphabetical order. CI gofmt gate fails. Verified `gofmt -l` reports both files. The same wave that included a "fix CI gofmt" commit (21187afa0) re-broke the gate. Meta-pattern: every fix wave breaks gofmt. | NEW |
+| F-401 | **P1** | rfc-vocabulary / impl-incomplete | internal/api/oidc/dcr/auth.go:213/226/239/248 + cmd/start/start.go:777 | **N-5 only migrated 1 of 5 sites.** Kit AC explicitly enumerates "All 401 responses (auth-first short-circuit, IAT verification failure, IAT consume failure, RAT verification failure)". Only the auth-first short-circuit at wire.go:312 was updated to use `MissingOrInvalidAccessTokenDescription`. The 4 ResolveIAT 401 paths in auth.go still emit bespoke strings; the ConsumeIAT closure in start.go still emits "initial access token cannot be consumed". **Three distinct strings let an attacker distinguish unknown-id from wrong-random vs revoked, partially defeating the F-Au004/Au005/Au006 anti-enumeration design.** Commit message claimed "all 401 responses use the canonical string" — diff doesn't match the claim. | NEW |
+| F-402 | P1 | dos-clamp-silent / config-intent | internal/api/oidc/dcr/decode.go:127-131 | **F-301's clamp-down silently substitutes 100 MiB for any positive operator config above the ceiling.** An operator who sets `MaxRequestBodyBytes: 524288000` (500 MiB intentionally for large software_statement uploads) gets requests rejected at 100 MiB with envelope text naming a number they never configured. F-204 amendment requires startup REFUSE on invalid values; F-301 should likewise refuse positive values > ceiling rather than runtime-clamp. | NEW |
+| F-301c-test | P1 | untested-AC | internal/api/oidc/dcr_config_test.go | **F-301 startup WARN code exists but has no regression test.** Kit AC requires WARN emission when `MaxRequestBodyBytes=-1`; code at dcr_config.go:61-65 fires the WARN but no test (à la TestDCRConfig_Validate_R5_IssuerPathWarning's slog.SetDefault + bytes.Buffer capture pattern) pins the behaviour. Silent regression risk. | NEW |
+| F-403 | P2 | operator-visibility | cmd/defaults.yaml:722 | The 100 MiB ceiling is hardcoded with no mention in cmd/defaults.yaml next to MaxRequestBodyBytes. Operators can't discover the ceiling without reading source. WARN only fires for -1; positive-value operators never see it exists. | NEW |
+| F-404 | P2 | dead-code / lying-semantics | internal/api/oidc/dcr/decode.go:118-122 | N-10 unaddressed — the `case max == 0: max = DefaultMaxBodyBytes` "for the test path" still coexists with F-301's `-1 → 100 MiB` and `>ceiling → 100 MiB` branches. Three different "rescue" semantics with zero comments distinguishing. Reader confusion. | NEW |
+| F-405 | P3 | brittle-test | internal/api/oidc/dcr/dispatcher_test.go:730 | N-6 test embeds a duplicate `bcryptVerifier` adapter that no other test uses, and runs real bcrypt verify (millisecond latency) where the existing `stubVerifier{matchHash}` would do (microsecond). Maintenance + perf cost. | NEW |
+| F-406 | P3 | error-msg-drift | internal/api/oidc/dcr/decode.go:130 | 413 envelope description embeds the post-clamp value of `max`, not the operator's configured value. For `MaxRequestBodyBytes: -1`, the 413 reads "exceeds MaxRequestBodyBytes (104857600)" — confusing for triage. | NEW |
+
+## Verifier verdict
+**REVISE** — N-5 is PARTIAL (1 of 5 sites migrated, kit AC violated by impl). F-301c missing test for the WARN behaviour. F-300 + N-4 + N-6 + F-301a + F-301b verified MET.
+
+## Inspector verdict
+**REVISE** — 1 P0 (gofmt for the THIRD time) + 3 P1 (incomplete N-5 migration, silent clamp-down, missing WARN test) + 2 P2 + 2 P3.
+
+## Net verdict
+
+**REVISE** — 1 P0 + 4 P1 + 2 P2 + 2 P3.
+
+The recurring meta-pattern continues: each fix wave introduces gofmt breaks, and each fix wave's claim diverges from the actual diff. F-401 is particularly stark — the commit message asserts coverage of a kit AC that the diff demonstrably does not satisfy.
+
+## Pattern observation (continuing)
+
+This is now the **THIRD consecutive /ck:check pass** to report the `fix-introduces-its-own-regression` meta-pattern, AND the **third consecutive pass** to report a gofmt break. Independent observation: the loop has no pre-commit gate that runs `gofmt -l` and `grep` to verify kit-AC enumerated coverage matches the diff. Until such a gate exists, every wave will continue to ship gofmt-dirty trees and partially-implemented kit ACs.
+
+## Recommended next actions
+
+1. **`gofmt -w`** on the two dirty files. Same one-shot fix as last time.
+2. **`/ck:revise --trace --from-finding F-401,F-402,F-301c-test`** — three substantive amendments (complete the N-5 migration; refuse positive>ceiling at startup; add the F-301 WARN regression test).
+3. **Defer F-403/F-404/F-405/F-406** to next cycle.
+4. **Methodology amendment recommended** at the cavekit-writing skill or `/ck:revise --trace` skill: every "fix-claims-coverage" commit MUST verify the diff against the kit AC's enumerated list. The recurring pattern is the third meta-amendment recommendation in this build.
