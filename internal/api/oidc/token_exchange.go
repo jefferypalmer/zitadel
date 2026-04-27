@@ -75,6 +75,12 @@ func (s *Server) tokenExchange(ctx context.Context, r *op.ClientRequest[oidc.Tok
 	if err != nil {
 		return nil, err
 	}
+	// RFC 8707 §2 — token-exchange clients MAY supply `resource` to
+	// constrain the issued token's audience further. The sidecar already
+	// validated each value against AllowedAudiences (op.go middleware
+	// chain); merge them into the audience computed by RFC 8693's audience
+	// rules above (cavekit-rfc8707-resource.md R5).
+	audience = audienceFromTokenResources(ctx, audience)
 	scopes, err := validateTokenExchangeScopes(client, r.Data.Scopes, subjectToken.scopes, actorToken.scopes)
 	if err != nil {
 		return nil, err

@@ -56,7 +56,7 @@ func (s *Server) refreshTokenV1(ctx context.Context, client *Client, r *op.Clien
 		refreshToken.ClientID,
 		"", // backChannelLogoutURI is not in refresh token view
 		scope,
-		refreshToken.Audience,
+		narrowAudienceByTokenResources(ctx, refreshToken.Audience),
 		AMRToAuthMethodTypes(refreshToken.AuthMethodsReferences),
 		refreshToken.AuthTime,
 		"",

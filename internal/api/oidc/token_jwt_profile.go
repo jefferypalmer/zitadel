@@ -48,7 +48,7 @@ func (s *Server) JWTProfile(ctx context.Context, r *op.Request[oidc.JWTProfileGr
 		client.clientID,
 		"", // backChannelLogoutURI not needed for service account session
 		scope,
-		domain.AddAudScopeToAudience(ctx, nil, r.Data.Scope),
+		audienceFromTokenResources(ctx, domain.AddAudScopeToAudience(ctx, nil, r.Data.Scope)),
 		[]domain.UserAuthMethodType{domain.UserAuthMethodTypePrivateKey},
 		time.Now(),
 		"",
