@@ -6,6 +6,9 @@ last_edited: "2026-04-27T06:10:00Z"
 
 Build site: context/plans/build-site.md
 
+### Iteration 51 — 2026-04-27 (Tier 6 — T-086 hostname-root deployment doc)
+- T-086: DONE. New "Dynamic Client Registration: hostname-root requirement" section appended to `apps/docs/content/self-hosting/manage/custom-domain.mdx` (the natural home for ExternalDomain config). Pins hostname-root issuer requirement, explains why (MCP/Claude Code resolves registration_endpoint against issuer host + RFC 8414 metadata at host root), references the startup warning ZITADEL emits when subpath issuer is detected with DCR enabled. PUT idempotency caveat already at T-079 DCR API ref + T-082 CHANGELOG (no duplication). Tier 6 status: 15/21. Remaining: frontend chain T-070, T-071, T-072, T-076, T-077, T-078.
+
 ### Iteration 50 — 2026-04-27 (Tier 6 — T-082 CHANGELOG.md)
 - T-082: DONE. New top-level `/CHANGELOG.md` (zitadel had no central CHANGELOG before — semantic-release-driven; kit explicitly named this file so created it as the canonical home for cross-cutting release narratives going forward). Unreleased section leads with kit-pinned headline "Works with Claude Code out-of-the-box" + 5 operator-must-know bullets: hostname-root issuer requirement, DELETE token-revocation note (path-(a) RevokeApplicationTokens per T-007 M4 decision), anon-by-default hardening + T16 CDN/WAF residual-risk pointer, `registration_endpoint` omit-not-null discovery contract, PUT non-idempotency caveat. Cross-refs to T-079 API ref, T-080 MCP guide, T-083 SECURITY.md, T-085 ADR. Tier 6 status: 14/21. T-086 (deployment hostname-root note) now unblocked.
 

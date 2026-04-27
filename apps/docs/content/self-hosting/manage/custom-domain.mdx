@@ -59,6 +59,26 @@ Be aware that you won't automatically have the organizations context when you ac
 ZITADEL creates random subdomains for [each new virtual instance](/concepts/structure/instance#multiple-virtual-instances).
 You can immediately access the ZITADEL Management Console and APIs using these subdomains without further actions.
 
+## Dynamic Client Registration: hostname-root requirement
+
+If you intend to enable [OAuth 2.0 Dynamic Client Registration](/apis/openidoauth/dynamic-client-registration)
+for Claude Code / MCP integrations, the deployment MUST run on a
+**hostname-root issuer** — `https://example.com/`, NOT
+`https://example.com/zitadel/`. MCP clients including Claude Code resolve
+`registration_endpoint` against the issuer host, not the issuer path. The
+`/.well-known/oauth-authorization-server` document mandated by RFC 8414
+likewise lives at the host root, so a subpath issuer cannot serve it
+correctly without a custom rewrite at the reverse proxy.
+
+ZITADEL emits a **startup warning** naming the probed
+`.well-known/oauth-authorization-server` URL when DCR is enabled
+(`OIDC.DCR.Enabled: true`) and the configured `ExternalDomain` resolves
+to a subpath. Treat the warning as a deployment defect: either move
+ZITADEL to the host root, or disable DCR for this deployment.
+
+This requirement does not affect any other ZITADEL feature; subpath
+deployments remain fully supported for all non-DCR workflows.
+
 ## More Information
 
 - [Check out the production-near load-balancing example with Traefik](/self-hosting/manage/reverseproxy/traefik)
