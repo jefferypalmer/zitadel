@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T13:30:00Z"
-last_edited: "2026-04-27T00:00:00Z"
+last_edited: "2026-04-27T11:00:00Z"
 ---
 # Codex Peer Review — Tier 0 Findings
 
@@ -266,3 +266,58 @@ This is now the **THIRD consecutive /ck:check pass** to report the `fix-introduc
 2. **`/ck:revise --trace --from-finding F-401,F-402,F-301c-test`** — three substantive amendments (complete the N-5 migration; refuse positive>ceiling at startup; add the F-301 WARN regression test).
 3. **Defer F-403/F-404/F-405/F-406** to next cycle.
 4. **Methodology amendment recommended** at the cavekit-writing skill or `/ck:revise --trace` skill: every "fix-claims-coverage" commit MUST verify the diff against the kit AC's enumerated list. The recurring pattern is the third meta-amendment recommendation in this build.
+
+
+---
+
+# /ck:check Pass — Tier 4 Close-out (2026-04-27)
+
+Build site: context/plans/build-site.md
+Tier: 4 close-out (T-054, T-055, T-056)
+Base ref: f20af5913 (post-T-057)
+Reviewer: ck:inspector + ck:surveyor (Opus). Codex unavailable — `codex-review.sh` rejected by the local `codex` CLI (`--approval-mode` flag drift).
+
+## Findings
+
+| ID | Severity | Category | File:line | Description | Status |
+|----|----------|----------|-----------|-------------|--------|
+| F-001 | **P1** | spec-conformance | internal/api/oidc/dcr/manage_put.go:26-39, 120-140 | PUT response omits `client_id_issued_at`. RFC 7592 §3.2 mandates the PUT response mirror the RFC 7591 §3.2.1 client-info shape, which requires this field. GET path emits it; PUT does not. `UpdateRegisteredClientResult` doesn't even carry the issued-at value. | NEW (T-087) |
+| F-002 | **P1** | bug / wrong-sentinel | internal/api/oidc/dcr/manage_put.go:115-129 | PUT response `client_secret_expires_at` hardcoded to 0 even when `OIDC.DCR.ClientSecretExpiresIn > 0` and a fresh secret was minted via `none → client_secret_*` transition. Lies about AS policy — caller relies on `0=no expiry` and never rotates. POST register path is correct (`clientSecretExpiresAtFor`). | NEW (T-088) |
+| F-003 | P2 | doc/code drift | internal/query/projection/app.go:910-928 | `reduceApplicationRegistrationAccessTokenRotated` godoc says "the column is NULL'd to mirror that" when ExpiresAt is zero; code does the OPPOSITE (preserve existing column on zero). Code is correct (prevents silent lifetime extension); doc lies. | NEW (T-089) |
+| F-004 | P2 | security (low-prob) / kit-clarity | internal/command/dynamic_client_registration.go:613-640 | `applicationTokenRevocations.Query()` filters by `InstanceID + EventData{clientID}` but never `ResourceOwner`. Two orgs with colliding clientIDs (snowflake-implausible) cross-pollute revocation. Kit doesn't assert collision-resistance as a security property. | RESOLVED-IN-KIT (R6 new AC: revocation scope = `(instance_id, client_id)`) |
+| F-005 | P2 | acknowledged design / kit-gap | internal/command/dynamic_client_registration.go:781-808 | `DeleteRegisteredClient` does two non-atomic Pushes (revocation, then ApplicationRemoved). Kit silent on idempotency + failure semantics. Code chose revoke-first ordering for fail-safer outcome. | RESOLVED-IN-KIT (R6 AC2 + new R6 AC: idempotency, ordering rationale, partial-failure behavior) |
+| F-006 | P2 | performance | internal/command/dynamic_client_registration.go:629-639 | `RevokeApplicationTokens` branch 2 has no clientID filter, scans all per-token events instance-wide. Kit residual-risk note already acknowledges this for Phase 2. | DEFERRED-PHASE2 |
+| F-007 | P2 | quality / observability | internal/api/oidc/dcr/manage.go:302-311 | `VerifyRAT` silent-rehash failure swallowed without log. Operator gets zero signal that algorithm rotation is failing to persist. | NEW (T-090) |
+| F-008 | P3 | quality / undocumented invariant | internal/command/dynamic_client_registration.go:646-685 | `applicationTokenRevocations.Reduce` ordering depends on global position-asc invariant. Per-token events dropped if AddedEvent not seen first. Safe today (eventstore default order); fragile to future eventstore changes. | DEFERRED |
+| F-009 | P3 | confirmed-intended / kit-silent | internal/command/dynamic_client_registration.go:516-540 | Idempotent PUT writes a `.rotated` event with no other changes. Confirmed intended behavior (kit AC7 says "every successful PUT rotates"). Kit silent on storage volume implications. | DEFERRED |
+| F-010 | P3 | test brittleness | internal/api/oidc/integration_test/dcr_delete_revokes_tokens_test.go:152, 171 | `Eventually` 10s timeout undocumented w.r.t. projection-lag SLO. CI lag spike → test flakes without root-cause signal. | DEFERRED |
+| F-011 | P3 | defense-in-depth | internal/api/oidc/dcr/manage.go:229-249 | `MaxBodyBytes` zero falls back silently in `Decode`. No boot-time `slog.Warn` when wiring forgets to set it. | DEFERRED |
+
+## Confirmed non-bugs (verified by inspector)
+
+- AddQuery OR-semantics across branches sound (`internal/eventstore/search_query.go:319-322`)
+- SQL ordering position-asc default — `repository/sql/postgres.go:96`
+- InstanceID stamped from ctx on push — `eventstore/v3/event.go:78-79`
+- `instanceInterceptor` wires DCR handler — `cmd/start/start.go:834`
+- `HasRefreshToken` on `RefreshTokenRenewedEvent` correct
+- `entityID=""` on `ApplicationRemovedEvent` correct (DCR is OIDC-only)
+
+## Verifier verdict
+**REVISE** — F-001 + F-002 are P1 spec-conformance bugs in T-054/T-055. T-056 PARTIAL on R6 AC2/AC3 (resolved via kit clarification, no code change required).
+
+## Inspector verdict
+**REVISE** — 0 P0, 2 P1 (F-001, F-002), 5 P2 (3 of which kit-resolved or phase-2 deferred), 4 P3.
+
+## Net verdict
+
+**REVISE** — 0 P0, 2 P1, 5 P2, 4 P3.
+
+T-054..T-056 ship a structurally sound RFC 7592 manage surface. The two P1s are surgical: ~50 LOC across two files in `manage_put.go` + plumbing through `command.UpdateRegisteredClient`. Both fixes are tracked as T-087 (F-001) and T-088 (F-002) in build site Tier 7.
+
+Tooling note: `/home/jeff/.claude/plugins/local/cavekit-marketplace/ck/scripts/codex-review.sh` invokes `codex` with `--approval-mode` which the current binary rejects. Out-of-scope for this build but the next /ck:check + Codex pass needs the script updated.
+
+## Recommended next actions
+
+1. `/ck:make` — pick up T-087, T-088, T-089, T-090 from Tier 7. All four are XS/S effort; one wave should clear them.
+2. After T-087/T-088 land, write a new manage_put_test.go subtest pinning RFC 7592 §3.2 wire-shape (raw-JSON inspection of `client_id_issued_at` + `client_secret_expires_at` matrix on transition vs no-transition).
+3. Tooling: fix `codex-review.sh` flag drift in a separate PR.

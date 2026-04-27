@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-27T11:00:00Z"
 ---
 
 # Build Site
@@ -145,6 +145,17 @@ last_edited: "2026-04-24T00:00:00Z"
 
 ---
 
+## Tier 7 — Post-Loop Revisions (from /ck:check 2026-04-27)
+
+| Task | Title | Cavekit | Requirement | blockedBy | Effort |
+|------|-------|---------|-------------|-----------|--------|
+| T-087 | F-001 fix: PUT response MUST include `client_id_issued_at` (Unix seconds, sourced from registration time). Plumb `existing.WriteModel.CreationDate` (or earliest event creation) through `command.UpdateRegisteredClientResult` → `dcr.UpdateResult.ClientIDIssuedAt` → `ManageUpdateResponse.ClientIDIssuedAt int64 \`json:"client_id_issued_at"\``. Pin via raw-JSON test in manage_put_test.go. | cavekit-manage-handler.md | R5 (new AC) | T-054, T-055 | S |
+| T-088 | F-002 fix: PUT response `client_secret_expires_at` MUST be computed from `ClientSecretExpiresIn` when minting fresh secret. When `result.ClientSecret != ""` and `deps.ClientSecretExpiresIn > 0`, emit `result.ChangedAt.Add(lifetime).Unix()`; otherwise emit 0 (no-expiry sentinel). Mirror the POST register `clientSecretExpiresAtFor` helper. Pin both branches via test. | cavekit-manage-handler.md | R5 (new AC) | T-054, T-055 | S |
+| T-089 | F-003 fix: doc/code drift in `reduceApplicationRegistrationAccessTokenRotated` godoc — strike the "the column is NULL'd to mirror that" sentence at `internal/query/projection/app.go:910-912`; the lower comment correctly describes the actual preserve-on-zero behavior. Pure doc fix. | cavekit-manage-handler.md | R5 AC7 | T-055 | XS |
+| T-090 | F-007 fix: silent-rehash failure swallowed without log. Add `slog.WarnContext(ctx, "dcr: silent rehash push failed", slog.Any("err", rehErr))` at `internal/api/oidc/dcr/manage.go:308` so operators get a signal when algorithm rotation persistence fails. | cavekit-manage-handler.md | R2 AC2 | T-051 | XS |
+
+---
+
 ## Summary
 
 | Tier | Tasks | Effort |
@@ -156,8 +167,9 @@ last_edited: "2026-04-24T00:00:00Z"
 | 4 | 8 | mixed M/L |
 | 5 | 8 | mixed S/M |
 | 6 | 21 | mixed S/M/L |
+| 7 | 4 | mixed XS/S (post-loop revisions from /ck:check 2026-04-27) |
 
-**Total: 86 tasks, 7 tiers**
+**Total: 90 tasks, 8 tiers**
 
 ## Coverage Matrix
 
