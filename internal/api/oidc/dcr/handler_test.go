@@ -100,6 +100,7 @@ func TestHandler_MethodRouting(t *testing.T) {
 		name             string
 		method           string
 		path             string
+		bearer           string
 		wantStatus       int
 		wantBodyContains string
 	}{
@@ -118,23 +119,28 @@ func TestHandler_MethodRouting(t *testing.T) {
 			wantBodyContains: `"status":"dcr_handler_stub"`,
 		},
 		{
-			name:             "GET /{client_id} → 501 stub (T-053 lands real body)",
+			// T-050 mounted the bearer-presence gate; supplying any Bearer
+			// passes the gate and falls through to the T-053 501 stub.
+			name:             "GET /{client_id} + Bearer → 501 stub (T-053 lands real body)",
 			method:           http.MethodGet,
 			path:             "/abc-123",
+			bearer:           "rat-placeholder",
 			wantStatus:       http.StatusNotImplemented,
 			wantBodyContains: `"error":"not_implemented"`,
 		},
 		{
-			name:             "PUT /{client_id} → 501 stub (T-054 lands real body)",
+			name:             "PUT /{client_id} + Bearer → 501 stub (T-054 lands real body)",
 			method:           http.MethodPut,
 			path:             "/abc-123",
+			bearer:           "rat-placeholder",
 			wantStatus:       http.StatusNotImplemented,
 			wantBodyContains: `"error":"not_implemented"`,
 		},
 		{
-			name:             "DELETE /{client_id} → 501 stub (T-056 lands real body)",
+			name:             "DELETE /{client_id} + Bearer → 501 stub (T-056 lands real body)",
 			method:           http.MethodDelete,
 			path:             "/abc-123",
+			bearer:           "rat-placeholder",
 			wantStatus:       http.StatusNotImplemented,
 			wantBodyContains: `"error":"not_implemented"`,
 		},
@@ -162,12 +168,83 @@ func TestHandler_MethodRouting(t *testing.T) {
 			}
 			req := httptest.NewRequest(tt.method, path, nil).
 				WithContext(ctxWithFeature(t, true))
+			if tt.bearer != "" {
+				req.Header.Set("Authorization", "Bearer "+tt.bearer)
+			}
 			rec := httptest.NewRecorder()
 			h.ServeHTTP(rec, req)
 			assert.Equal(t, tt.wantStatus, rec.Code)
 			assert.Contains(t, rec.Body.String(), tt.wantBodyContains)
 			assert.Equal(t, "application/json;charset=UTF-8", rec.Header().Get("Content-Type"))
 		})
+	}
+}
+
+// TestHandler_ManageBearerGate covers cavekit-manage-handler.md R1
+// (T-050) — GET/PUT/DELETE on `/oidc/v1/register/{client_id}` MUST
+// return 401 with the RFC 7591 invalid_token envelope and the
+// `WWW-Authenticate: Bearer error="invalid_token"` header when no
+// Authorization Bearer header is supplied. The 401 response runs BEFORE
+// any RAT verification (T-051) or anti-enumeration logic (T-052) so the
+// missing-header case stays uniform across all three RFC 7592 verbs.
+func TestHandler_ManageBearerGate(t *testing.T) {
+	tests := []struct {
+		name       string
+		method     string
+		authHeader string // empty = absent
+		wantStatus int
+	}{
+		{"GET no header → 401", http.MethodGet, "", http.StatusUnauthorized},
+		{"PUT no header → 401", http.MethodPut, "", http.StatusUnauthorized},
+		{"DELETE no header → 401", http.MethodDelete, "", http.StatusUnauthorized},
+		{"GET non-Bearer header → 401", http.MethodGet, "Basic dXNlcjpwYXNz", http.StatusUnauthorized},
+		{"PUT empty header → 401", http.MethodPut, "", http.StatusUnauthorized},
+		{"DELETE Digest header → 401", http.MethodDelete, `Digest username="x"`, http.StatusUnauthorized},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := Handler()
+			req := httptest.NewRequest(tt.method, "/abc-123", nil).
+				WithContext(ctxWithFeature(t, true))
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+
+			require.Equal(t, tt.wantStatus, rec.Code)
+			assert.Equal(t, `Bearer error="invalid_token"`,
+				rec.Header().Get("WWW-Authenticate"),
+				"R2 AC4: 401 must carry WWW-Authenticate")
+			assert.Equal(t, "application/json;charset=UTF-8",
+				rec.Header().Get("Content-Type"))
+
+			var body map[string]string
+			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+			assert.Equal(t, "invalid_token", body["error"])
+			assert.Equal(t, MissingOrInvalidAccessTokenDescription, body["error_description"])
+		})
+	}
+}
+
+// TestHandler_ManageGate_FeatureOff covers R1 AC2/AC3 — the manage
+// gate runs INSIDE the runtime feature gate, so a feature-off instance
+// returns 403 (not 401) regardless of header presence. Pins the
+// ordering: feature gate first, bearer gate second.
+func TestHandler_ManageGate_FeatureOff(t *testing.T) {
+	h := Handler()
+	for _, method := range []string{http.MethodGet, http.MethodPut, http.MethodDelete} {
+		req := httptest.NewRequest(method, "/abc-123", nil).
+			WithContext(ctxWithFeature(t, false))
+		req.Header.Set("Authorization", "Bearer rat-placeholder")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusForbidden, rec.Code,
+			"%s: feature gate must pre-empt bearer gate", method)
+		assert.Contains(t, rec.Body.String(), `"error":"feature_disabled"`)
+		assert.Empty(t, rec.Header().Get("WWW-Authenticate"),
+			"%s: feature_disabled response is not a 401, no WWW-Authenticate", method)
 	}
 }
 

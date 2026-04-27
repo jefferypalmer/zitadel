@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-26T20:30:00Z"
+last_edited: "2026-04-27T06:10:00Z"
 ---
 # Loop Log — DCR Build Site
 
@@ -128,3 +128,6 @@ Tier 0 summary: 7/7 DONE (T-001..T-007). Stopping at tier boundary.
 ### Iteration 23 — 2026-04-27 (Tier 3 — T-046 + start.go wiring)
 - (prereq) cmd/start/start.go wired dcr.RegistrationDeps.Register + MaxBodyBytes — without this NewHandler would panic at startup once OIDC.DCR.Enabled flipped true. Closure bridges dcr.RegisterRequest → command.RegisterClientInput, mirrors result back. Commit 111e68b98.
 - T-046: DONE. Files: internal/api/oidc/integration_test/rfc8707_resource_test.go (new — `//go:build integration` tagged). 4 subtests against client_credentials grant (single-resource aud propagation, multi-resource additive merge, no-resource fast-path, malformed-resource → HTTP 400 invalid_target envelope). Other 5 grants (jwt_profile/token_exchange/auth_code/refresh/device) covered at helper-level by 12 unit subtests in rfc8707_token_test.go (T-045) — each handler call site wraps its audience arg in the appropriate helper, so the propagation chain is exercised even where integration scaffolds aren't built. Token decode handles JWT vs opaque (Zitadel default). Build + vet P with `-tags integration`. Tier 3 status: 17/17 — TIER COMPLETE. **All Tier 3 tasks done.**
+
+### Iteration 24 — 2026-04-27 (Tier 4 entry — T-050)
+- T-050: DONE. Files: internal/api/oidc/dcr/handler.go (+manageBearerGate middleware via ClassifyAuthMode — 401 + WWW-Authenticate + RFC 7591 invalid_token envelope when no Bearer; wraps getClientStub/putClientStub/deleteClientStub on legacy Handler), internal/api/oidc/dcr/wire.go (same wrap on NewHandler mount so production path matches), internal/api/oidc/dcr/handler_test.go (TestHandler_MethodRouting cases gain `bearer` field — GET/PUT/DELETE 501 stubs now exercised with Bearer; +TestHandler_ManageBearerGate 6-row matrix pinning missing/empty/non-Bearer/Basic/Digest → 401; +TestHandler_ManageGate_FeatureOff pinning feature-gate-runs-before-bearer-gate ordering — feature-off → 403 even with Bearer). AC1 (401 missing Bearer) ✓. AC2 (yaml-off → 404) ✓ via existing T-008/T-031 unmount. AC3 (runtime-off → 403) ✓ via existing featureGateMiddleware running before bearer gate. AC4 (shared mux precedence) ✓. Build P, Tests P (full dcr package green). Tier 4 status: 1/8 done (T-050). Frontier next: T-051 (RAT verify w/ Passwap two-return + silent rehash — unblocked) and T-057 (Claude Code compat integration test — was already unblocked).

@@ -62,9 +62,9 @@ func Handler() http.Handler {
 	r.StrictSlash(true)
 
 	r.HandleFunc("/", postRegisterStub).Methods(http.MethodPost)
-	r.HandleFunc("/{client_id}", getClientStub).Methods(http.MethodGet)
-	r.HandleFunc("/{client_id}", putClientStub).Methods(http.MethodPut)
-	r.HandleFunc("/{client_id}", deleteClientStub).Methods(http.MethodDelete)
+	r.HandleFunc("/{client_id}", manageBearerGate(getClientStub)).Methods(http.MethodGet)
+	r.HandleFunc("/{client_id}", manageBearerGate(putClientStub)).Methods(http.MethodPut)
+	r.HandleFunc("/{client_id}", manageBearerGate(deleteClientStub)).Methods(http.MethodDelete)
 
 	// Method-mismatch on a known path → 405 instead of 404 (gorilla mux
 	// supports this via NotFound + MethodNotAllowed handlers; default is
@@ -80,6 +80,35 @@ func Handler() http.Handler {
 	})
 
 	return featureGateMiddleware(r)
+}
+
+// manageBearerGate enforces the RFC 7592 §2 "Authorization: Bearer
+// <RAT>" presence rule for GET/PUT/DELETE on
+// `/oidc/v1/register/{client_id}` (cavekit-manage-handler.md R1 AC1 +
+// R2 AC4). When no Bearer header is presented, the gate short-circuits
+// with 401 + `WWW-Authenticate: Bearer error="invalid_token"` BEFORE
+// any handler body runs — keeps the missing-header response uniform
+// across the three RFC 7592 verbs and prevents the stubbed bodies
+// (T-053/T-054/T-056) from leaking implementation state to
+// unauthenticated callers.
+//
+// RAT verification (cavekit-manage-handler.md R2 / T-051) and the
+// anti-enumeration dummy-Verify on unknown client_id (R3 / T-052) ride
+// on top of this gate once the Bearer is present. The gate uses
+// [ClassifyAuthMode] for the parse so the IAT-mode register path and
+// the RAT-mode manage paths share one Authorization-header
+// interpretation.
+func manageBearerGate(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		mode, _ := ClassifyAuthMode(r)
+		if mode != AuthModeIAT {
+			w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+			WriteError(w, http.StatusUnauthorized, ErrCodeInvalidToken,
+				MissingOrInvalidAccessTokenDescription)
+			return
+		}
+		next(w, r)
+	}
 }
 
 // featureGateMiddleware enforces the runtime half of the dual-gate.

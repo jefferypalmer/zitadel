@@ -267,9 +267,9 @@ func NewHandler(deps RegistrationDeps) http.Handler {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 	r.HandleFunc("/", postRegisterDispatch(deps)).Methods(http.MethodPost)
-	r.HandleFunc("/{client_id}", getClientStub).Methods(http.MethodGet)
-	r.HandleFunc("/{client_id}", putClientStub).Methods(http.MethodPut)
-	r.HandleFunc("/{client_id}", deleteClientStub).Methods(http.MethodDelete)
+	r.HandleFunc("/{client_id}", manageBearerGate(getClientStub)).Methods(http.MethodGet)
+	r.HandleFunc("/{client_id}", manageBearerGate(putClientStub)).Methods(http.MethodPut)
+	r.HandleFunc("/{client_id}", manageBearerGate(deleteClientStub)).Methods(http.MethodDelete)
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		WriteError(w, http.StatusMethodNotAllowed, ErrCodeInvalidRequest,
 			"this DCR endpoint does not support the requested HTTP method.")
