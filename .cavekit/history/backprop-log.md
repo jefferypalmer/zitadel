@@ -292,3 +292,66 @@ exact library/function used, (b) a startup probe or invariant test that
 exercises the *real* dependency (not a stub), (c) the failure mode that
 indicates misconfiguration. This would have caught both F-100 and F-101
 at sketch time.
+
+---
+
+## Entry #7 — F-201 (`client_secret_expires_in` plumbing)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — inspector found dispatcher dropped `OIDC.DCR.ClientSecretExpiresIn`; every issued secret advertised `0` "no expiry" sentinel regardless of policy.
+- **Classification:** `incomplete_criterion` (pattern: `unspecified-config-plumbing`).
+- **Kit amendment:** cavekit-register-handler.md R7 — replaced the bare AC with full plumbing contract (command → dcr → response, single source of truth = `clientSecretExpiresAtFor`).
+- **Regression test:** `internal/api/oidc/dcr/dispatcher_test.go::TestDispatch_R7_F201_ClientSecretExpiresAt_PlumbedFromConfig` (sets lifetime=24h, asserts response field = ClientIDIssuedAt + 24h).
+- **Test commit:** included in fix commit (single commit because both ship same field-add).
+- **Fix commit:** `3751a0eaa`.
+
+## Entry #8 — F-218 (redirect URI scheme allow-list)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — security audit found `javascript:` / `data:` / `file:` URIs accepted for `application_type=native`; XSS-distribution channel.
+- **Classification:** `missing_criterion` (pattern: `unspecified-parser-contract` — **4th in this loop**, second redirect-URI-related kit gap after F-100).
+- **Kit amendment:** cavekit-register-handler.md R4 — added 3 ACs: scheme allow-list (`http`/`https` + reverse-domain native), hard-rejected scheme set, scheme-bypass test coverage requirement (≥5 reject + 1 accept + 1 no-dot reject).
+- **Regression test:** `internal/api/oidc/dcr/validate_test.go::TestValidateAndClampMetadata_R4_F218_RedirectURISchemeAllowList` (5 hard-reject shapes × 2 app types + 1 native+custom-scheme accept + 1 no-dot reject + 1 web+custom reject).
+- **Fix commit:** `dd9c395f8`.
+
+## Entry #9 — F-203 (v2 refresh path narrowing gap)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — inspector found only `refreshTokenV1` was wired through `narrowAudienceByTokenResources`; the primary `RefreshToken` v2 path silently broadcast original session.Audience.
+- **Classification:** `missing_criterion` (pattern: `ambiguous-handler-scope` — kit said "the refresh-token handler" without distinguishing v1 vs v2).
+- **Kit amendment:** cavekit-rfc8707-resource.md R5 — replaced AC2 with explicit "BOTH refresh-token paths" requirement + test-coverage clause.
+- **Regression test:** `internal/api/oidc/rfc8707_token_test.go::TestF203_V2RefreshPathWiredToNarrow` (source-string inspection of v2 branch).
+- **Fix commit:** `77a09426a`.
+
+## Entry #10 — F-200 (IAT slot never consumed)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — inspector found `grep -rn ConsumeInitialAccessToken internal/api/oidc/ internal/command/dynamic_client_registration.go` returned ZERO call sites. The R2 race-safety harness, per-slot UniqueConstraint, and Errors.DCR.IAT.Exhausted error path were all dead code in production.
+- **Classification:** `missing_criterion` (pattern: `unspecified-handler-contract` — same shape as F-101, kit AC described consumption in plain English but didn't pin which layer owns the call).
+- **Kit amendment:** cavekit-register-handler.md R6 — added "dispatcher MUST consume slot before registration push" AC + integration-test pin.
+- **Regression test:** `internal/api/oidc/dcr/dispatcher_test.go::TestDispatch_R6_F200_IAT_ConsumeFailure_Returns401` (source-inspection of dispatcher consume call site + Validate-without-ConsumeIAT panic + anonymous-mode-skips assertion).
+- **Fix commit:** `cfd940f54`. Added `RegistrationDeps.ConsumeIAT` + `Validate()` enforcement + dispatcher integration + start.go closure bridging to `commands.ConsumeInitialAccessToken`.
+
+## Entry #11 — F-217 (mount middleware stack)
+- **Date:** 2026-04-27
+- **Trigger:** /ck:check Tier 3 close-out — security audit found DCR + AS metadata handlers mounted bare via `apis.RegisterHandlerOnPrefix` without `instanceInterceptor` or `limitingAccessInterceptor`. `authz.GetInstance(ctx)` returns emptyInstance → `featureGateMiddleware` always reads feature-flag false → endpoint unreachable in default config OR cross-tenant write if any host-routing layer side-steps the gate.
+- **Classification:** `missing_requirement` (pattern: `unspecified-mount-contract` — no AC required the standard interceptor stack).
+- **Kit amendment:** cavekit-register-handler.md R1 — added 2 ACs: mount-middleware contract + mount-stack regression test requirement.
+- **Regression test:** `cmd/start/dcr_mount_test.go::TestDCRMount_F217_HasInterceptorStack` (source-string inspection of start.go for both wrap chains; defensive assertions that no bare-mount calls remain).
+- **Fix commit:** `2df7245c9`.
+
+---
+
+## Pattern category summary (cumulative across all 11 entries)
+| Category | Count |
+|----------|-------|
+| unspecified-parser-contract | **4** 🚨 cross-kit amendment STILL recommended (F-100, F-101, F-103, F-218) |
+| unspecified-handler-contract | **2** 🚨 (F-101 dummy hash provenance, F-200 IAT consume) — emerging pattern |
+| unspecified-config-plumbing | 1 (F-201) |
+| ambiguous-handler-scope | 1 (F-203) |
+| unspecified-mount-contract | 1 (F-217) |
+| kit-internal-inconsistency | 1 (DE-001) |
+| infrastructural-transient (no-op) | 1 (F-102) |
+| closed-by-bundled-fix (no-op) | 1 |
+
+⚠️ **Two patterns at the cross-kit amendment threshold:**
+1. `unspecified-parser-contract` (4 entries) — already triggered the recommendation at entry #6. Still untriggered amendment.
+2. `unspecified-handler-contract` (2 entries) — emerging. F-101 (dummy hash provenance) and F-200 (IAT consume call site) both shipped because the kit AC described a defensive mechanism in plain English without pinning which layer/file/function owns the call. If a third entry lands, escalate to a cavekit-writing skill amendment: every AC mentioning a defensive call (consume / verify / hash / log-redact) MUST also name (a) the producer interface and (b) the consumer call site.
+
+Recommend running `/ck:design` (or a dedicated cavekit-writing skill amendment) to address both meta-patterns before the next sketch cycle.
