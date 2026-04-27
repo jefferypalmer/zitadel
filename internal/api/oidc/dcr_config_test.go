@@ -1,13 +1,13 @@
 package oidc
 
 import (
-	"time"
 	"bytes"
 	"context"
 	"log/slog"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

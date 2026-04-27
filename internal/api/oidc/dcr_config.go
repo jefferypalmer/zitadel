@@ -1,9 +1,9 @@
 package oidc
 
 import (
-	"log/slog"
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/zitadel/zitadel/backend/v3/instrumentation/logging"
