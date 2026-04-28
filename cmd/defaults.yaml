@@ -754,11 +754,35 @@ OIDC:
     InitialAccessToken:
       DefaultLifetime: 24h # ZITADEL_OIDC_DCR_INITIALACCESSTOKEN_DEFAULTLIFETIME
       DefaultMaxUses: 1 # ZITADEL_OIDC_DCR_INITIALACCESSTOKEN_DEFAULTMAXUSES
-    # `software_statement` JWT verification. Phase 1 ships a config stub only;
-    # verification is Phase 2.
+    # `software_statement` JWT verification (RFC 7591 §2.3 / §3.1.1). Phase 2
+    # implements full verification (signature, standard JWT claims, replay
+    # dedupe, claim-to-metadata override mapping). Empty `TrustedIssuers`
+    # preserves the Phase 1 `unapproved_software_statement` envelope.
     SoftwareStatement:
       Enabled: false # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_ENABLED
+      # Each entry is `{Issuer, JWKSURI?, RequiredClaims?}`. `Issuer` MUST be
+      # an absolute https URL (matched case-sensitively against JWT `iss`).
+      # Empty `JWKSURI` triggers OIDC discovery at
+      # `${Issuer}/.well-known/openid-configuration`. Non-empty `JWKSURI` MUST
+      # also be https. `RequiredClaims` is a list of zero or more claim names
+      # required in the JWT body atop the standard JWT claims (`exp`, `iat`,
+      # `jti`). Loopback https/non-https issuers and JWKS URIs are accepted only
+      # when `OIDC.DCR.JwksURI.AllowLoopbackInDev=true`.
       TrustedIssuers: [] # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_TRUSTEDISSUERS
+      # JWKS fetch result cache TTL keyed by `iss` (NOT URL). 1h matches
+      # typical OIDC OP rotation cadence.
+      JWKSCacheTTL: 1h # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_JWKSCACHETTL
+      # Signature algorithms accepted on the JWT header. `none` and any HS*
+      # symmetric variants are rejected at startup; defense-in-depth refuses
+      # them at request time too.
+      AllowedAlgorithms: # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_ALLOWEDALGORITHMS
+        - RS256
+        - ES256
+        - ES384
+      # Time after `exp` we keep the (iss, jti) replay-dedupe row before the
+      # janitor reaps it — covers clock-skew between the client and the
+      # janitor / replica that observes the row.
+      JTIRetentionBuffer: 24h # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_JTIRETENTIONBUFFER
     # 0s = no expiry per RFC 7591 §3.2.1 (`client_secret_expires_at: 0`).
     ClientSecretExpiresIn: 0s # ZITADEL_OIDC_DCR_CLIENTSECRETEXPIRESIN
     # SSRF guard for `jwks_uri` fetches. Loopback is rejected in production;

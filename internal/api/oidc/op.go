@@ -86,8 +86,24 @@ type DCRInitialAccessTokenConfig struct {
 }
 
 type DCRSoftwareStatementConfig struct {
-	Enabled        bool
-	TrustedIssuers []string
+	Enabled            bool
+	TrustedIssuers     []DCRTrustedIssuer
+	JWKSCacheTTL       time.Duration
+	AllowedAlgorithms  []string
+	JTIRetentionBuffer time.Duration
+}
+
+// DCRTrustedIssuer is one entry in `OIDC.DCR.SoftwareStatement.TrustedIssuers`.
+// `Issuer` is the absolute https URL claimed in the JWT `iss` header (matched
+// case-sensitively at request time). `JWKSURI`, when empty, triggers OIDC
+// discovery against `${Issuer}/.well-known/openid-configuration`. When non-empty
+// it overrides discovery and MUST also be https. `RequiredClaims` is a list of
+// JWT claim names (atop the standard JWT claims of cavekit-software-statement.md
+// R5) that MUST be present and non-empty in the body.
+type DCRTrustedIssuer struct {
+	Issuer         string
+	JWKSURI        string
+	RequiredClaims []string
 }
 
 type DCRJwksURIConfig struct {

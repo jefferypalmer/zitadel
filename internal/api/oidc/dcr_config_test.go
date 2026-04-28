@@ -408,3 +408,121 @@ func TestDCRConfig_Validate_R1_F301_StartupWARN_OnNoCap(t *testing.T) {
 			"WARN MUST NOT fire for normal positive values")
 	})
 }
+
+// cavekit-software-statement.md R1 / T-004: startup refusal for non-https
+// issuer / non-https JWKSURI / `none` / `HS*` algorithms.
+func TestDCRConfig_Validate_R1_SoftwareStatementShape(t *testing.T) {
+	base := DCRConfig{
+		Enabled:                   true,
+		MaxRequestBodyBytes:       65536,
+		RequireInitialAccessToken: true,
+	}
+
+	tests := []struct {
+		name           string
+		ss             DCRSoftwareStatementConfig
+		allowLoopback  bool
+		wantErrSubstr  string
+	}{
+		{
+			name: "disabled feature with empty TrustedIssuers — no validation runs",
+			ss:   DCRSoftwareStatementConfig{Enabled: false},
+		},
+		{
+			name: "https issuer + https jwks_uri + safe alg — ok",
+			ss: DCRSoftwareStatementConfig{
+				Enabled: true,
+				TrustedIssuers: []DCRTrustedIssuer{
+					{Issuer: "https://issuer.example.com", JWKSURI: "https://issuer.example.com/jwks"},
+				},
+				AllowedAlgorithms: []string{"RS256", "ES256"},
+			},
+		},
+		{
+			name: "empty issuer — refuse",
+			ss: DCRSoftwareStatementConfig{
+				Enabled:        true,
+				TrustedIssuers: []DCRTrustedIssuer{{Issuer: ""}},
+			},
+			wantErrSubstr: "TrustedIssuers[0].Issuer must be a non-empty",
+		},
+		{
+			name: "non-https issuer (production) — refuse",
+			ss: DCRSoftwareStatementConfig{
+				Enabled:        true,
+				TrustedIssuers: []DCRTrustedIssuer{{Issuer: "http://issuer.example.com"}},
+			},
+			wantErrSubstr: "must be an absolute https URL",
+		},
+		{
+			name: "non-https issuer + AllowLoopbackInDev=true on non-loopback host — refuse",
+			ss: DCRSoftwareStatementConfig{
+				Enabled:        true,
+				TrustedIssuers: []DCRTrustedIssuer{{Issuer: "http://issuer.example.com"}},
+			},
+			allowLoopback:  true,
+			wantErrSubstr:  "must be an absolute https URL",
+		},
+		{
+			name: "http loopback issuer + AllowLoopbackInDev=true — ok",
+			ss: DCRSoftwareStatementConfig{
+				Enabled:        true,
+				TrustedIssuers: []DCRTrustedIssuer{{Issuer: "http://localhost:9000"}},
+			},
+			allowLoopback: true,
+		},
+		{
+			name: "http loopback issuer + AllowLoopbackInDev=false — refuse",
+			ss: DCRSoftwareStatementConfig{
+				Enabled:        true,
+				TrustedIssuers: []DCRTrustedIssuer{{Issuer: "http://localhost:9000"}},
+			},
+			wantErrSubstr: "must be an absolute https URL",
+		},
+		{
+			name: "non-https JWKSURI — refuse",
+			ss: DCRSoftwareStatementConfig{
+				Enabled: true,
+				TrustedIssuers: []DCRTrustedIssuer{
+					{Issuer: "https://issuer.example.com", JWKSURI: "http://attacker.example/jwks"},
+				},
+			},
+			wantErrSubstr: "JWKSURI=",
+		},
+		{
+			name: "AllowedAlgorithms includes none — refuse",
+			ss: DCRSoftwareStatementConfig{
+				Enabled:           true,
+				AllowedAlgorithms: []string{"RS256", "none"},
+			},
+			wantErrSubstr: "`none` and `HS*`",
+		},
+		{
+			name: "AllowedAlgorithms includes HS256 — refuse",
+			ss: DCRSoftwareStatementConfig{
+				Enabled:           true,
+				AllowedAlgorithms: []string{"HS256"},
+			},
+			wantErrSubstr: "`none` and `HS*`",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := base
+			cfg.SoftwareStatement = tc.ss
+			cfg.JwksURI = DCRJwksURIConfig{AllowLoopbackInDev: tc.allowLoopback}
+			err := cfg.Validate(context.Background(), true, "example.com", 443)
+			if tc.wantErrSubstr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.wantErrSubstr)
+		})
+	}
+}
+
+// Reference the time package so unused-import linting stays happy when the
+// test file evolves.
+var _ = time.Second

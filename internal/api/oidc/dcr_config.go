@@ -4,10 +4,46 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/url"
 	"strings"
 
 	"github.com/zitadel/zitadel/backend/v3/instrumentation/logging"
 )
+
+// isAcceptableIssuerURL applies the cavekit-software-statement.md R1 contract
+// for trusted-issuer / JWKS URIs: absolute https, with one carve-out — when
+// `allowLoopback` is true (mirroring `OIDC.DCR.JwksURI.AllowLoopbackInDev`)
+// http URLs whose host parses as an IPv4/IPv6 loopback or whose hostname
+// is the literal `localhost` are accepted. Anything else (relative URLs,
+// non-http(s) schemes, http on non-loopback hosts) is refused.
+func isAcceptableIssuerURL(raw string, allowLoopback bool) bool {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	if !parsed.IsAbs() || parsed.Host == "" {
+		return false
+	}
+	switch parsed.Scheme {
+	case "https":
+		return true
+	case "http":
+		if !allowLoopback {
+			return false
+		}
+		host := parsed.Hostname()
+		if host == "localhost" {
+			return true
+		}
+		if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}
 
 // Validate runs cavekit-config.md R4 / R5 startup checks for DCR.
 //
@@ -74,6 +110,44 @@ func (c DCRConfig) Validate(ctx context.Context, externalSecure bool, externalDo
 				"either lower the configured value or accept that requests above "+
 				"100 MiB cannot be honoured. See cavekit-config.md R1 / F-402",
 			c.MaxRequestBodyBytes, 100*1024*1024)
+	}
+
+	// cavekit-software-statement.md R1: SoftwareStatement TrustedIssuers,
+	// JWKSURIs, and AllowedAlgorithms validated at startup. Loopback dev
+	// override gated on JwksURI.AllowLoopbackInDev (the same flag that
+	// gates inbound jwks_uri SSRF guard relaxation).
+	if c.SoftwareStatement.Enabled || len(c.SoftwareStatement.TrustedIssuers) > 0 {
+		allowLoopback := c.JwksURI.AllowLoopbackInDev
+		for i, ti := range c.SoftwareStatement.TrustedIssuers {
+			issuer := strings.TrimSpace(ti.Issuer)
+			if issuer == "" {
+				return fmt.Errorf(
+					"OIDC.DCR.SoftwareStatement.TrustedIssuers[%d].Issuer must be a non-empty absolute https URL", i)
+			}
+			if !isAcceptableIssuerURL(issuer, allowLoopback) {
+				return fmt.Errorf(
+					"OIDC.DCR.SoftwareStatement.TrustedIssuers[%d].Issuer=%q must be an absolute https URL "+
+						"(loopback-only http permitted when OIDC.DCR.JwksURI.AllowLoopbackInDev=true)",
+					i, issuer)
+			}
+			if jwksURI := strings.TrimSpace(ti.JWKSURI); jwksURI != "" {
+				if !isAcceptableIssuerURL(jwksURI, allowLoopback) {
+					return fmt.Errorf(
+						"OIDC.DCR.SoftwareStatement.TrustedIssuers[%d].JWKSURI=%q must be an absolute https URL "+
+							"(loopback-only http permitted when OIDC.DCR.JwksURI.AllowLoopbackInDev=true)",
+						i, jwksURI)
+				}
+			}
+		}
+		for _, alg := range c.SoftwareStatement.AllowedAlgorithms {
+			normalized := strings.ToUpper(strings.TrimSpace(alg))
+			if normalized == "NONE" || strings.HasPrefix(normalized, "HS") {
+				return fmt.Errorf(
+					"OIDC.DCR.SoftwareStatement.AllowedAlgorithms includes %q: `none` and `HS*` symmetric "+
+						"algorithms are forbidden (defense-in-depth — accepting either lets a software_statement "+
+						"forge issuer signatures)", alg)
+			}
+		}
 	}
 
 	if !c.RequireInitialAccessToken {
