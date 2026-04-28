@@ -33,6 +33,7 @@ var (
 	LockoutPolicyProjection             *handler.Handler
 	PrivacyPolicyProjection             *handler.Handler
 	DomainPolicyProjection              *handler.Handler
+	DCRPolicyProjection                 *handler.Handler
 	LabelPolicyProjection               *handler.Handler
 	ProjectGrantProjection              *handler.Handler
 	ProjectRoleProjection               *handler.Handler
@@ -147,6 +148,7 @@ func Create(ctx context.Context, sqlClient *database.DB, es handler.EventStore, 
 	LockoutPolicyProjection = newLockoutPolicyProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["lockout_policy"]))
 	PrivacyPolicyProjection = newPrivacyPolicyProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["privacy_policy"]))
 	DomainPolicyProjection = newDomainPolicyProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["org_iam_policy"]))
+	DCRPolicyProjection = newDCRPolicyProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["dcr_policy"]))
 	LabelPolicyProjection = newLabelPolicyProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["label_policy"]))
 	ProjectGrantProjection = newProjectGrantProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["project_grants"]))
 	ProjectRoleProjection = newProjectRoleProjection(ctx, applyCustomConfig(projectionConfig, config.Customizations["project_roles"]))
@@ -342,6 +344,7 @@ func newProjectionsList() {
 		LockoutPolicyProjection,
 		PrivacyPolicyProjection,
 		DomainPolicyProjection,
+		DCRPolicyProjection,
 		LabelPolicyProjection,
 		ProjectGrantProjection,
 		ProjectRoleProjection,
