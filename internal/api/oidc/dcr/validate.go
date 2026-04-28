@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr/jwks_inline"
 	"github.com/zitadel/zitadel/internal/domain"
 	"github.com/zitadel/zitadel/internal/zerrors"
 )
@@ -105,6 +106,34 @@ func ValidateAndClampMetadata(
 		}
 	}
 
+	// cavekit-inline-jwks.md R1: `jwks` and `jwks_uri` are mutually
+	// exclusive. Both, neither (with private_key_jwt), or just one are
+	// permitted client metadata; this check is for the both-set case.
+	// R1 also forbids non-object jwks / non-array keys / empty keys
+	// arrays — those checks live in jwks_inline.Validate (T-007).
+	hasInlineJwks := len(out.Jwks) > 0
+	hasJwksURI := strings.TrimSpace(out.JwksURI) != ""
+	if hasInlineJwks && hasJwksURI {
+		return nil, &ClampError{
+			Code:        ErrCodeInvalidClientMetadata,
+			Description: "jwks and jwks_uri are mutually exclusive — provide one or the other, not both",
+			Wrapped:     zerrors.ThrowInvalidArgument(nil, "DCR-VtJk1", jwks_inline.KeyMutuallyExclusive),
+		}
+	}
+	if hasInlineJwks {
+		canonical, vErr := jwks_inline.Validate(out.Jwks)
+		if vErr != nil {
+			return nil, &ClampError{
+				Code:        vErr.Code,
+				Description: vErr.Description,
+				Wrapped:     zerrors.ThrowInvalidArgument(nil, "DCR-VtJk2", vErr.I18nKey),
+			}
+		}
+		// Replace the body's `jwks` with the canonicalised bytes so
+		// downstream storage / R5 echo gets the byte-stable form.
+		out.Jwks = canonical
+	}
+
 	// grant_types — empty after defaulting is a 400.
 	if len(out.GrantTypes) == 0 {
 		return nil, newClampError(ErrCodeInvalidClientMetadata, "grant_types", "must not be empty", "DCR-Vt003")
@@ -153,9 +182,10 @@ func ValidateAndClampMetadata(
 	// supports the by-reference form via jwks_uri; inline `jwks` is
 	// out-of-scope per kit). Missing jwks_uri here would otherwise leave
 	// the client unauthenticatable at /token.
-	if out.TokenEndpointAuthMethod == "private_key_jwt" && strings.TrimSpace(out.JwksURI) == "" {
+	if out.TokenEndpointAuthMethod == "private_key_jwt" &&
+		strings.TrimSpace(out.JwksURI) == "" && len(out.Jwks) == 0 {
 		return nil, newClampError(ErrCodeInvalidClientMetadata, "jwks_uri",
-			"jwks_uri is required when token_endpoint_auth_method=private_key_jwt", "DCR-Vt0R5")
+			"jwks_uri or jwks is required when token_endpoint_auth_method=private_key_jwt", "DCR-Vt0R5")
 	}
 
 	// application_type

@@ -1,6 +1,8 @@
 package dcr
 
 import (
+	"encoding/json"
+
 	"github.com/zitadel/zitadel/internal/domain"
 )
 
@@ -33,6 +35,14 @@ type RFC7591Metadata struct {
 
 	// JWKS / private_key_jwt support.
 	JwksURI string `json:"jwks_uri,omitempty"`
+
+	// Inline JWK Set per RFC 7591 §2 (`jwks`). Mutually exclusive with
+	// `jwks_uri` (cavekit-inline-jwks.md R1). Stored as RawMessage so
+	// jwks_inline.Validate (T-007) can apply per-JWK rules without
+	// re-decoding generic JSON in `validate.go`. nil = absent (Phase 1
+	// behaviour); non-nil = caller sent a `jwks` key (validators must
+	// run, including the empty-keys-array refusal).
+	Jwks json.RawMessage `json:"jwks,omitempty"`
 
 	// Software statement (rejected in Phase 1 when feature off).
 	SoftwareStatement string `json:"software_statement,omitempty"`
