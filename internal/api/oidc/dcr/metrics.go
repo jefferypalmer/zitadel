@@ -63,6 +63,26 @@ const (
 	// "exhausted" condition).
 	MetricIATExhaustedTotal            = "zitadel.dcr.iat.exhausted_total"
 	MetricIATExhaustedTotalDescription = "Total IAT exhausted-slot rejections."
+
+	// MetricOrgPolicyChangesTotal counts every Set/Update/Reset/Remove
+	// of an OrgDCRPolicy or InstanceDCRPolicy command. Labels: org_id,
+	// scope (org | instance), result (accepted | rejected). cavekit-
+	// org-dcr-policy.md R7 / T-039.
+	MetricOrgPolicyChangesTotal            = "zitadel.dcr.org_policy_changes_total"
+	MetricOrgPolicyChangesTotalDescription = "Total DCR org/instance policy command outcomes. Labels: org_id, scope, result."
+
+	// MetricSoftwareStatementVerificationsTotal counts every
+	// software_statement.Run exit (success and failure).  Labels: iss,
+	// result. cavekit-software-statement.md R11 / T-042.
+	MetricSoftwareStatementVerificationsTotal            = "zitadel.dcr.software_statement_verifications_total"
+	MetricSoftwareStatementVerificationsTotalDescription = "Total software_statement verifier outcomes. Labels: iss, result."
+
+	// MetricSoftwareStatementJWKSCacheHitsTotal counts every per-issuer
+	// JWKS cache lookup performed during software_statement
+	// verification. Labels: iss, outcome (hit | miss | refetch_failed).
+	// cavekit-software-statement.md R4, R11 / T-043.
+	MetricSoftwareStatementJWKSCacheHitsTotal            = "zitadel.dcr.software_statement_jwks_cache_hits_total"
+	MetricSoftwareStatementJWKSCacheHitsTotalDescription = "Total per-issuer JWKS cache lookups during software_statement verify. Labels: iss, outcome."
 )
 
 // Label keys.
@@ -71,6 +91,53 @@ const (
 	MetricLabelAuthMethod      = "auth_method"
 	MetricLabelApplicationType = "application_type"
 	MetricLabelCode            = "code"
+
+	// Phase 2 label keys (cavekit-org-dcr-policy.md R7, cavekit-software-
+	// statement.md R11, cavekit-inline-jwks.md R7).
+	MetricLabelOrgID   = "org_id"
+	MetricLabelScope   = "scope"
+	MetricLabelIss     = "iss"
+	MetricLabelOutcome = "outcome"
+)
+
+// Scope-label values for [MetricOrgPolicyChangesTotal].
+const (
+	MetricScopeOrg      = "org"
+	MetricScopeInstance = "instance"
+	// MetricScopeStaticConfig is reserved for the merged-policy view —
+	// org_policy_changes_total never emits it (commands always target
+	// org or instance), but the OTel attribute `dcr.policy.scope`
+	// emitted by T-040 may carry it when neither row exists.
+	MetricScopeStaticConfig = "static-config"
+)
+
+// Outcome-label values for [MetricSoftwareStatementJWKSCacheHitsTotal].
+const (
+	MetricOutcomeHit            = "hit"
+	MetricOutcomeMiss           = "miss"
+	MetricOutcomeRefetchFailed  = "refetch_failed"
+)
+
+// Result-label values for [MetricOrgPolicyChangesTotal].
+const (
+	MetricPolicyResultAccepted = "accepted"
+	MetricPolicyResultRejected = "rejected"
+)
+
+// Result-label values for [MetricSoftwareStatementVerificationsTotal].
+// Mirror the kit's R11 enumeration verbatim — adding new values here
+// requires a kit amendment.
+const (
+	MetricSSResultAccepted              = "accepted"
+	MetricSSResultUntrusted             = "untrusted"
+	MetricSSResultExpired               = "expired"
+	MetricSSResultReplay                = "replay"
+	MetricSSResultInvalidSignature      = "invalid_signature"
+	MetricSSResultInvalidStructure      = "invalid_structure"
+	MetricSSResultFetchFailed           = "fetch_failed"
+	MetricSSResultUnsupportedAlgorithm  = "unsupported_algorithm"
+	MetricSSResultMissingRequiredClaim  = "missing_required_claim"
+	MetricSSResultNotYetValid           = "not_yet_valid"
 )
 
 // Result-label values for [MetricRegistrationsTotal].
@@ -140,7 +207,57 @@ func RegisterMetrics() error {
 	if err := metrics.RegisterCounter(MetricIATExhaustedTotal, MetricIATExhaustedTotalDescription); err != nil {
 		return err
 	}
+	if err := metrics.RegisterCounter(MetricOrgPolicyChangesTotal, MetricOrgPolicyChangesTotalDescription); err != nil {
+		return err
+	}
+	if err := metrics.RegisterCounter(MetricSoftwareStatementVerificationsTotal, MetricSoftwareStatementVerificationsTotalDescription); err != nil {
+		return err
+	}
+	if err := metrics.RegisterCounter(MetricSoftwareStatementJWKSCacheHitsTotal, MetricSoftwareStatementJWKSCacheHitsTotalDescription); err != nil {
+		return err
+	}
 	return nil
+}
+
+// RecordOrgPolicyChange increments [MetricOrgPolicyChangesTotal] on
+// every OrgDCRPolicy* / InstanceDCRPolicy* command exit. Best-effort —
+// metric errors are swallowed so a successful command never fails on
+// observability emission. cavekit-org-dcr-policy.md R7 / T-039.
+//
+// Exported because the call sites live in the command package
+// (`internal/command/org_policy_dcr.go`, `instance_policy_dcr.go`)
+// rather than the dcr package.
+func RecordOrgPolicyChange(ctx context.Context, orgID, scope, result string) {
+	ensureRegistered()
+	_ = metrics.AddCount(ctx, MetricOrgPolicyChangesTotal, 1, map[string]attribute.Value{
+		MetricLabelOrgID:  attribute.StringValue(orgID),
+		MetricLabelScope:  attribute.StringValue(scope),
+		MetricLabelResult: attribute.StringValue(result),
+	})
+}
+
+// RecordSoftwareStatementVerification increments
+// [MetricSoftwareStatementVerificationsTotal] on every
+// software_statement.Run exit (success or failure). cavekit-software-
+// statement.md R11 / T-042.
+func RecordSoftwareStatementVerification(ctx context.Context, iss, result string) {
+	ensureRegistered()
+	_ = metrics.AddCount(ctx, MetricSoftwareStatementVerificationsTotal, 1, map[string]attribute.Value{
+		MetricLabelIss:    attribute.StringValue(iss),
+		MetricLabelResult: attribute.StringValue(result),
+	})
+}
+
+// RecordSoftwareStatementJWKSCacheLookup increments
+// [MetricSoftwareStatementJWKSCacheHitsTotal] on every per-issuer JWKS
+// cache lookup performed during software_statement verification.
+// cavekit-software-statement.md R4, R11 / T-043.
+func RecordSoftwareStatementJWKSCacheLookup(ctx context.Context, iss, outcome string) {
+	ensureRegistered()
+	_ = metrics.AddCount(ctx, MetricSoftwareStatementJWKSCacheHitsTotal, 1, map[string]attribute.Value{
+		MetricLabelIss:     attribute.StringValue(iss),
+		MetricLabelOutcome: attribute.StringValue(outcome),
+	})
 }
 
 // registerOnce amortises [RegisterMetrics] across the process lifetime

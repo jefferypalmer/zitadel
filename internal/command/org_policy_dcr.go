@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/domain"
 	"github.com/zitadel/zitadel/internal/eventstore"
 	"github.com/zitadel/zitadel/internal/repository/org"
@@ -45,8 +46,9 @@ func (c *Commands) SetOrgDCRPolicy(
 	if wm.State == domain.PolicyStateActive {
 		return nil, zerrors.ThrowAlreadyExists(nil, "ORGD-DcR02", "Errors.Org.DCRPolicy.AlreadyExists")
 	}
-	if err := c.validateOrgDCRPolicyAgainstInstance(ctx, allowedAudiences, registrationAccessTokenLifetime, staticDefaults); err != nil {
-		return nil, err
+	if firstViolation, vErr := c.validateOrgDCRPolicyAgainstInstance(ctx, allowedAudiences, registrationAccessTokenLifetime, staticDefaults); vErr != nil {
+		c.emitDCRPolicyRejected(ctx, dcr.MetricScopeOrg, orgID, vErr, firstViolation)
+		return nil, vErr
 	}
 	orgAgg := org.NewAggregate(orgID)
 	pushedEvents, err := c.eventstore.Push(ctx,
@@ -55,6 +57,7 @@ func (c *Commands) SetOrgDCRPolicy(
 	if err != nil {
 		return nil, err
 	}
+	c.emitDCRPolicyAccepted(ctx, dcr.MetricScopeOrg, orgID, allowedAudiences, registrationAccessTokenLifetime)
 	return pushedEventsToObjectDetails(pushedEvents), nil
 }
 
@@ -89,8 +92,9 @@ func (c *Commands) UpdateOrgDCRPolicy(
 	if !wm.State.Exists() {
 		return nil, zerrors.ThrowNotFound(nil, "ORGD-DcR04", "Errors.Org.DCRPolicy.NotFound")
 	}
-	if err := c.validateOrgDCRPolicyAgainstInstance(ctx, allowedAudiences, registrationAccessTokenLifetime, staticDefaults); err != nil {
-		return nil, err
+	if firstViolation, vErr := c.validateOrgDCRPolicyAgainstInstance(ctx, allowedAudiences, registrationAccessTokenLifetime, staticDefaults); vErr != nil {
+		c.emitDCRPolicyRejected(ctx, dcr.MetricScopeOrg, orgID, vErr, firstViolation)
+		return nil, vErr
 	}
 
 	changes := buildDCRPolicyChanges(&wm.PolicyDCRWriteModel,
@@ -108,40 +112,47 @@ func (c *Commands) UpdateOrgDCRPolicy(
 	if err != nil {
 		return nil, err
 	}
+	c.emitDCRPolicyAccepted(ctx, dcr.MetricScopeOrg, orgID, allowedAudiences, registrationAccessTokenLifetime)
 	return pushedEventsToObjectDetails(pushedEvents), nil
 }
 
 // validateOrgDCRPolicyAgainstInstance runs the R4 (subset) + R5 (cap)
 // gates against the effective instance default. nil args bypass their
 // respective gate (= "inherit"); non-nil args are validated.
+//
+// On rejection returns (firstViolatingValue, error). The first return
+// value is the offending input — first invalid/unauthorized URI for
+// the subset path, the lifetime string for the cap path — so
+// emitDCRPolicyRejected can name it without re-running validation.
+// Empty on success.
 func (c *Commands) validateOrgDCRPolicyAgainstInstance(
 	ctx context.Context,
 	allowedAudiences *[]string,
 	registrationAccessTokenLifetime *time.Duration,
 	staticDefaults DCRStaticDefaults,
-) error {
+) (string, error) {
 	// Skip the round-trip when both args are nil — caller is just
 	// recording an "inherit everything" override.
 	if allowedAudiences == nil && registrationAccessTokenLifetime == nil {
-		return nil
+		return "", nil
 	}
 	instanceWM, err := c.instanceDCRPolicyWriteModel(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if allowedAudiences != nil {
 		effectiveAudiences, _ := effectiveInstanceAllowedAudiences(&instanceWM.PolicyDCRWriteModel, staticDefaults)
 		if err := validateOrgAllowedAudiencesSubset(*allowedAudiences, effectiveAudiences); err != nil {
-			return err
+			return firstSubsetViolation(*allowedAudiences, effectiveAudiences), err
 		}
 	}
 	if registrationAccessTokenLifetime != nil {
 		effectiveLifetime, _ := effectiveInstanceLifetime(&instanceWM.PolicyDCRWriteModel, staticDefaults)
 		if err := validateOrgLifetimeCap(*registrationAccessTokenLifetime, effectiveLifetime); err != nil {
-			return err
+			return registrationAccessTokenLifetime.String(), err
 		}
 	}
-	return nil
+	return "", nil
 }
 
 // ResetOrgDCRPolicy removes the org-scope override so the effective
@@ -173,6 +184,10 @@ func (c *Commands) ResetOrgDCRPolicy(
 	if err != nil {
 		return nil, err
 	}
+	// Reset/Remove logs as accepted with nil audience + nil lifetime
+	// — both `count=-1` ("inherit") and `lifetime=(inherit)` make the
+	// reset distinguishable from a Set with no overrides.
+	c.emitDCRPolicyAccepted(ctx, dcr.MetricScopeOrg, orgID, nil, nil)
 	return pushedEventsToObjectDetails(pushedEvents), nil
 }
 

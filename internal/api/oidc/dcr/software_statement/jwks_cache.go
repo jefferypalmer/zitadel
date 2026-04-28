@@ -42,12 +42,33 @@ type jwksFetcher interface {
 // duplicate work over a sync.Singleflight because the cache is small,
 // TTLs are typically 1h, and a single-flight cache adds complexity
 // the kit does not require.
+// CacheLookupOutcome enumerates the three observable outcomes of a
+// per-issuer JWKS cache lookup. Mirrors the label values on
+// `zitadel.dcr.software_statement_jwks_cache_hits_total` (T-043).
+type CacheLookupOutcome string
+
+const (
+	CacheOutcomeHit           CacheLookupOutcome = "hit"
+	CacheOutcomeMiss          CacheLookupOutcome = "miss"
+	CacheOutcomeRefetchFailed CacheLookupOutcome = "refetch_failed"
+)
+
+// CacheLookupRecorder is invoked once per JWKSCache.Get call with the
+// issuer and the observed outcome. The metrics layer wires this to
+// `zitadel.dcr.software_statement_jwks_cache_hits_total` (cavekit-
+// software-statement.md R11 / T-043). Implementations MUST NOT block —
+// the call is on the verifier hot path. nil disables recording.
+type CacheLookupRecorder func(ctx context.Context, iss string, outcome CacheLookupOutcome)
+
 type JWKSCache struct {
 	fetcher jwksFetcher
 	ttl     time.Duration
 
 	mu      sync.RWMutex
 	entries map[string]*cacheEntry
+
+	// recorder is the optional cache-lookup metric callback (T-043).
+	recorder CacheLookupRecorder
 
 	// now is overridable for tests so we don't sleep through TTLs.
 	now func() time.Time
@@ -69,6 +90,14 @@ func NewJWKSCache(fetcher jwksFetcher, ttl time.Duration) *JWKSCache {
 		entries: map[string]*cacheEntry{},
 		now:     time.Now,
 	}
+}
+
+// SetLookupRecorder installs the cache-lookup metric callback (T-043).
+// Wiring happens at server bootstrap (cmd/start/start.go) — production
+// passes a closure that calls dcr.RecordSoftwareStatementJWKSCacheLookup.
+// Tests pass nil to skip metric emission.
+func (c *JWKSCache) SetLookupRecorder(rec CacheLookupRecorder) {
+	c.recorder = rec
 }
 
 // Get returns the JWKS bytes for an issuer. Cached entries return
@@ -97,6 +126,7 @@ func (c *JWKSCache) Get(ctx context.Context, descriptor TrustedIssuer) ([]byte, 
 		entry, ok := c.entries[descriptor.Issuer]
 		c.mu.RUnlock()
 		if ok && c.now().Sub(entry.storedAt) < c.ttl {
+			c.recordLookup(ctx, descriptor.Issuer, CacheOutcomeHit)
 			return entry.jwksBytes, nil
 		}
 	}
@@ -104,10 +134,19 @@ func (c *JWKSCache) Get(ctx context.Context, descriptor TrustedIssuer) ([]byte, 
 	bytes, err := c.fetchJWKS(ctx, descriptor)
 	if err != nil {
 		// Evict any stale entry — kit R4 forbids serving stale on
-		// rotation refetch failure.
+		// rotation refetch failure. The previously-cached entry's
+		// existence determines whether we report `refetch_failed` (we
+		// had a working cache for this issuer) versus a bare `miss`
+		// followed by a fetch failure (cold lookup).
 		c.mu.Lock()
+		_, hadStale := c.entries[descriptor.Issuer]
 		delete(c.entries, descriptor.Issuer)
 		c.mu.Unlock()
+		outcome := CacheOutcomeMiss
+		if hadStale {
+			outcome = CacheOutcomeRefetchFailed
+		}
+		c.recordLookup(ctx, descriptor.Issuer, outcome)
 		return nil, err
 	}
 	c.mu.Lock()
@@ -116,7 +155,14 @@ func (c *JWKSCache) Get(ctx context.Context, descriptor TrustedIssuer) ([]byte, 
 		storedAt:  c.now(),
 	}
 	c.mu.Unlock()
+	c.recordLookup(ctx, descriptor.Issuer, CacheOutcomeMiss)
 	return bytes, nil
+}
+
+func (c *JWKSCache) recordLookup(ctx context.Context, iss string, outcome CacheLookupOutcome) {
+	if c.recorder != nil {
+		c.recorder(ctx, iss, outcome)
+	}
 }
 
 // Invalidate removes the cached entry for an issuer. Useful when a

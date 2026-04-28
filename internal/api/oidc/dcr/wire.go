@@ -10,6 +10,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/zitadel/passwap"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
 	http_util "github.com/zitadel/zitadel/internal/api/http"
@@ -567,12 +569,16 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 		var (
 			effectiveRATLifetime    time.Duration
 			effectivePolicyResolved bool
+			policyScope             = MetricScopeStaticConfig
 		)
 		if deps.EffectivePolicy != nil && regCtx.OrgID != "" {
 			policy, polErr := deps.EffectivePolicy(ctx, regCtx.OrgID)
 			if polErr == nil && policy != nil {
 				effectiveRATLifetime = policy.RegistrationAccessTokenLifetime
 				effectivePolicyResolved = true
+				if policy.AllowedAudiencesScope != "" {
+					policyScope = policy.AllowedAudiencesScope
+				}
 				// AllowedAudiences override is observable to downstream
 				// callers via the Register closure, which consults the
 				// policy to clamp audience metadata it persists. Since
@@ -584,6 +590,22 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 				_ = policy.AllowedAudiences
 			}
 		}
+		// T-040 — surface `dcr.policy.scope` on the register span. Span
+		// attribute carries the merged scope label only; never the
+		// resolved AllowedAudiences URI list (kit R7 explicit privacy
+		// constraint). T-044 — surface `dcr.jwks.source` on the same
+		// span. `inline` when the body provided inline `jwks`; `uri`
+		// when only `jwks_uri` was provided; `none` when neither.
+		jwksSource := "none"
+		if len(clamped.Jwks) > 0 {
+			jwksSource = "inline"
+		} else if clamped.JwksURI != "" {
+			jwksSource = "uri"
+		}
+		trace.SpanFromContext(ctx).SetAttributes(
+			attribute.String("dcr.policy.scope", policyScope),
+			attribute.String("dcr.jwks.source", jwksSource),
+		)
 
 		// 4. Persist (R6)
 		registrationMethod := RegMethodAnonymous

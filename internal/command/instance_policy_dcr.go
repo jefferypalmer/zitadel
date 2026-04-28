@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/domain"
 	"github.com/zitadel/zitadel/internal/eventstore"
 	"github.com/zitadel/zitadel/internal/repository/instance"
@@ -30,13 +31,15 @@ func (c *Commands) SetInstanceDCRPolicy(
 	if wm.State == domain.PolicyStateActive {
 		return nil, zerrors.ThrowAlreadyExists(nil, "INST-DcR01", "Errors.Instance.DCRPolicy.AlreadyExists")
 	}
-	instanceAgg := instance.NewAggregate(authz.GetInstance(ctx).InstanceID())
+	instanceID := authz.GetInstance(ctx).InstanceID()
+	instanceAgg := instance.NewAggregate(instanceID)
 	pushedEvents, err := c.eventstore.Push(ctx,
 		instance.NewInstanceDCRPolicyAddedEvent(ctx, &instanceAgg.Aggregate, allowedAudiences, registrationAccessTokenLifetime),
 	)
 	if err != nil {
 		return nil, err
 	}
+	c.emitDCRPolicyAccepted(ctx, dcr.MetricScopeInstance, instanceID, allowedAudiences, registrationAccessTokenLifetime)
 	return pushedEventsToObjectDetails(pushedEvents), nil
 }
 
@@ -69,7 +72,8 @@ func (c *Commands) UpdateInstanceDCRPolicy(
 		return nil, zerrors.ThrowPreconditionFailed(nil, "INST-DcR03", "Errors.NoChangesFound")
 	}
 
-	instanceAgg := instance.NewAggregate(authz.GetInstance(ctx).InstanceID())
+	instanceID := authz.GetInstance(ctx).InstanceID()
+	instanceAgg := instance.NewAggregate(instanceID)
 	changedEvent, err := instance.NewInstanceDCRPolicyChangedEvent(ctx, &instanceAgg.Aggregate, changes)
 	if err != nil {
 		return nil, err
@@ -78,6 +82,7 @@ func (c *Commands) UpdateInstanceDCRPolicy(
 	if err != nil {
 		return nil, err
 	}
+	c.emitDCRPolicyAccepted(ctx, dcr.MetricScopeInstance, instanceID, allowedAudiences, registrationAccessTokenLifetime)
 	return pushedEventsToObjectDetails(pushedEvents), nil
 }
 
