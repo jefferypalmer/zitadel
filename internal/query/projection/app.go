@@ -261,6 +261,19 @@ func (p *appProjection) Reducers() []handler.AggregateReducer {
 					Event:  project.ApplicationRegistrationAccessTokenRotatedType,
 					Reduce: p.reduceApplicationRegistrationAccessTokenRotated,
 				},
+				// Inline JWKS storage (cavekit-inline-jwks.md R3 / T-016).
+				{
+					Event:  project.ApplicationOIDCConfigJwksInlineSetType,
+					Reduce: p.reduceApplicationOIDCConfigJwksInlineSet,
+				},
+				{
+					Event:  project.ApplicationOIDCConfigJwksInlineChangedType,
+					Reduce: p.reduceApplicationOIDCConfigJwksInlineChanged,
+				},
+				{
+					Event:  project.ApplicationOIDCConfigJwksInlineRemovedType,
+					Reduce: p.reduceApplicationOIDCConfigJwksInlineRemoved,
+				},
 			},
 		},
 		{
@@ -922,17 +935,86 @@ func (p *appProjection) reduceApplicationRegistrationAccessTokenRotated(event ev
 	cols := []handler.Column{
 		handler.NewCol(AppOIDCConfigColumnRegistrationAccessTokenHash, e.HashedToken),
 	}
-	// Mirror the `.set` reducer: only stamp expires_at when the rotation
-	// carries a non-zero lifetime. A zero time means the operator opted
-	// for no expiry on the rotated RAT — leave the column as-is rather
-	// than NULL'ing it, so an existing finite-lifetime RAT cannot be
-	// silently extended by a rotation that fails to specify one.
 	if !e.ExpiresAt.IsZero() {
 		cols = append(cols, handler.NewCol(AppOIDCConfigColumnRegistrationAccessTokenExpiresAt, e.ExpiresAt))
 	}
 	return handler.NewUpdateStatement(
 		e,
 		cols,
+		[]handler.Condition{
+			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
+			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),
+		},
+		handler.WithTableSuffix(appOIDCTableSuffix),
+	), nil
+}
+
+// reduceApplicationOIDCConfigJwksInlineSet handles
+// project.application.oidc_config.jwks.inline.set (T-016). Writes the
+// canonical inline JWK Set bytes into the jwks_inline JSONB column.
+//
+// Atomicity contract (cavekit-inline-jwks.md R3 last bullet): when the
+// jwks_uri column lands on apps7_oidc_configs, this reducer MUST NULL
+// it out in the same UPDATE statement so storage never holds both
+// fields simultaneously. Phase 1 has no jwks_uri column yet, so the
+// current statement only writes jwks_inline.
+func (p *appProjection) reduceApplicationOIDCConfigJwksInlineSet(event eventstore.Event) (*handler.Statement, error) {
+	e, ok := event.(*project.ApplicationOIDCConfigJwksInlineSetEvent)
+	if !ok {
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-Jw0S1", "reduce.wrong.event.type %s",
+			project.ApplicationOIDCConfigJwksInlineSetType)
+	}
+	return handler.NewUpdateStatement(
+		e,
+		[]handler.Column{
+			handler.NewCol(AppOIDCConfigColumnJwksInline, e.JwksInline),
+		},
+		[]handler.Condition{
+			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
+			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),
+		},
+		handler.WithTableSuffix(appOIDCTableSuffix),
+	), nil
+}
+
+// reduceApplicationOIDCConfigJwksInlineChanged handles
+// project.application.oidc_config.jwks.inline.changed (T-016). Same
+// UPDATE shape as the `.set` reducer; the wire-type difference
+// preserves audit trail order.
+func (p *appProjection) reduceApplicationOIDCConfigJwksInlineChanged(event eventstore.Event) (*handler.Statement, error) {
+	e, ok := event.(*project.ApplicationOIDCConfigJwksInlineChangedEvent)
+	if !ok {
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-Jw0C1", "reduce.wrong.event.type %s",
+			project.ApplicationOIDCConfigJwksInlineChangedType)
+	}
+	return handler.NewUpdateStatement(
+		e,
+		[]handler.Column{
+			handler.NewCol(AppOIDCConfigColumnJwksInline, e.JwksInline),
+		},
+		[]handler.Condition{
+			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
+			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),
+		},
+		handler.WithTableSuffix(appOIDCTableSuffix),
+	), nil
+}
+
+// reduceApplicationOIDCConfigJwksInlineRemoved handles
+// project.application.oidc_config.jwks.inline.removed (T-016). NULLs
+// the jwks_inline column. Emitted by the PUT path (T-021) when the
+// caller switches to jwks_uri or sends neither field.
+func (p *appProjection) reduceApplicationOIDCConfigJwksInlineRemoved(event eventstore.Event) (*handler.Statement, error) {
+	e, ok := event.(*project.ApplicationOIDCConfigJwksInlineRemovedEvent)
+	if !ok {
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-Jw0R1", "reduce.wrong.event.type %s",
+			project.ApplicationOIDCConfigJwksInlineRemovedType)
+	}
+	return handler.NewUpdateStatement(
+		e,
+		[]handler.Column{
+			handler.NewCol(AppOIDCConfigColumnJwksInline, nil),
+		},
 		[]handler.Condition{
 			handler.NewCond(AppOIDCConfigColumnAppID, e.AppID),
 			handler.NewCond(AppOIDCConfigColumnInstanceID, e.Aggregate().InstanceID),
