@@ -25,7 +25,7 @@ Token Exchange is a complex and broad subject. Before we get our hands dirty wit
 
 Token Exchange offers a range of possibilities for providing and requesting different token types. The existence of the various `*_token_type` fields in the request and response data helps defining which tokens we are sending, which ones we wish to receive and finally which one(s) we did receive in the response.
 
-<TokenExchangeTypes components={props.components}  />
+<TokenExchangeTypes components={props.components} />
 
 #### Access Token type
 
@@ -85,7 +85,7 @@ Sending only the user ID in the `subject_token` is not allowed and will result i
 
 The details supplied in the request changes how Token Exchange operates. While the standard is very permissive, we need to clarify how ZITADEL implements it.
 
-<TokenExchangeRequest components={props.components}  />
+<TokenExchangeRequest components={props.components} />
 
 #### Subject token
 
@@ -126,15 +126,29 @@ When audience is omitted in the request, it is taken from the `subject_token`. I
 
 #### Resource
 
-The resource parameter would allow mapping a URI to a target audience. This is further defined in [RFC 8707 Resource Indicators for OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc8707).
+The resource parameter maps an absolute URI to a target audience on the
+issued access token. It is defined in
+[RFC 8707 Resource Indicators for OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc8707).
 
-ZITADEL does not yet support Resource Indicators. Supplying this parameter will always result in a `invalid_target` error.
+ZITADEL supports Resource Indicators on every grant type that issues an
+access token, including token exchange. On token exchange, the
+`resource` parameter is **additive-merged** with the audience computed
+from `subject_token` / `actor_token` (or with the legacy `audience`
+parameter, which still works alongside `resource`). The resulting
+audience is still bounded by the subject_token's authorization scope
+(narrowing rule from §3.4 of this guide) and by the instance's
+`OIDC.DCR.AllowedAudiences` allow-list, when configured.
+
+See the [Resource Indicators (RFC 8707) guide](/apis/openidoauth/resource-indicators)
+for the full set of grant types, error semantics (`invalid_target`),
+refresh narrowing, multi-resource requests, and resource-server
+verification examples.
 
 ### Token exchange response
 
 The response schema looks very similar to the model of other token endpoint responses. The RFC attempts to reuse the same fields, however they might have different contents then they lead you to believe. This can lead to confusing situations, so be sure to read this section!
 
-<TokenExchangeResponse components={props.components}  />
+<TokenExchangeResponse components={props.components} />
 
 #### Access token
 
@@ -184,7 +198,17 @@ These preparation steps are needed for all Token Exchange interaction, including
 Next we need to select an application that is allowed to perform Token Exchange. As with the other grant types, we need to enable the `urn:ietf:params:oauth:grant-type:token-exchange` grant type.
 
 <Callout>
-ZITADEL allows any application to use Token Exchange, however we strongly recommend to only configure confidential clients (using either client credentials or JWT assertion) with the Token Exchange grant type. This is because there is some trust placed in the application when it comes to defining scope and that it obtained tokens in a legitimate way. For example, if the app possesses a token of an admin user with impersonation permissions it can obtain tokens for any other user in your instance. It is your responsibility to make sure the application can be trusted with this kind of powers. If you configure a public client with the Token Exchange grant, you risk a leaked token can be used by an attacker who knows the client ID of a granted public client.
+  ZITADEL allows any application to use Token Exchange, however we strongly
+  recommend to only configure confidential clients (using either client
+  credentials or JWT assertion) with the Token Exchange grant type. This is
+  because there is some trust placed in the application when it comes to
+  defining scope and that it obtained tokens in a legitimate way. For example,
+  if the app possesses a token of an admin user with impersonation permissions
+  it can obtain tokens for any other user in your instance. It is your
+  responsibility to make sure the application can be trusted with this kind of
+  powers. If you configure a public client with the Token Exchange grant, you
+  risk a leaked token can be used by an attacker who knows the client ID of a
+  granted public client.
 </Callout>
 
 ![](../../../public/img/guides/token-exchange/app-token-exchange-grant.png)
@@ -257,7 +281,7 @@ The ID token is a JWT and contains the following claims:
 }
 ```
 
-The audience contains 2 client IDs from the current project (*portal*) and the IDs of the projects we described earlier, including the ZITADEL project ID.
+The audience contains 2 client IDs from the current project (_portal_) and the IDs of the projects we described earlier, including the ZITADEL project ID.
 
 ### Reduce audience and scope example
 
@@ -402,7 +426,8 @@ Doing similar request you can:
 In the following example we exchange the initial opaque access token to a new ID token. The usefulness of this is up to the imagination of the reader, but it demonstrates the weird behavior of requesting an ID token, as defined by the RFC.
 
 <Callout type="info">
-You can also obtain an ID token in the `id_token` response field by requesting an access token and the `openid` scope.
+  You can also obtain an ID token in the `id_token` response field by requesting
+  an access token and the `openid` scope.
 </Callout>
 
 ```bash
@@ -434,7 +459,10 @@ This gives us a response with the ID token in the `access_token` field and the `
 With impersonation we can let one user assume the role of another user.
 
 <Callout>
-Currently impersonated tokens cannot be used for the ZITADEL API. This is to prevent privilege escalation where a impersonator could become an instance owner, for example. We might enable the use of impersonated tokens in the future.
+  Currently impersonated tokens cannot be used for the ZITADEL API. This is to
+  prevent privilege escalation where a impersonator could become an instance
+  owner, for example. We might enable the use of impersonated tokens in the
+  future.
 </Callout>
 
 ### Preparation
@@ -451,14 +479,14 @@ If you want to impersonate users by Token Exchange, the security settings of the
 
 Next, we need to configure which users are allowed to impersonate other users. ZITADEL provides 4 [management roles](/guides/manage/console/administrators):
 
-| Name                   | Role                      | Description                                                       |
-| ---------------------- | ------------------------- | ----------------------------------------------------------------- |
+| Name                        | Role                      | Description                                                       |
+| --------------------------- | ------------------------- | ----------------------------------------------------------------- |
 | Instance Admin Impersonator | IAM_ADMIN_IMPERSONATOR    | Allow impersonation of admin and end users from all organizations |
 | Instance Impersonator       | IAM_END_USER_IMPERSONATOR | Allow impersonation of end users from all organizations           |
-| Org Admin Impersonator | ORG_ADMIN_IMPERSONATOR    | Allow impersonation of admin and end users from the organization  |
-| Org Impersonator       | ORG_END_USER_IMPERSONATOR | Allow impersonation of end users from the organization            |
+| Org Admin Impersonator      | ORG_ADMIN_IMPERSONATOR    | Allow impersonation of admin and end users from the organization  |
+| Org Impersonator            | ORG_END_USER_IMPERSONATOR | Allow impersonation of end users from the organization            |
 
- In this example we will assign the `ORG_END_USER_IMPERSONATOR` role to a user:
+In this example we will assign the `ORG_END_USER_IMPERSONATOR` role to a user:
 
 ![](../../../public/img/guides/token-exchange/org-role-end-user-impersonator.png)
 
@@ -502,10 +530,7 @@ The ID token has the following claims:
   "exp": 1711141370,
   "iat": 1711098170,
   "auth_time": 1711098169,
-  "amr": [
-    "password",
-    "pwd"
-  ],
+  "amr": ["password", "pwd"],
   "azp": "259254409320529922@portal",
   "client_id": "259254409320529922@portal",
   "at_hash": "t5_gjGi9MSOa3e50dPGCTA",
@@ -577,7 +602,10 @@ The previous example required us to have an active token of the user we want to 
 ZITADEL allows passing a user ID as the `subject_token`, along with a valid `actor_token`. This is an addition to enable this specific use-case.
 
 <Callout>
-User ID as subject token is an experimental addition and is provided pending evaluation of our community. This method might be considered insecure and trust is fully placed into the app making the request. This might be removed in the future.
+  User ID as subject token is an experimental addition and is provided pending
+  evaluation of our community. This method might be considered insecure and
+  trust is fully placed into the app making the request. This might be removed
+  in the future.
 </Callout>
 
 In the following example we are again requesting a JWT access token. Instead of a token, we use the user ID of the end-user in the `subject_token` field and adjust the `subject_token_type` accordingly. As the user ID does not carry any scope and the impersonator / actor does not have a profile, we need to add some scopes to the request in order to receive an ID token with profile and email information.
@@ -785,9 +813,7 @@ The `client_assertion` has the following claims:
 {
   "iss": "259297773508165634@portal",
   "sub": "259297773508165634@portal",
-  "aud": [
-    "http://localhost:9000"
-  ],
+  "aud": ["http://localhost:9000"],
   "iat": 1711102657,
   "exp": 1711106257
 }
@@ -799,9 +825,7 @@ And the `subject_token`:
 {
   "iss": "259297773508165634@portal",
   "sub": "259242039378444290",
-  "aud": [
-    "http://localhost:9000"
-  ],
+  "aud": ["http://localhost:9000"],
   "iat": 1711102560,
   "exp": 1711106160
 }
@@ -872,7 +896,7 @@ In the [instance event list](/concepts/eventstore/overview) the `User impersonat
     "issuer": "http://localhost:9000",
     "user_id": "259241944654282754"
   },
-  "applicationId": "259297773508165634@portal",
+  "applicationId": "259297773508165634@portal"
 }
 ```
 

@@ -1,0 +1,244 @@
+---
+title: Dynamic Client Registration in the Console
+description: "Manage Dynamic-Client-Registration (DCR) clients and Initial Access Tokens (IATs) from the ZITADEL Console."
+sidebar_label: Dynamic Client Registration
+sidebar_position: 6
+---
+
+The ZITADEL Console exposes two surfaces for the
+[Dynamic Client Registration](/apis/openidoauth/dynamic-client-registration)
+feature once it is enabled on the instance:
+
+1. **Dynamic Clients view** — read-only listing of DCR-registered clients
+   per project (sidenav peer alongside General / Roles / Project Grants /
+   Grants on the project-detail page).
+2. **Initial Access Tokens admin** — issue / list / revoke IATs from the
+   Instance Settings sidenav (peer to Security).
+
+This page walks through both. For the API surface, the RFC reference,
+and the curl examples, see the
+[DCR API guide](/apis/openidoauth/dynamic-client-registration).
+
+## Prerequisites
+
+DCR ships disabled. Enable it before any Console surface appears:
+
+1. Set `OIDC.DCR.Enabled: true` in YAML configuration.
+2. Turn on the `dynamic_client_registration` instance feature flag.
+3. (Anonymous mode only) Set `OIDC.DCR.DefaultProjectID` and `DefaultOrgID`
+   in YAML — startup refuses to boot otherwise.
+
+See the [config reference](/apis/openidoauth/dynamic-client-registration#config-reference)
+for the full set of knobs.
+
+## Dynamic Clients view
+
+A read-only table of clients that registered themselves via
+`POST /oidc/v1/register` (RFC 7591). Clients manage their own metadata
+through RFC 7592 — there are no edit affordances in this view.
+
+### Where to find it
+
+Open a project, then in the project detail's left-hand sidenav click
+**Dynamic Clients** (the new entry alongside General, Roles, Project
+Grants, Grants).
+
+URL pattern: `/projects/<projectId>?id=dynamicclients`
+
+### What you see
+
+| Column                  | Description                                                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Client ID**           | The minted `client_id` returned to the client at registration time.                                                                                                              |
+| **Client Name**         | The `client_name` field the client supplied (or the synthesised `client_id` if the request omitted one — RFC 7591 §2).                                                           |
+| **Registration Method** | `Anonymous` (the registration used `OIDC.DCR.RequireInitialAccessToken=false`) or `Initial Access Token` (the request carried a Bearer IAT).                                     |
+| **Registered At**       | Timestamp from the `project.application.dynamically.registered` event.                                                                                                           |
+| **Audit**               | Icon button — clicking navigates to the standard application-detail page. The existing `<cnsl-changes>` mount renders the full event timeline including the DCR-specific events. |
+
+### Empty state
+
+If no DCR-registered clients exist yet, the view renders a message
+explaining that clients registering through `/oidc/v1/register` will
+appear here. This is expected on a fresh deployment.
+
+### Read-only by design
+
+DCR clients are **owned by the registering software**, not the operator.
+The RFC 7592 contract is that the client uses its `registration_access_token`
+(returned at registration time) to update or delete itself via:
+
+```bash
+# Update metadata (RFC 7592 §2.2)
+curl -X PUT https://example.zitadel.cloud/oidc/v1/register/<client_id> \
+  -H "Authorization: Bearer <registration_access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{ "client_name": "renamed-client", ... }'
+
+# Delete the client (RFC 7592 §2.3 — also revokes outstanding access/refresh tokens)
+curl -X DELETE https://example.zitadel.cloud/oidc/v1/register/<client_id> \
+  -H "Authorization: Bearer <registration_access_token>"
+```
+
+Operators can still delete a DCR client through the admin API like any
+other application; the audit timeline records the actor.
+
+## Initial Access Tokens admin
+
+Initial Access Tokens (IATs) authorize a single (or limited number of)
+DCR registrations against a specific project. Use IATs when you want
+**provisioner-only** registration — only systems holding a valid IAT
+can register clients.
+
+### Where to find it
+
+Open Instance Settings, then in the sidenav click **Initial Access
+Tokens** (the entry sits alongside Security in the peer list — flat,
+not nested).
+
+URL pattern: `/instance?id=initialaccesstokens`
+
+Visibility is gated on `iam.policy.read` — instance admins and
+equivalent roles see the entry, regular users do not.
+
+### Issue a token
+
+Click **Issue Token** to open the dialog with these fields:
+
+| Field                             | Type                    | Required | Notes                                                                                                                                                                                                                |
+| --------------------------------- | ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Project ID**                    | text                    | yes      | The project the IAT authorizes registrations into. The DCR registration request's `iat_id` claim must match this project.                                                                                            |
+| **Lifetime (hours)**              | number                  | no       | How long the IAT remains valid. Empty / `0` uses the server default (`OIDC.DCR.InitialAccessToken.DefaultLifetime`, typically 24h). Capped at **8760 hours (one year)**; values above that are rejected client-side. |
+| **Max Uses**                      | number                  | no       | Number of registrations the IAT authorizes. `0` means unlimited. Once exhausted, the IAT is rejected with `iat.exhausted`.                                                                                           |
+| **Allowed Grant Types**           | multi-select            | no       | Restricts which `grant_types` the IAT may authorize on the registration request. Empty inherits from `OIDC.DCR.AllowedGrantTypes`.                                                                                   |
+| **Allowed Redirect URI Patterns** | textarea (one per line) | no       | Per-IAT host pattern allow-list applied at registration. Empty inherits from `OIDC.DCR.AllowedRedirectURIHostPatterns`.                                                                                              |
+| **Description**                   | text                    | no       | Free-form note for admin listings. Never visible to end users.                                                                                                                                                       |
+
+### One-time plaintext display
+
+After **Issue Token** succeeds, a modal opens showing the plaintext
+token **EXACTLY ONCE**:
+
+- The token format is `zdiat_<48-byte-base64url>` (so it is visually
+  distinguishable from a Registration Access Token, prefix `zdrat_`).
+- The token is hidden behind a **Reveal Token** button. Click to show.
+- After reveal, the token **auto-masks after 60 seconds**. A re-mask
+  button (eye-slash icon) hides it sooner.
+- A **Copy** button copies the token to the clipboard.
+- Closing the dialog (only via the explicit "I've Saved It" button —
+  ESC and click-outside are blocked) zeroes the plaintext from
+  frontend memory. There is no way to retrieve it again — issue a new
+  IAT if you lose it.
+
+### Hand the token to the provisioner
+
+Provide the plaintext IAT to the system that will register clients.
+That system passes it as a Bearer token on the registration request:
+
+```bash
+curl -X POST https://example.zitadel.cloud/oidc/v1/register \
+  -H "Authorization: Bearer zdiat_<48-byte-base64url>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_name": "my-provisioned-client",
+    "redirect_uris": ["https://app.example.com/cb"],
+    "token_endpoint_auth_method": "client_secret_basic",
+    "grant_types": ["authorization_code", "refresh_token"],
+    "response_types": ["code"],
+    "application_type": "web"
+  }'
+```
+
+ZITADEL verifies the IAT (Passwap hash + expiry + remaining slots),
+consumes one slot, and returns the registered `client_id` +
+`client_secret` + `registration_access_token` per RFC 7591.
+
+### List view
+
+The table shows every IAT scoped to the instance:
+
+| Column         | Description                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| **ID**         | The opaque IAT id (used for revocation and audit cross-reference).                                          |
+| **Project**    | Which project the IAT authorizes.                                                                           |
+| **Expires At** | Timestamp; "—" when the IAT was issued with no expiry override.                                             |
+| **Max Uses**   | Number of registrations authorized; `∞` when 0 (unlimited).                                                 |
+| **Used**       | Slots already consumed.                                                                                     |
+| **Status**     | `Active` (still usable) or `Revoked` (admin revoked it; future registration attempts return `iat.revoked`). |
+| **Actions**    | Per-row Revoke icon (only visible while Active).                                                            |
+
+The table is **paginated** (default page size 100). Use the page-size
+selector at the bottom to choose 25/50/100/250 per page; total count is
+displayed.
+
+### Revoke a token
+
+Click the ban icon on any active row, then confirm in the dialog. The
+revocation is immediate — outstanding registration attempts using that
+IAT will fail with `iat.revoked`. Revoked tokens stay in the listing
+(rather than disappearing) so the audit trail remains visible.
+
+If a token row has no project ID (an unusual edge case from external
+backfills), the revoke button is disabled and a toast surfaces an
+explanation — the project ID is a required scoping invariant.
+
+## Common workflows
+
+### Phase 1: anonymous registration for Claude Code-style MCP
+
+Goal: any tool that speaks RFC 7591 can register itself on this instance.
+
+1. Set `OIDC.DCR.Enabled: true`, `RequireInitialAccessToken: false`,
+   `DefaultProjectID: <project>`, `DefaultOrgID: <org>` in YAML.
+2. Turn on the instance feature flag.
+3. Tools point at `https://<host>/.well-known/openid-configuration`,
+   discover `registration_endpoint`, and self-register.
+4. Operators monitor the **Dynamic Clients** view per project to see
+   what registered.
+
+See the [Claude Code MCP guide](/guides/integrate/tools/claude-code-mcp).
+
+### Phase 2: gated registration for trusted provisioners
+
+Goal: only systems with operator-issued credentials may register clients.
+
+1. Set `OIDC.DCR.Enabled: true`, `RequireInitialAccessToken: true` in YAML.
+2. Turn on the instance feature flag.
+3. For each provisioner, open **Instance Settings → Initial Access
+   Tokens** and click **Issue Token** with `Project ID = <target project>`,
+   `Max Uses = <expected client count>`, optional `Lifetime`.
+4. Hand the plaintext IAT (shown once) to the provisioner over a secure
+   channel.
+5. Provisioner uses it as `Authorization: Bearer <IAT>` on the DCR
+   request.
+6. Track usage via the **Used / Max Uses** column. Revoke when done.
+
+### Combining with Resource Indicators
+
+DCR-registered clients participate in
+[Resource Indicators (RFC 8707)](/apis/openidoauth/resource-indicators)
+just like any other client. Once registered, the client passes
+`resource=` on `/authorize` and `/token` to scope the issued access
+token's `aud` claim to the target API. See the resource-indicators guide
+for examples and the `AllowedAudiences` allow-list.
+
+## Audit and observability
+
+Every console action also emits an eventstore event:
+
+- Registration → `project.application.dynamically.registered`
+- IAT lifecycle → `project.iat.added`, `project.iat.consumed`,
+  `project.iat.revoked`
+- Management → `project.application.registration_access_token.{set,rotated,rehashed}`,
+  `project.application.dynamic_client.deleted`
+
+OTel spans `oidc.dcr.{register,read,update,delete,iat.consume}` are
+emitted on the corresponding HTTP operations. Metrics under
+`zitadel.dcr.*` (registrations_total / request_duration_seconds /
+errors_total / iat.consumed_total / iat.exhausted_total) feed dashboards.
+
+## Related
+
+- [DCR API reference](/apis/openidoauth/dynamic-client-registration)
+- [Resource Indicators (RFC 8707)](/apis/openidoauth/resource-indicators)
+- [Claude Code (MCP) integration](/guides/integrate/tools/claude-code-mcp)
+- [SECURITY.md threat model](https://github.com/zitadel/zitadel/blob/main/SECURITY.md)

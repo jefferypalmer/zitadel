@@ -13,15 +13,15 @@ and [ADR-0001](https://github.com/zitadel/zitadel/blob/main/docs/adr/ADR-0001-dy
 
 **Specs implemented**
 
-| RFC / spec | What ZITADEL conforms to |
-|---|---|
-| [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591) | Dynamic Client Registration Protocol (POST /register, error envelope, metadata fields). |
-| [RFC 7592](https://datatracker.ietf.org/doc/html/rfc7592) | Dynamic Client Registration Management Protocol (GET / PUT / DELETE on `/register/{client_id}`). |
-| [RFC 8414](https://datatracker.ietf.org/doc/html/rfc8414) | OAuth 2.0 Authorization Server Metadata (`/.well-known/oauth-authorization-server`). |
-| [RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707) | Resource Indicators — `resource` parameter on `/authorize` and `/token`. |
-| [RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252) | OAuth 2.0 for Native Apps (loopback redirect URI guidance). |
-| [RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700) | Best Current Practice for OAuth 2.0 Security. |
-| [OpenID Connect Dynamic Client Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html) | OIDC additions to the metadata model. |
+| RFC / spec                                                                                                      | What ZITADEL conforms to                                                                         |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591)                                                       | Dynamic Client Registration Protocol (POST /register, error envelope, metadata fields).          |
+| [RFC 7592](https://datatracker.ietf.org/doc/html/rfc7592)                                                       | Dynamic Client Registration Management Protocol (GET / PUT / DELETE on `/register/{client_id}`). |
+| [RFC 8414](https://datatracker.ietf.org/doc/html/rfc8414)                                                       | OAuth 2.0 Authorization Server Metadata (`/.well-known/oauth-authorization-server`).             |
+| [RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)                                                       | Resource Indicators — `resource` parameter on `/authorize` and `/token`.                         |
+| [RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252)                                                       | OAuth 2.0 for Native Apps (loopback redirect URI guidance).                                      |
+| [RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700)                                                       | Best Current Practice for OAuth 2.0 Security.                                                    |
+| [OpenID Connect Dynamic Client Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html) | OIDC additions to the metadata model.                                                            |
 
 ZITADEL ships DCR **disabled by default**. Enable it by flipping
 `OIDC.DCR.Enabled: true` in `defaults.yaml` AND turning on the
@@ -29,11 +29,11 @@ ZITADEL ships DCR **disabled by default**. Enable it by flipping
 
 ## Endpoints
 
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `${CUSTOM_DOMAIN}/oidc/v1/register` | Register a new client. RFC 7591 §3.1. |
-| GET | `${CUSTOM_DOMAIN}/oidc/v1/register/{client_id}` | Read a registered client. RFC 7592 §2.1. |
-| PUT | `${CUSTOM_DOMAIN}/oidc/v1/register/{client_id}` | Update a registered client. RFC 7592 §2.2. |
+| Method | Path                                            | Purpose                                                                      |
+| ------ | ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| POST   | `${CUSTOM_DOMAIN}/oidc/v1/register`             | Register a new client. RFC 7591 §3.1.                                        |
+| GET    | `${CUSTOM_DOMAIN}/oidc/v1/register/{client_id}` | Read a registered client. RFC 7592 §2.1.                                     |
+| PUT    | `${CUSTOM_DOMAIN}/oidc/v1/register/{client_id}` | Update a registered client. RFC 7592 §2.2.                                   |
 | DELETE | `${CUSTOM_DOMAIN}/oidc/v1/register/{client_id}` | Delete a registered client and revoke its outstanding tokens. RFC 7592 §2.3. |
 
 When DCR is disabled, every endpoint above returns `404 Not Found` and the
@@ -141,37 +141,37 @@ response echoes the clamped values (RFC 7591 §3.2.1).
 
 ### Metadata fields
 
-| Field | Type | Notes |
-|---|---|---|
-| `client_name` | string | Free text, displayed in audit + console. Empty value is replaced with the minted `client_id` post-registration. |
-| `redirect_uris` | string[] | Required. Must satisfy the OIDC v1 compliance rules + `OIDC.DCR.AllowedRedirectURIHostPatterns` regex if configured. Loopback HTTP (`http://localhost:<port>/cb`, `http://127.0.0.1:<port>/cb`, `http://[::1]:<port>/cb`) is accepted for native apps per RFC 8252. |
-| `grant_types` | string[] | Default `["authorization_code"]`. Server intersects with `OIDC.DCR.AllowedGrantTypes`. |
-| `response_types` | string[] | Default `["code"]`. Server intersects with `OIDC.DCR.AllowedResponseTypes`. |
-| `token_endpoint_auth_method` | string | Default `client_secret_basic`. Allowed: `none`, `client_secret_basic`, `client_secret_post`, `private_key_jwt`. `client_secret_jwt` is rejected with `invalid_client_metadata`. |
-| `application_type` | `web` \| `native` | Default `web`. Server intersects with `OIDC.DCR.AllowedApplicationTypes`. |
-| `subject_type` | `public` | `pairwise` is rejected. |
-| `id_token_signed_response_alg` | string | Must be in the AS-supported list. |
-| `jwks_uri` | URL | Required when `token_endpoint_auth_method=private_key_jwt`. Server fetches with the SSRF guard described below. |
-| `software_statement` | JWT | Rejected with `unapproved_software_statement` unless `OIDC.DCR.SoftwareStatement.Enabled: true`. |
-| `request_object_signing_alg` / `request_object_encryption_alg` / `request_object_encryption_enc` | string | All rejected in Phase 1. |
-| `client_name#<lang>` | string | Silently dropped. |
-| Other RFC 7591 §2 fields (`contacts`, `logo_uri`, `client_uri`, `policy_uri`, `tos_uri`, `software_id`, `software_version`, `default_max_age`, `require_auth_time`, `default_acr_values`, `initiate_login_uri`, `scope`) | varies | Stored verbatim in the `dcr_meta` JSON column for audit; not validated. |
+| Field                                                                                                                                                                                                                    | Type              | Notes                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client_name`                                                                                                                                                                                                            | string            | Free text, displayed in audit + console. Empty value is replaced with the minted `client_id` post-registration.                                                                                                                                                     |
+| `redirect_uris`                                                                                                                                                                                                          | string[]          | Required. Must satisfy the OIDC v1 compliance rules + `OIDC.DCR.AllowedRedirectURIHostPatterns` regex if configured. Loopback HTTP (`http://localhost:<port>/cb`, `http://127.0.0.1:<port>/cb`, `http://[::1]:<port>/cb`) is accepted for native apps per RFC 8252. |
+| `grant_types`                                                                                                                                                                                                            | string[]          | Default `["authorization_code"]`. Server intersects with `OIDC.DCR.AllowedGrantTypes`.                                                                                                                                                                              |
+| `response_types`                                                                                                                                                                                                         | string[]          | Default `["code"]`. Server intersects with `OIDC.DCR.AllowedResponseTypes`.                                                                                                                                                                                         |
+| `token_endpoint_auth_method`                                                                                                                                                                                             | string            | Default `client_secret_basic`. Allowed: `none`, `client_secret_basic`, `client_secret_post`, `private_key_jwt`. `client_secret_jwt` is rejected with `invalid_client_metadata`.                                                                                     |
+| `application_type`                                                                                                                                                                                                       | `web` \| `native` | Default `web`. Server intersects with `OIDC.DCR.AllowedApplicationTypes`.                                                                                                                                                                                           |
+| `subject_type`                                                                                                                                                                                                           | `public`          | `pairwise` is rejected.                                                                                                                                                                                                                                             |
+| `id_token_signed_response_alg`                                                                                                                                                                                           | string            | Must be in the AS-supported list.                                                                                                                                                                                                                                   |
+| `jwks_uri`                                                                                                                                                                                                               | URL               | Required when `token_endpoint_auth_method=private_key_jwt`. Server fetches with the SSRF guard described below.                                                                                                                                                     |
+| `software_statement`                                                                                                                                                                                                     | JWT               | Rejected with `unapproved_software_statement` unless `OIDC.DCR.SoftwareStatement.Enabled: true`.                                                                                                                                                                    |
+| `request_object_signing_alg` / `request_object_encryption_alg` / `request_object_encryption_enc`                                                                                                                         | string            | All rejected in Phase 1.                                                                                                                                                                                                                                            |
+| `client_name#<lang>`                                                                                                                                                                                                     | string            | Silently dropped.                                                                                                                                                                                                                                                   |
+| Other RFC 7591 §2 fields (`contacts`, `logo_uri`, `client_uri`, `policy_uri`, `tos_uri`, `software_id`, `software_version`, `default_max_age`, `require_auth_time`, `default_acr_values`, `initiate_login_uri`, `scope`) | varies            | Stored verbatim in the `dcr_meta` JSON column for audit; not validated.                                                                                                                                                                                             |
 
 ### Status code matrix
 
-| Status | Error code | When |
-|---|---|---|
-| 201 | — | Registration succeeded. |
-| 400 | `invalid_client_metadata` | Schema/JSON failure or clamp produced an empty intersection on a required field. |
-| 400 | `invalid_redirect_uri` | Any `redirect_uri` failed compliance or host-pattern validation. |
-| 400 | `invalid_software_statement` | Statement supplied while feature on, but content is malformed/untrusted. |
-| 400 | `unapproved_software_statement` | Statement supplied while feature off. |
-| 401 | `invalid_token` | IAT mode: missing / invalid / expired / revoked / exhausted IAT. |
-| 403 | `feature_disabled` | DCR yaml on, instance feature flag off. |
-| 404 | — | DCR yaml off; the endpoint is unmounted. |
-| 413 | `payload_too_large` | Body > `MaxRequestBodyBytes`. |
-| 415 | `unsupported_media_type` | `Content-Type` not `application/json`. |
-| 429 | — | Instance rate limit. |
+| Status | Error code                      | When                                                                             |
+| ------ | ------------------------------- | -------------------------------------------------------------------------------- |
+| 201    | —                               | Registration succeeded.                                                          |
+| 400    | `invalid_client_metadata`       | Schema/JSON failure or clamp produced an empty intersection on a required field. |
+| 400    | `invalid_redirect_uri`          | Any `redirect_uri` failed compliance or host-pattern validation.                 |
+| 400    | `invalid_software_statement`    | Statement supplied while feature on, but content is malformed/untrusted.         |
+| 400    | `unapproved_software_statement` | Statement supplied while feature off.                                            |
+| 401    | `invalid_token`                 | IAT mode: missing / invalid / expired / revoked / exhausted IAT.                 |
+| 403    | `feature_disabled`              | DCR yaml on, instance feature flag off.                                          |
+| 404    | —                               | DCR yaml off; the endpoint is unmounted.                                         |
+| 413    | `payload_too_large`             | Body > `MaxRequestBodyBytes`.                                                    |
+| 415    | `unsupported_media_type`        | `Content-Type` not `application/json`.                                           |
+| 429    | —                               | Instance rate limit.                                                             |
 
 ### Response — 201 body
 
@@ -297,22 +297,23 @@ and inherit the same TLS posture. There are no DCR-specific TLS knobs.
 ```yaml
 OIDC:
   DCR:
-    Enabled: false                       # Master switch (yaml-level)
-    RequireInitialAccessToken: false     # Switch to IAT-only mode
-    DefaultProjectID: ""                 # REQUIRED in anonymous mode
-    DefaultOrgID: ""                     # REQUIRED in anonymous mode
+    Enabled: false # Master switch (yaml-level)
+    RequireInitialAccessToken: false # Switch to IAT-only mode
+    DefaultProjectID: "" # REQUIRED in anonymous mode
+    DefaultOrgID: "" # REQUIRED in anonymous mode
     MaxRedirectURIs: 10
     MaxRequestBodyBytes: 65536
-    ClientSecretExpiresIn: 0s            # `0s` => no expiry sentinel
+    ClientSecretExpiresIn: 0s # `0s` => no expiry sentinel
     AllowedGrantTypes: [authorization_code, refresh_token]
     AllowedResponseTypes: [code]
-    AllowedAuthMethods: [none, client_secret_basic, client_secret_post, private_key_jwt]
+    AllowedAuthMethods:
+      [none, client_secret_basic, client_secret_post, private_key_jwt]
     AllowedApplicationTypes: [native, web]
     AllowedRedirectURIHostPatterns: []
-    AllowedAudiences: []                 # `[]` => unrestricted
+    AllowedAudiences: [] # `[]` => unrestricted
     RegistrationAccessToken:
       Enabled: true
-      Lifetime: 0s                       # `0s` => no expiry sentinel
+      Lifetime: 0s # `0s` => no expiry sentinel
     InitialAccessToken:
       DefaultLifetime: 24h
       DefaultMaxUses: 1
@@ -336,6 +337,46 @@ OIDC:
 The instance feature flag is the second gate: enable
 `dynamic_client_registration` on the target instance to actually serve
 the endpoints once the yaml flag is on.
+
+## Identifying DCR clients in the Management API
+
+`GetApp`, `ListApps`, and the application-detail proto responses now
+expose a boolean **`OIDCConfig.dynamically_registered`** field. It is
+`true` for clients that were created through `POST /oidc/v1/register`
+and `false` for everything else (legacy console-created applications,
+admin-imported clients, etc.).
+
+```ts
+// Console: filter the Applications listing for DCR-registered clients.
+const dcrClients = (await mgmt.listApps(projectId, 100, 0)).resultList.filter(
+  (app) => app.oidcConfig?.dynamicallyRegistered === true,
+);
+```
+
+The console's [Dynamic Clients view](/guides/manage/console/dynamic-client-registration#dynamic-clients-view)
+uses this field to populate the listing. External tooling that wants
+to display DCR-registered clients separately from operator-managed ones
+can do the same.
+
+## Operator hardening (defaults you don't have to think about)
+
+The console-side IAT admin and Dynamic Clients view ship a few
+hardening defaults so operators don't have to reason about them:
+
+- **IAT plaintext is shown EXACTLY ONCE.** The "Token issued" modal
+  uses `disableClose: true`, hides the token behind a Reveal click,
+  auto-masks after 60 seconds, zeroes the in-memory token reference on
+  close, and never returns the plaintext via `MatDialogRef.afterClosed()`.
+  See R2 of the kit for the structural contract.
+- **Lifetime input capped at 8760 hours (one year).** Both the form
+  validator and the HTML input enforce this.
+- **IAT list paginates** with default page size 100, options 25/50/100/250,
+  and surfaces the total count from `ListInitialAccessTokensResponse.details.totalResult`.
+- **Revoke refuses falsy `project_id`.** A toast surfaces the
+  client-enforced invariant rather than dispatching a malformed request.
+- **Cross-tenant abuse is rejected server-side**: an IAT scoped to
+  instance/org/project A cannot register a client into B even if the
+  request is routed via B's host. `dcr_iat_test.go` pins the contract.
 
 ## Upgrade note
 
@@ -392,8 +433,10 @@ For the full integration walkthrough, see the
 - [Authentication methods](./authn-methods) — how `none`,
   `client_secret_basic`, `client_secret_post`, and `private_key_jwt` work
   in ZITADEL.
-- [Resource Indicators (RFC 8707)](./endpoints#resource-parameter) — the
-  `resource` parameter on `/authorize` and `/token`.
+- [Resource Indicators (RFC 8707)](./resource-indicators) — the
+  `resource` parameter on `/authorize` and `/token`, the `aud` claim
+  semantics, the `AllowedAudiences` allow-list, and how to verify
+  audiences on the resource-server side.
 - [SECURITY.md threat model](https://github.com/zitadel/zitadel/blob/main/SECURITY.md)
   — T1–T20 evidence map.
 - [ADR-0001 Dynamic Client Registration](https://github.com/zitadel/zitadel/blob/main/docs/adr/ADR-0001-dynamic-client-registration.md)
