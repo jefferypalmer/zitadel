@@ -543,5 +543,28 @@ Errors:
       NotFound: رمز الوصول الأولي غير موجود.
       Expired: انتهت صلاحية رمز الوصول الأولي.
       Revoked: تم إلغاء رمز الوصول الأولي.
+    OrgPolicy:
+      InvalidAudienceSubset: AllowedAudiences must be a subset of the instance default.
+      InvalidLifetimeCap: RegistrationAccessToken lifetime exceeds the instance cap.
+      NotAuthorized: Not authorized to manage this DCR policy.
+    SoftwareStatement:
+      InvalidStructure: software_statement is structurally invalid.
+      UntrustedIssuer: software_statement issuer is not trusted.
+      Expired: software_statement has expired.
+      NotYetValid: software_statement is not yet valid.
+      InvalidSignature: software_statement signature is invalid.
+      Replay: software_statement has already been used.
+      MissingRequiredClaim: software_statement is missing a required claim.
+      UnsupportedAlgorithm: software_statement uses an unsupported algorithm.
+      JWKSFetchFailed: Could not fetch the JWKS for the software_statement issuer.
+    Jwks:
+      MutuallyExclusive: jwks and jwks_uri are mutually exclusive.
+      InvalidStructure: jwks is structurally invalid.
+      PrivateKeyMaterial: jwks must not contain private key material.
+      TooManyKeys: jwks contains too many keys.
+      TooLarge: jwks payload is too large.
+      UnsupportedAlgorithm: jwks key uses an unsupported algorithm.
+      DuplicateKid: jwks contains duplicate kid values.
+      EmptyKeySet: jwks must contain at least one key.
 
 optional: (اختياري)

@@ -319,6 +319,51 @@
           }
         }
       }
+    },
+    "DCR": {
+      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "OPERATOR_PANEL": {
+        "TITLE": "Dynamically Registered App",
+        "REGISTRATION_CLIENT_URI": "Registration client URI",
+        "RAT_LAST_ROTATED": "RAT last rotated",
+        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
+        "DEACTIVATE_LABEL": "Deactivate",
+        "DELETE_LABEL": "Delete",
+        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+      },
+      "RAT_DIALOG": {
+        "TITLE": "New Registration Access Token",
+        "COPY_BUTTON": "Copy",
+        "CONFIRM_BUTTON": "I have saved it",
+        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
+        "REMASK_BUTTON": "Mask now",
+        "WARNING": "You will not see this token again."
+      },
+      "ORG_IAT": {
+        "TITLE": "Initial Access Tokens",
+        "EMPTY_STATE": "No initial access tokens issued yet.",
+        "ISSUE_BUTTON": "Issue Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
+        "REVOKE_BUTTON": "Revoke",
+        "REVOKE_CONFIRM": "Revoke this initial access token?",
+        "PROJECT_ID_LABEL": "Project",
+        "LIFETIME_LABEL": "Lifetime",
+        "MAX_USES_LABEL": "Max uses",
+        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
+        "DESCRIPTION_LABEL": "Description"
+      },
+      "ORG_POLICY": {
+        "TITLE": "DCR Policy",
+        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
+        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
+        "LIFETIME_LABEL": "Registration Access Token Lifetime",
+        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
+        "SAVE_BUTTON": "Save",
+        "RESET_BUTTON": "Reset to instance default",
+        "INHERITED_INDICATOR": "Inherited from instance default",
+        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+      }
     }
   },
   "PAGINATOR": {
@@ -1511,7 +1556,9 @@
       "SECURITY": "Ajustes de seguridad",
       "EVENTS": "Eventos",
       "FAILEDEVENTS": "Eventos fallidos",
-      "VIEWS": "Vistas"
+      "VIEWS": "Vistas",
+      "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
+      "ORG_DCR_POLICY": "DCR Policy"
     },
     "GROUPS": {
       "GENERAL": "General",
@@ -1521,7 +1568,8 @@
       "TEXTS": "Textos e idiomas",
       "APPEARANCE": "Apariencia",
       "OTHER": "Otros",
-      "STORAGE": "Datos"
+      "STORAGE": "Datos",
+      "DCR": "Dynamic Client Registration"
     },
     "BETA": "BETA"
   },
