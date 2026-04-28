@@ -100,7 +100,7 @@ Cross-cutting feature: implement RFC 8707 (Resource Indicators) so Claude Code M
 
 ## Out of Scope
 - DCR-handler-level `resource` (DCR registration metadata does not include `resource`; this kit covers `/authorize` and `/token` only).
-- Per-org `AllowedAudiences` overrides (Phase 2; instance-level only in Phase 1).
+- Per-org `AllowedAudiences` overrides (Phase 2; instance-level only in Phase 1) — see `cavekit-org-dcr-policy.md`.
 - RFC 8707 §2.2 narrowing semantics on refresh — the kit propagates resource; precise narrow-versus-broaden enforcement beyond "must be present in original auth-request audience set" is M5 implementation concern.
 - Audience-restricted introspection (RFC 7662) extensions.
 

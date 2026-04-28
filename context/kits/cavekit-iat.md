@@ -117,7 +117,7 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 
 ## Out of Scope
 - Inline `jwks` validation through IATs.
-- Per-org IAT policy.
+- Per-org IAT policy — see `cavekit-org-dcr-policy.md`, `cavekit-console-phase2.md`.
 - IAT issuance via end-user / non-admin gRPC paths.
 - Token-prefix unification across PAT / IAT / RAT.
 - Bulk IAT import / export.

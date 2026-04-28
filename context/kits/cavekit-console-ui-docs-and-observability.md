@@ -130,9 +130,9 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 **Dependencies:** none (orthogonal to other kits).
 
 ## Out of Scope
-- Edit-DCR-app affordance in console (Phase 2).
+- Edit-DCR-app affordance in console (Phase 2) — see `cavekit-console-phase2.md`.
 - Bulk IAT operations in console.
-- Per-org IAT admin (Phase 2).
+- Per-org IAT admin (Phase 2) — see `cavekit-console-phase2.md`.
 - Localized translations beyond English + German for Phase 1.
 - Console redesign / theme changes (re-uses existing patterns).
 - Blog post (tracked in Linear, not in this kit).

@@ -114,9 +114,9 @@ Defines the `OIDC.DCR.*` configuration tree shipped in `cmd/defaults.yaml`, the 
 **Dependencies:** R1, R4
 
 ## Out of Scope
-- Per-org overrides (`OrgDCRPolicy` aggregate) — Phase 2.
-- `software_statement` trusted-issuer verification — Phase 2 (config stub only in Phase 1).
-- Inline `jwks` (vs `jwks_uri`) — Phase 2.
+- Per-org overrides (`OrgDCRPolicy` aggregate) — Phase 2 — see `cavekit-org-dcr-policy.md`.
+- `software_statement` trusted-issuer verification — Phase 2 (config stub only in Phase 1) — see `cavekit-software-statement.md`.
+- Inline `jwks` (vs `jwks_uri`) — Phase 2 — see `cavekit-inline-jwks.md`.
 - `client_credentials` in default `AllowedGrantTypes` — admin opt-in only.
 - Flipping `DCR.Enabled` default to `true` — deferred to a future major version.
 - `client_name#<lang>` localized names.

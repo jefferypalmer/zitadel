@@ -105,8 +105,8 @@ Defines the RFC 7592 client-configuration endpoint: GET / PUT / DELETE on `/oidc
 ## Out of Scope
 - RFC 7591 POST /register (handled in `cavekit-register-handler.md`).
 - Bulk-delete of dynamically-registered apps.
-- Per-org RAT lifetime overrides (Phase 2).
-- Inline `jwks` updates (Phase 2).
+- Per-org RAT lifetime overrides (Phase 2) — see `cavekit-org-dcr-policy.md`.
+- Inline `jwks` updates (Phase 2) — see `cavekit-inline-jwks.md`.
 
 ## Cross-References
 - See `cavekit-register-handler.md` R1: shared mux router.

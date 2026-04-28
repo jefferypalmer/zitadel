@@ -177,10 +177,10 @@ Defines the HTTP handler for `POST /oidc/v1/register`: request parsing, RFC 7591
 
 ## Out of Scope
 - RFC 7592 management operations (handled in `cavekit-manage-handler.md`).
-- Inline `jwks` (Phase 2).
-- `software_statement` trusted-issuer verification (Phase 2 — Phase 1 only rejects with `unapproved_software_statement`).
+- Inline `jwks` (Phase 2) — see `cavekit-inline-jwks.md`.
+- `software_statement` trusted-issuer verification (Phase 2 — Phase 1 only rejects with `unapproved_software_statement`) — see `cavekit-software-statement.md`.
 - `client_credentials` in default `AllowedGrantTypes` (admin opt-in).
-- Per-org DCR overrides (Phase 2).
+- Per-org DCR overrides (Phase 2) — see `cavekit-org-dcr-policy.md`.
 - `client_name#<lang>` localized names.
 
 ## Cross-References

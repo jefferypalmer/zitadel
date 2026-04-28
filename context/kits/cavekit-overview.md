@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-24T00:00:00Z"
+last_edited: "2026-04-28T00:00:00Z"
 complexity: unknown
 ---
 
@@ -30,8 +30,12 @@ complexity: unknown
 | 6 | `cavekit-rfc8707-resource.md` | DRAFT | 7 | 28 | Remove existing `token_exchange.go:44-46` rejection; parse `resource` on `/authorize` + `/token`; thread through 6 grant handlers; `AllowedAudiences` allow-list; `invalid_target` on out-of-list. |
 | 7 | `cavekit-security-hardening.md` | DRAFT | 6 | 41 | jwks_uri SSRF guard, log redaction (HTTP + gRPC + audit-log), timing side-channel mitigation, hash rotation, T1–T20 threat-model evidence map. |
 | 8 | `cavekit-console-ui-docs-and-observability.md` | DRAFT | 8 | 33 | M5.5 console (Dynamic Clients tab + IAT admin), enumerated i18n keys, Cypress smoke tests, MDX docs (DCR + Claude Code MCP), CHANGELOG, SECURITY.md, ADR, OTel spans + `zitadel.dcr.*` metrics. |
+| 9 | `cavekit-org-dcr-policy.md` | DRAFT (Phase 2) | 9 | 52 | New `OrgDCRPolicy` aggregate; per-org narrowing of `AllowedAudiences` (subset) and `RegistrationAccessTokenLifetime` (cap); dual-tier projection with `is_default`; effective-policy query helper; org + instance gRPC. |
+| 10 | `cavekit-software-statement.md` | DRAFT (Phase 2) | 11 | 64 | RFC 7591 §2.3 software_statement JWT verification — typed `TrustedIssuers`, header parse + `iss` lookup, JWKS fetch (SSRF-guarded, per-issuer cached), signature + claim verify, JTI replay dedupe, claim-to-metadata override mapping, audit + OTel. |
+| 11 | `cavekit-inline-jwks.md` | DRAFT (Phase 2) | 7 | 45 | RFC 7591 §2.1.1 inline `jwks` on POST + RFC 7592 §2.2 inline `jwks` on PUT — decode + mutual exclusion with `jwks_uri`, JWK validation, JSONB storage column, RFC 7592 GET read-back, token-endpoint authoritativeness for `private_key_jwt`. |
+| 12 | `cavekit-console-phase2.md` | DRAFT (Phase 2) | 10 | 58 | Operator edit-DCR-app panel (RFC 7592 fields read-only); operator-initiated RAT rotation with plaintext-once dialog; per-org IAT admin module; per-org DCR policy editor; full 22-locale rollout (backend yaml + console JSON); Cypress E2E. |
 
-**Totals:** 8 domains, 56 requirements, 266 acceptance criteria.
+**Totals:** 12 domains, 93 requirements, ~580 acceptance criteria (Phase 1 + Phase 2; Phase 2 = 219; Phase 1 R count frozen at 56, AC count drifted upward from 266 baseline due to post-loop F-* amendments — see per-kit files for current totals).
 
 ## Cross-Reference Map
 
@@ -99,6 +103,39 @@ console-ui-docs-and-observability (8) consumes 2, 3, 4, references 5, 6, 7 in do
 
 **Cycles:** none. The graph is a DAG rooted at `config`.
 
+## Phase 2
+
+Phase 2 adds 4 new kits (#9–#12) and depends on 6 of the Phase 1 kits via cross-references. Phase 1 R / AC counts are frozen — Phase 1 kits received light "see also" edits on existing Out-of-Scope bullets only.
+
+```
+Phase 1                            Phase 2
+─────────────────────────────────────────────────────────────────
+1. config                  ───→    9. org-dcr-policy
+                           ───→   10. software-statement
+6. rfc8707-resource        ───→    9. org-dcr-policy
+3. register-handler        ───→   10. software-statement
+                           ───→   11. inline-jwks
+4. manage-handler          ───→   11. inline-jwks
+
+9. org-dcr-policy          ───→   12. console-phase2
+10. software-statement     ───→   12. console-phase2
+11. inline-jwks            ───→   12. console-phase2
+8. console-ui-docs-and-observability  ───→   12. console-phase2
+   (Phase 2 console kit extends Phase 1 console kit)
+```
+
+Edge rationale:
+- `1 → 9`: org policy fields (`AllowedAudiences`, RAT lifetime) fall through to static config defaults via the merge in `cavekit-org-dcr-policy.md` R3.
+- `1 → 10`: `OIDC.DCR.SoftwareStatement.*` config tree (refined from Phase 1 stub).
+- `6 → 9`: org policy NARROWS the instance allow-list defined by `cavekit-rfc8707-resource.md` R3; sidecar consults merged value at request time per `cavekit-org-dcr-policy.md` R8.
+- `3 → 10`: register handler invokes the software_statement verifier and consumes its `MergedMetadata`.
+- `3 → 11`: register handler decodes inline `jwks` and applies the mutual-exclusion check.
+- `4 → 11`: PUT manage handler accepts inline `jwks` for full-replacement semantics; storage transitions emit events.
+- `9 / 10 / 11 → 12`: console Phase 2 surfaces the new gRPC (org policy), translates the new error keys (software_statement, inline_jwks), and rolls out console JSON i18n to 22 locales.
+- `8 → 12`: Phase 2 console kit reuses the IAT plaintext-dialog hardening, Cypress conventions, and i18n fallback contract from Phase 1 console kit.
+
+**Cycles:** none. Phase 2 graph remains a DAG rooted at `1. config`.
+
 ### Cross-cut nature of kits 6 and 7
 
 - **`cavekit-rfc8707-resource.md` (kit 6)** is *orthogonal* to the DCR registration endpoints. It depends on `config` (for `AllowedAudiences`) but otherwise touches non-DCR code paths: it removes the existing rejection at `internal/api/oidc/token_exchange.go:44-46`, adds parsing on `/authorize` + `/token`, threads `resource` through `domain.AuthRequest` → `OIDCSession.Audience`, and propagates into all six token grant handlers (`token_code.go`, refresh-token, `token_client_credentials.go`, `token_device.go`, `token_exchange.go`, `token_jwt_profile.go`). It is grouped with DCR because Claude Code MCP requires it for audience isolation, but no other DCR kit *consumes* it directly.
@@ -115,3 +152,4 @@ console-ui-docs-and-observability (8) consumes 2, 3, 4, references 5, 6, 7 in do
 
 ## Changelog
 - 2026-04-24: Initial draft from `context/refs/dcr-plan.md`.
+- 2026-04-28: Phase 2 — added kits 9–12 (`cavekit-org-dcr-policy.md`, `cavekit-software-statement.md`, `cavekit-inline-jwks.md`, `cavekit-console-phase2.md`); appended Phase 2 dependency-graph subsection. Phase 1 kit R/AC counts FROZEN; Phase 1 kits received cross-reference-only edits to existing Out-of-Scope bullets (no R/AC changes). Phase 1 fork tag at `dcr-rfc8707-v1.0.0`.
