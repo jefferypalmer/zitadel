@@ -52,6 +52,7 @@ var (
 		` projections.apps7_oidc_configs.login_version,` +
 		` projections.apps7_oidc_configs.login_base_uri,` +
 		` projections.apps7_oidc_configs.registration_access_token_hash,` +
+		` projections.apps7_oidc_configs.jwks_inline,` +
 		//saml config
 		` projections.apps7_saml_configs.app_id,` +
 		` projections.apps7_saml_configs.entity_id,` +
@@ -101,6 +102,7 @@ var (
 		` projections.apps7_oidc_configs.login_version,` +
 		` projections.apps7_oidc_configs.login_base_uri,` +
 		` projections.apps7_oidc_configs.registration_access_token_hash,` +
+		` projections.apps7_oidc_configs.jwks_inline,` +
 		//saml config
 		` projections.apps7_saml_configs.app_id,` +
 		` projections.apps7_saml_configs.entity_id,` +
@@ -175,6 +177,7 @@ var (
 		"login_version",
 		"login_base_uri",
 		"registration_access_token_hash",
+		"jwks_inline",
 		//saml config
 		"app_id",
 		"entity_id",
@@ -231,6 +234,7 @@ func Test_AppsPrepare(t *testing.T) {
 							nil,
 							nil,
 							// oidc config
+							nil,
 							nil,
 							nil,
 							nil,
@@ -324,6 +328,7 @@ func Test_AppsPrepare(t *testing.T) {
 							nil,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -378,6 +383,7 @@ func Test_AppsPrepare(t *testing.T) {
 							nil,
 							nil,
 							// oidc config
+							nil,
 							nil,
 							nil,
 							nil,
@@ -476,6 +482,7 @@ func Test_AppsPrepare(t *testing.T) {
 							domain.LoginVersionUnspecified,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -569,6 +576,7 @@ func Test_AppsPrepare(t *testing.T) {
 							false,
 							"back.channel.logout.ch",
 							domain.LoginVersionUnspecified,
+							nil,
 							nil,
 							nil,
 							// saml config
@@ -666,6 +674,7 @@ func Test_AppsPrepare(t *testing.T) {
 							domain.LoginVersionUnspecified,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -759,6 +768,7 @@ func Test_AppsPrepare(t *testing.T) {
 							false,
 							"back.channel.logout.ch",
 							domain.LoginVersionUnspecified,
+							nil,
 							nil,
 							nil,
 							// saml config
@@ -856,6 +866,7 @@ func Test_AppsPrepare(t *testing.T) {
 							domain.LoginVersionUnspecified,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -949,6 +960,7 @@ func Test_AppsPrepare(t *testing.T) {
 							true,
 							"back.channel.logout.ch",
 							domain.LoginVersionUnspecified,
+							nil,
 							nil,
 							nil,
 							// saml config
@@ -1046,6 +1058,7 @@ func Test_AppsPrepare(t *testing.T) {
 							domain.LoginVersion2,
 							"https://login.ch/",
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -1089,6 +1102,7 @@ func Test_AppsPrepare(t *testing.T) {
 							nil,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -1111,6 +1125,7 @@ func Test_AppsPrepare(t *testing.T) {
 							nil,
 							nil,
 							// oidc config
+							nil,
 							nil,
 							nil,
 							nil,
@@ -1318,6 +1333,7 @@ func Test_AppPrepare(t *testing.T) {
 						nil,
 						nil,
 						nil,
+						nil,
 						// saml config
 						nil,
 						nil,
@@ -1363,6 +1379,7 @@ func Test_AppPrepare(t *testing.T) {
 							"api-client-id",
 							domain.APIAuthMethodTypePrivateKeyJWT,
 							// oidc config
+							nil,
 							nil,
 							nil,
 							nil,
@@ -1455,6 +1472,7 @@ func Test_AppPrepare(t *testing.T) {
 							domain.LoginVersionUnspecified,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -1545,6 +1563,7 @@ func Test_AppPrepare(t *testing.T) {
 							domain.LoginVersionUnspecified,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -1614,6 +1633,7 @@ func Test_AppPrepare(t *testing.T) {
 							nil,
 							nil,
 							// oidc config
+							nil,
 							nil,
 							nil,
 							nil,
@@ -1709,6 +1729,7 @@ func Test_AppPrepare(t *testing.T) {
 							domain.LoginVersionUnspecified,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -1797,6 +1818,7 @@ func Test_AppPrepare(t *testing.T) {
 							false,
 							"back.channel.logout.ch",
 							domain.LoginVersionUnspecified,
+							nil,
 							nil,
 							nil,
 							// saml config
@@ -1889,6 +1911,7 @@ func Test_AppPrepare(t *testing.T) {
 							domain.LoginVersionUnspecified,
 							nil,
 							nil,
+							nil,
 							// saml config
 							nil,
 							nil,
@@ -1977,6 +2000,7 @@ func Test_AppPrepare(t *testing.T) {
 							false,
 							"back.channel.logout.ch",
 							domain.LoginVersionUnspecified,
+							nil,
 							nil,
 							nil,
 							// saml config

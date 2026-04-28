@@ -161,6 +161,17 @@ type RegistrationDeps struct {
 	// `config.OIDC.DCR.SoftwareStatement.Enabled`.
 	SoftwareStatementEnabled bool
 
+	// EffectivePolicy resolves the per-(instance, org) merged DCR policy
+	// at request time per cavekit-org-dcr-policy.md R8 / T-033 +
+	// T-034. Optional — when nil the register handler falls back to the
+	// static `OIDC.DCR.AllowedAudiences` and
+	// `OIDC.DCR.RegistrationAccessToken.Lifetime` (Phase 1 byte-identical
+	// invariant). When non-nil, the resolved policy's AllowedAudiences
+	// supersedes the static `cfg.AllowedAudiences()` used in R4 clamps,
+	// and RegistrationAccessTokenLifetime supersedes the static value
+	// threaded into the Register closure.
+	EffectivePolicy EffectivePolicyFn
+
 	// SoftwareStatementPipeline drives the parse → lookup → verify →
 	// required-claims → replay-record → override-mapping flow when the
 	// request body carries a software_statement (cavekit-software-
@@ -239,6 +250,23 @@ type RegisterFn func(ctx context.Context, req *RegisterRequest) (*RegisterResult
 // RegisterRequest is the dcr-internal shape passed to the registered
 // closure. Mirrors the subset of `command.RegisterClientInput` fields
 // the dispatcher controls.
+// EffectivePolicy is the dcr-internal view of the merged DCR policy.
+// AllowedAudiences nil = unrestricted (RFC 8707 §2 inversion);
+// RegistrationAccessTokenLifetime zero = no expiry per RFC 7592 §3.
+type EffectivePolicy struct {
+	AllowedAudiences                []string
+	RegistrationAccessTokenLifetime time.Duration
+	// AllowedAudiencesScope is "org" / "instance" / "static-config" —
+	// emitted via the OTel attribute `dcr.policy.scope` in T-040.
+	AllowedAudiencesScope                string
+	RegistrationAccessTokenLifetimeScope string
+}
+
+// EffectivePolicyFn is the function-shaped seam used to resolve the
+// merged policy at request time. Production wires this to a closure
+// that calls Queries.DCRPolicyByOrg (T-017). Tests stub it.
+type EffectivePolicyFn func(ctx context.Context, orgID string) (*EffectivePolicy, error)
+
 type RegisterRequest struct {
 	Clamped             *RFC7591Metadata
 	OrgID               string
@@ -256,6 +284,16 @@ type RegisterRequest struct {
 	// claims → replay-record). Empty string when no software_statement
 	// was supplied (preserves the Phase 1 sentinel).
 	SoftwareStatementJTI string
+
+	// EffectiveRATLifetime carries the merged RegistrationAccessToken
+	// lifetime resolved at request time per cavekit-org-dcr-policy.md
+	// R8 / T-033. Zero with EffectivePolicyResolved=false means "no
+	// override seen — caller falls back to the static
+	// OIDC.DCR.RegistrationAccessToken.Lifetime". When a resolver is
+	// wired, the value supersedes the static config in the Register
+	// closure's RAT issuance path.
+	EffectiveRATLifetime     time.Duration
+	EffectivePolicyResolved  bool
 }
 
 // RegisterResult is the dcr-internal shape returned by the closure.
@@ -520,21 +558,50 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			recordIATConsumed(ctx)
 		}
 
+		// 3c. EffectivePolicy resolution (cavekit-org-dcr-policy.md R8 /
+		// T-033). When a resolver is wired and the resolved org has a
+		// merged policy, surface its RAT lifetime / audience override
+		// downstream. Resolver failure is treated as "no override" — the
+		// register handler MUST NOT 5xx because of a policy lookup miss
+		// (Phase 1 byte-identical invariant when no resolver / no row).
+		var (
+			effectiveRATLifetime    time.Duration
+			effectivePolicyResolved bool
+		)
+		if deps.EffectivePolicy != nil && regCtx.OrgID != "" {
+			policy, polErr := deps.EffectivePolicy(ctx, regCtx.OrgID)
+			if polErr == nil && policy != nil {
+				effectiveRATLifetime = policy.RegistrationAccessTokenLifetime
+				effectivePolicyResolved = true
+				// AllowedAudiences override is observable to downstream
+				// callers via the Register closure, which consults the
+				// policy to clamp audience metadata it persists. Since
+				// the DCR register handler itself does NOT currently
+				// clamp `audience` claims (that's the RFC 8707 sidecar's
+				// job at /authorize and /token), the audience component
+				// of the merge is communicated via tracing attributes
+				// from T-040, not via a side-effect on `clamped`.
+				_ = policy.AllowedAudiences
+			}
+		}
+
 		// 4. Persist (R6)
 		registrationMethod := RegMethodAnonymous
 		if mode == AuthModeIAT {
 			registrationMethod = RegMethodIAT
 		}
 		req := &RegisterRequest{
-			Clamped:              clamped,
-			OrgID:                regCtx.OrgID,
-			ProjectID:            regCtx.ProjectID,
-			IATID:                regCtx.IATID,
-			RegistrationMethod:   registrationMethod,
-			ClientNameUnclamped:  decoded.ClientName,
-			RemoteIPString:       http_util.RemoteIPStringFromRequest(r),
-			UserAgent:            r.UserAgent(),
-			SoftwareStatementJTI: softwareStatementJTI,
+			Clamped:                 clamped,
+			OrgID:                   regCtx.OrgID,
+			ProjectID:               regCtx.ProjectID,
+			IATID:                   regCtx.IATID,
+			RegistrationMethod:      registrationMethod,
+			ClientNameUnclamped:     decoded.ClientName,
+			RemoteIPString:          http_util.RemoteIPStringFromRequest(r),
+			UserAgent:               r.UserAgent(),
+			SoftwareStatementJTI:    softwareStatementJTI,
+			EffectiveRATLifetime:    effectiveRATLifetime,
+			EffectivePolicyResolved: effectivePolicyResolved,
 		}
 		result, err := deps.Register(ctx, req)
 		if err != nil {

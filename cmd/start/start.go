@@ -736,7 +736,15 @@ func startAPIs(
 					ClientNameUnclamped:  req.ClientNameUnclamped,
 					RemoteIPString:       req.RemoteIPString,
 					UserAgent:            req.UserAgent,
-					RATLifetime:          config.OIDC.DCR.RegistrationAccessToken.Lifetime,
+					// cavekit-org-dcr-policy.md R8 / T-033: prefer the
+					// per-request merged RAT lifetime when an org policy
+					// is in effect; fall back to static config otherwise.
+					RATLifetime: func() time.Duration {
+						if req.EffectivePolicyResolved {
+							return req.EffectiveRATLifetime
+						}
+						return config.OIDC.DCR.RegistrationAccessToken.Lifetime
+					}(),
 					ClientSecretLifetime: config.OIDC.DCR.ClientSecretExpiresIn,
 				}
 				res, err := commands.RegisterClient(ctx, in)

@@ -63,16 +63,47 @@ func ResourcesFromContext(ctx context.Context) []string {
 // Thread-safety: each request is handled in its own goroutine and each
 // gets its own context chain, so there is no shared state to protect.
 func NewAuthorizeResourceSidecar(allowed []string) func(http.Handler) http.Handler {
-	// Defensive copy so config rotation can't mutate the closure's view.
+	return NewAuthorizeResourceSidecarPerRequest(allowed, nil)
+}
+
+// PerRequestAllowedAudiencesFn resolves the merged AllowedAudiences for
+// a single /authorize (or /token) call. Implementations typically read
+// `client_id` from the request form, look up the client's
+// resource_owner, and call Queries.DCRPolicyByOrg (T-017) to merge the
+// org → instance → static-config tiers. Returning a nil slice means
+// "unrestricted" per RFC 8707 §2 inversion. Returning (nil, error)
+// triggers the same Phase 1 envelope a sidecar-config error would
+// produce — invalid_target with the error message — but the closure
+// SHOULD swallow look-up errors and return the static fallback to
+// preserve the byte-identical invariant when no override exists.
+type PerRequestAllowedAudiencesFn func(ctx context.Context, r *http.Request) ([]string, error)
+
+// NewAuthorizeResourceSidecarPerRequest is the T-034 variant. When
+// `perRequest` is nil the static `allowed` slice drives every
+// validation (Phase 1 behavior). When `perRequest` is non-nil it runs
+// FIRST: its resolved slice is used for the per-request validation,
+// falling back to the static `allowed` slice when the resolver returns
+// (nil, nil) — i.e. "no override". Any error from the resolver short-
+// circuits with the same `invalid_target` 400 envelope ValidateResources
+// emits.
+func NewAuthorizeResourceSidecarPerRequest(allowed []string, perRequest PerRequestAllowedAudiencesFn) func(http.Handler) http.Handler {
 	allowedCopy := append([]string(nil), allowed...)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// ParseForm merges URL query + POST body. Idempotent: safe
-			// to call here even though the library will also call it
-			// later.
 			if err := r.ParseForm(); err == nil {
 				if values := r.Form["resource"]; len(values) > 0 {
-					if vErr := ValidateResources(values, allowedCopy); vErr != nil {
+					effective := allowedCopy
+					if perRequest != nil {
+						resolved, resErr := perRequest(r.Context(), r)
+						if resErr != nil {
+							writeInvalidTargetError(w, resErr.Error())
+							return
+						}
+						if resolved != nil {
+							effective = resolved
+						}
+					}
+					if vErr := ValidateResources(values, effective); vErr != nil {
 						writeInvalidTargetError(w, vErr.Error())
 						return
 					}
