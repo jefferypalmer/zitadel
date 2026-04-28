@@ -57,6 +57,18 @@ Dispatching both in parallel via ck:task-builder subagents in isolated worktrees
 Waves executed: 4 (T-070, T-071, T-072+T-076+T-077, T-078)
 Tasks completed: 90/90 (Tier 6 frontend chain closeout; T-013 remains human-owned upstream PR push)
 
+### Iteration 6 — 2026-04-28 (Tier 9 — proto-extension-dcr-marker, closes T-096)
+- T-100: DONE. `OIDCConfig.dynamically_registered = 23` added to `proto/zitadel/app.proto`.
+- T-101: DONE. `query.OIDCApp.IsDynamicallyRegistered` surfaced from `apps7_oidc_configs.registration_access_token_hash IS NOT NULL`. Column declaration + scan target + 4 SELECT/scan sites + 14 row-fixture nil insertions + `appCols` extension. Full `Test_App(s)?Prepare` suite passes; `go test ./internal/query/...` clean.
+- T-102: DONE. `internal/api/grpc/project/application.go::AppOIDCConfigToPb` populates the new proto field. Go protos regenerated via `pnpm exec buf generate proto` after building `protoc-gen-zitadel` + `protoc-gen-authoption` plugins from `internal/protoc/`. `go build ./internal/... ./pkg/... ./cmd/...` clean.
+- T-103: DONE. `pnpm --filter @zitadel/console generate` produced new TS stubs with `dynamicallyRegistered: boolean`.
+- T-104: DONE. `dynamic-clients.component.ts::isDynamicallyRegistered` flipped to `app.oidcConfig?.dynamicallyRegistered === true`. Closes T-096.
+- T-105: DONE. `dcr-clients.cy.ts` second `it()`: IAT mint → DCR register → assert row → click audit link → assert app-detail URL.
+- T-106: DONE. T-096 status updated in impl tracking (was BLOCKED).
+- Files: proto/zitadel/app.proto; pkg/grpc/app/app.pb.go (regenerated); internal/query/app.go + app_test.go; internal/api/grpc/project/application.go; console/src/app/proto/generated/zitadel/{app_pb.d.ts,app_pb.js, ...} (regenerated); console/src/app/modules/dynamic-clients/dynamic-clients.component.ts; tests/functional-ui/cypress/e2e/dcr/dcr-clients.cy.ts.
+- Validation: `go build ./internal/... ./pkg/... ./cmd/...` clean. `go test ./internal/query/...` clean. `tsc --noEmit -p tsconfig.app.json` clean. `pnpm nx affected --targets=lint` clean (after one prettier --write).
+- Tier 9 status: 7/7 done. **T-096 closed. All addressable build-site tasks complete.**
+
 ### Iteration 5 — 2026-04-28 (Tier 8 — wave 1 sweep)
 - T-091: DONE. `iat.cy.ts:49` regex now asserts via `.invoke('text').should('match', /Revoked|Widerrufen/i)`.
 - T-092: DONE. `AdminService.listInitialAccessTokens(projectId, query?)` + `<cnsl-paginator>` + `totalResult$` + `loadPage(pageIndex, pageSize)`.

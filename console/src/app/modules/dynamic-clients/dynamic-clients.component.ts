@@ -58,17 +58,20 @@ export class DynamicClientsComponent implements OnChanges {
   }
 }
 
-// Phase 1 gap: the App proto exposes no DCR-specific marker (no dcr_meta,
-// no registration_access_token_hash, no registration_method). Until the
-// proto is extended to carry those fields, the predicate has nothing to
-// match on and the listing renders the empty state. The component shape,
-// columns, sidenav placement, and audit-link routing are in place so the
-// switchover is a one-line change once the proto lands. Tracked as a
-// follow-up: "expose DCR registration metadata in management App proto".
-function isDynamicallyRegistered(_app: App.AsObject): boolean {
-  return false;
+// T-104 (Tier 9, 2026-04-28): the App proto now carries
+// `OIDCConfig.dynamicallyRegistered` (T-100), surfaced from
+// `apps7_oidc_configs.registration_access_token_hash IS NOT NULL` via
+// `query.OIDCApp.IsDynamicallyRegistered` (T-101) and populated through
+// the management converter (T-102). Predicate is now a one-liner.
+function isDynamicallyRegistered(app: App.AsObject): boolean {
+  return app.oidcConfig?.dynamicallyRegistered === true;
 }
 
+// Registration-method discrimination (anonymous vs IAT-derived) is not
+// yet exposed by the App proto. The `registration_method` audit-event
+// field landed in T-040 but is not on the projection. For now, both
+// rows render under the ANONYMOUS bucket; a follow-up can split them
+// by adding a `registration_method` enum field to the App proto.
 function registrationMethodFor(_app: App.AsObject): 'ANONYMOUS' | 'IAT' {
   return 'ANONYMOUS';
 }

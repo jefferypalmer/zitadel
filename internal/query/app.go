@@ -64,6 +64,10 @@ type OIDCApp struct {
 	BackChannelLogoutURI     string
 	LoginVersion             domain.LoginVersion
 	LoginBaseURI             *string
+	// IsDynamicallyRegistered is true when this client was registered via
+	// the Dynamic Client Registration endpoint (RFC 7591). Derived from
+	// `apps7_oidc_configs.registration_access_token_hash IS NOT NULL`.
+	IsDynamicallyRegistered bool
 }
 
 type SAMLApp struct {
@@ -276,6 +280,10 @@ var (
 	}
 	AppOIDCConfigColumnLoginBaseURI = Column{
 		name:  projection.AppOIDCConfigColumnLoginBaseURI,
+		table: appOIDCConfigsTable,
+	}
+	AppOIDCConfigColumnRegistrationAccessTokenHash = Column{
+		name:  projection.AppOIDCConfigColumnRegistrationAccessTokenHash,
 		table: appOIDCConfigsTable,
 	}
 )
@@ -725,6 +733,7 @@ func prepareAppQuery(activeOnly bool) (sq.SelectBuilder, func(*sql.Row) (*App, e
 		AppOIDCConfigColumnBackChannelLogoutURI.identifier(),
 		AppOIDCConfigColumnLoginVersion.identifier(),
 		AppOIDCConfigColumnLoginBaseURI.identifier(),
+		AppOIDCConfigColumnRegistrationAccessTokenHash.identifier(),
 
 		AppSAMLConfigColumnAppID.identifier(),
 		AppSAMLConfigColumnEntityID.identifier(),
@@ -794,6 +803,7 @@ func scanApp(row *sql.Row) (*App, error) {
 		&oidcConfig.backChannelLogoutURI,
 		&oidcConfig.loginVersion,
 		&oidcConfig.loginBaseURI,
+		&oidcConfig.registrationAccessTokenHash,
 
 		&samlConfig.appID,
 		&samlConfig.entityID,
@@ -848,6 +858,7 @@ func prepareOIDCAppQuery() (sq.SelectBuilder, func(*sql.Row) (*App, error)) {
 			AppOIDCConfigColumnBackChannelLogoutURI.identifier(),
 			AppOIDCConfigColumnLoginVersion.identifier(),
 			AppOIDCConfigColumnLoginBaseURI.identifier(),
+			AppOIDCConfigColumnRegistrationAccessTokenHash.identifier(),
 		).From(appsTable.identifier()).
 			Join(join(AppOIDCConfigColumnAppID, AppColumnID)).
 			PlaceholderFormat(sq.Dollar), func(row *sql.Row) (*App, error) {
@@ -887,6 +898,7 @@ func prepareOIDCAppQuery() (sq.SelectBuilder, func(*sql.Row) (*App, error)) {
 				&oidcConfig.backChannelLogoutURI,
 				&oidcConfig.loginVersion,
 				&oidcConfig.loginBaseURI,
+				&oidcConfig.registrationAccessTokenHash,
 			)
 
 			if err != nil {
@@ -1004,6 +1016,7 @@ func prepareAppsQuery() (sq.SelectBuilder, func(*sql.Rows) (*Apps, error)) {
 			AppOIDCConfigColumnBackChannelLogoutURI.identifier(),
 			AppOIDCConfigColumnLoginVersion.identifier(),
 			AppOIDCConfigColumnLoginBaseURI.identifier(),
+			AppOIDCConfigColumnRegistrationAccessTokenHash.identifier(),
 
 			AppSAMLConfigColumnAppID.identifier(),
 			AppSAMLConfigColumnEntityID.identifier(),
@@ -1061,6 +1074,7 @@ func prepareAppsQuery() (sq.SelectBuilder, func(*sql.Rows) (*Apps, error)) {
 					&oidcConfig.backChannelLogoutURI,
 					&oidcConfig.loginVersion,
 					&oidcConfig.loginBaseURI,
+					&oidcConfig.registrationAccessTokenHash,
 
 					&samlConfig.appID,
 					&samlConfig.entityID,
@@ -1164,10 +1178,11 @@ type sqlOIDCConfig struct {
 	additionalOrigins        database.TextArray[string]
 	responseTypes            database.NumberArray[domain.OIDCResponseType]
 	grantTypes               database.NumberArray[domain.OIDCGrantType]
-	skipNativeAppSuccessPage sql.NullBool
-	backChannelLogoutURI     sql.NullString
-	loginVersion             sql.NullInt16
-	loginBaseURI             sql.NullString
+	skipNativeAppSuccessPage    sql.NullBool
+	backChannelLogoutURI        sql.NullString
+	loginVersion                sql.NullInt16
+	loginBaseURI                sql.NullString
+	registrationAccessTokenHash sql.NullString
 }
 
 func (c sqlOIDCConfig) set(app *App) {
@@ -1193,6 +1208,7 @@ func (c sqlOIDCConfig) set(app *App) {
 		SkipNativeAppSuccessPage: c.skipNativeAppSuccessPage.Bool,
 		BackChannelLogoutURI:     c.backChannelLogoutURI.String,
 		LoginVersion:             domain.LoginVersion(c.loginVersion.Int16),
+		IsDynamicallyRegistered:  c.registrationAccessTokenHash.Valid,
 	}
 	if c.loginBaseURI.Valid {
 		app.OIDCConfig.LoginBaseURI = &c.loginBaseURI.String

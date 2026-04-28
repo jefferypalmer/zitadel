@@ -179,6 +179,11 @@ message OIDCConfig {
             description: "Specify the preferred login UI, where the user is redirected to for authentication. If unset, the login UI is chosen by the instance default.";
         }
     ];
+    bool dynamically_registered = 23 [
+        (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+            description: "True when this client was created via the Dynamic Client Registration endpoint (RFC 7591). DCR clients manage their own metadata via RFC 7592 and appear in the console's Dynamic Clients view in addition to the regular Applications listing. See cavekit-register-handler.md.";
+        }
+    ];
 }
 
 enum OIDCResponseType {

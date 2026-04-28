@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-27T23:00:00Z"
+last_edited: "2026-04-28T00:00:00Z"
 complexity: medium
 ---
 
@@ -27,7 +27,7 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 - [ ] The Dynamic Clients view lists registered apps with at least: client_id, client_name, registration method (anonymous / IAT-id), registration timestamp, link to view audit events.
 - [ ] No edit affordances are present (no "Edit metadata" button, no "Rotate RAT" button — those are user-managed via RFC 7592).
 - [ ] The view renders without errors when zero DCR-registered apps exist (uses the empty-state i18n key from R3).
-- [ ] **AC3 fulfilment is conditional on the management `App` proto exposing a DCR marker** (e.g. `bool dynamically_registered` or a `dcr_meta` JSON pass-through). Until that proto extension lands, the view ships with the listing template, columns, and audit-link routing wired but with the predicate stubbed to always-empty (which exercises AC5 every time). The Phase-1 wiring contract is: list-component + 5 columns + audit `[routerLink]="['/projects', projectId, 'apps', client.id]"` + empty-state branch — not a populated table. (Added 2026-04-27 from /ck:check Tier 6 finding F-T6-101 — "stubbed predicate is structurally complete but functionally empty"; previously implicit, now explicit.)
+- [ ] **The management `App` proto MUST expose a DCR marker.** Add `bool dynamically_registered` to `OIDCConfig` in `proto/zitadel/app.proto`; surface it through `query.OIDCApp.IsDynamicallyRegistered` (derived from `apps7_oidc_configs.registration_access_token_hash IS NOT NULL`); populate the proto field in the management converter. The frontend predicate then becomes `app.oidcConfig?.dynamicallyRegistered === true`. (Originally added 2026-04-27 as a conditional/Phase-1 carve-out. **Promoted 2026-04-28 to a hard requirement** — Tier 9 of the build site implements it; T-096 closes when the predicate flips.)
 
 **Dependencies:** `cavekit-iat.md` R6 (admin gRPC for cross-link); `cavekit-register-handler.md` R6 (audit events provide the metadata); proto extension `App.dynamically_registered` (follow-up, not Phase 1).
 
@@ -162,3 +162,4 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
   - R1 AC: explicit "wiring contract is empty-state until App proto exposes a DCR marker" (finding F-T6-101).
   - R2 AC: structural plaintext-retention bounds (finding F-005), list pagination via ListQuery (F-002), lifetime upper bound (F-006), revoke guard for empty projectId (F-003).
   - R4 AC: split build/test/lint local-vs-CI execution semantics (F-T6-103); reject `RegExp.toString()` in Cypress assertions (F-001).
+- 2026-04-28: R1 AC promoted from conditional/Phase-1 carve-out to a hard requirement that the App proto MUST carry a DCR marker. Tier 9 of the build site (T-100..T-106) implements the proto field, query surface, mgmt converter, codegen, frontend predicate flip, and Cypress fixture closure. T-096 (BLOCKED in Tier 8) closes when T-104 lands.

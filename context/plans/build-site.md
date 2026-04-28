@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-27T23:00:00Z"
+last_edited: "2026-04-28T00:00:00Z"
 ---
 
 # Build Site
@@ -172,6 +172,22 @@ last_edited: "2026-04-27T23:00:00Z"
 
 ---
 
+## Tier 9 — Proto extension to unblock T-096 (proto-extension-dcr-marker, 2026-04-28)
+
+The Tier 6 closeout left T-096 BLOCKED because the management `App` proto carries no DCR marker. T-041 already added the projection column `registration_access_token_hash`; the data is queryable. This tier wires it through to the management proto and the console.
+
+| Task | Title | Cavekit | Requirement | blockedBy | Effort |
+|------|-------|---------|-------------|-----------|--------|
+| T-100 | Add `bool dynamically_registered = N` field to `OIDCConfig` in `proto/zitadel/app.proto`. Additive; no field renumbering. Documentation comment cross-references the DCR kit. | cavekit-console-ui-docs-and-observability.md | R1 AC3 (proto wiring) | — | XS |
+| T-101 | Extend `query.OIDCApp` in `internal/query/app.go` to surface `IsDynamicallyRegistered bool` derived from `apps7_oidc_configs.registration_access_token_hash IS NOT NULL`. Update the OIDC app SELECT projection (column list, scan target, row materialization) so the field round-trips through the existing query helpers. | cavekit-console-ui-docs-and-observability.md | R1 AC3 (query wiring) | T-100 | S |
+| T-102 | Update the management mgmt-handler converter (`internal/api/grpc/management/project_application_converter.go` or the colocated app→pb mapping) to populate `OIDCConfig.dynamically_registered` from `OIDCApp.IsDynamicallyRegistered`. | cavekit-console-ui-docs-and-observability.md | R1 AC3 (converter wiring) | T-101 | S |
+| T-103 | Run `pnpm --filter @zitadel/console generate` to regenerate TS proto stubs. Verify `App.AsObject.oidcConfig?.dynamicallyRegistered` is the lower-camel field. | cavekit-console-ui-docs-and-observability.md | R1 AC3 (codegen) | T-102 | XS |
+| T-104 | Frontend predicate flip — closes T-096 part (a). In `console/src/app/modules/dynamic-clients/dynamic-clients.component.ts`, replace the stubbed `isDynamicallyRegistered(_app)` with `app.oidcConfig?.dynamicallyRegistered === true`; remove the Phase-1-gap comment block. | cavekit-console-ui-docs-and-observability.md | R1 AC3 | T-103 | XS |
+| T-105 | Cypress fixture closure — closes R4 AC2 part (b). Extend `tests/functional-ui/cypress/e2e/dcr/dcr-clients.cy.ts` to: (1) mint an IAT via admin gRPC scoped to the test project; (2) POST to `/oidc/v1/register` with the IAT to materialize a DCR client; (3) reload the project's Dynamic Clients view; (4) assert the row appears with the expected client_id; (5) click the audit-link icon and assert navigation to `/projects/:projectId/apps/:appId`. | cavekit-console-ui-docs-and-observability.md | R4 AC2 | T-104 | M |
+| T-106 | Mark T-096 RESOLVED in impl tracking (closed by T-104). | cavekit-console-ui-docs-and-observability.md | R1 AC3 (tracking) | T-104 | XS |
+
+---
+
 ## Summary
 
 | Tier | Tasks | Effort |
@@ -185,8 +201,9 @@ last_edited: "2026-04-27T23:00:00Z"
 | 6 | 21 | mixed S/M/L |
 | 7 | 4 | mixed XS/S (post-loop revisions from /ck:check 2026-04-27) |
 | 8 | 9 | mixed XS/S/M (post-Tier-6 /ck:check second pass 2026-04-27) |
+| 9 | 7 | mixed XS/S/M (proto-extension-dcr-marker, unblocks T-096 + R1 AC3 + R4 AC2) |
 
-**Total: 99 tasks, 9 tiers**
+**Total: 106 tasks, 10 tiers**
 
 ## Coverage Matrix
 
