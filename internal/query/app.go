@@ -68,6 +68,11 @@ type OIDCApp struct {
 	// the Dynamic Client Registration endpoint (RFC 7591). Derived from
 	// `apps7_oidc_configs.registration_access_token_hash IS NOT NULL`.
 	IsDynamicallyRegistered bool
+	// JwksInline is the canonical inline JWK Set bytes (sorted-key
+	// normalized) per cavekit-inline-jwks.md R3 / R5. nil when the row
+	// stores no inline JWKS — RFC 7592 GET (T-022) interprets nil as
+	// "omit the `jwks` field from the response", never `null`.
+	JwksInline []byte
 }
 
 type SAMLApp struct {
@@ -284,6 +289,10 @@ var (
 	}
 	AppOIDCConfigColumnRegistrationAccessTokenHash = Column{
 		name:  projection.AppOIDCConfigColumnRegistrationAccessTokenHash,
+		table: appOIDCConfigsTable,
+	}
+	AppOIDCConfigColumnJwksInline = Column{
+		name:  projection.AppOIDCConfigColumnJwksInline,
 		table: appOIDCConfigsTable,
 	}
 )
@@ -734,6 +743,7 @@ func prepareAppQuery(activeOnly bool) (sq.SelectBuilder, func(*sql.Row) (*App, e
 		AppOIDCConfigColumnLoginVersion.identifier(),
 		AppOIDCConfigColumnLoginBaseURI.identifier(),
 		AppOIDCConfigColumnRegistrationAccessTokenHash.identifier(),
+		AppOIDCConfigColumnJwksInline.identifier(),
 
 		AppSAMLConfigColumnAppID.identifier(),
 		AppSAMLConfigColumnEntityID.identifier(),
@@ -804,6 +814,7 @@ func scanApp(row *sql.Row) (*App, error) {
 		&oidcConfig.loginVersion,
 		&oidcConfig.loginBaseURI,
 		&oidcConfig.registrationAccessTokenHash,
+		&oidcConfig.jwksInline,
 
 		&samlConfig.appID,
 		&samlConfig.entityID,
@@ -859,6 +870,7 @@ func prepareOIDCAppQuery() (sq.SelectBuilder, func(*sql.Row) (*App, error)) {
 			AppOIDCConfigColumnLoginVersion.identifier(),
 			AppOIDCConfigColumnLoginBaseURI.identifier(),
 			AppOIDCConfigColumnRegistrationAccessTokenHash.identifier(),
+		AppOIDCConfigColumnJwksInline.identifier(),
 		).From(appsTable.identifier()).
 			Join(join(AppOIDCConfigColumnAppID, AppColumnID)).
 			PlaceholderFormat(sq.Dollar), func(row *sql.Row) (*App, error) {
@@ -899,6 +911,7 @@ func prepareOIDCAppQuery() (sq.SelectBuilder, func(*sql.Row) (*App, error)) {
 				&oidcConfig.loginVersion,
 				&oidcConfig.loginBaseURI,
 				&oidcConfig.registrationAccessTokenHash,
+		&oidcConfig.jwksInline,
 			)
 
 			if err != nil {
@@ -1017,6 +1030,7 @@ func prepareAppsQuery() (sq.SelectBuilder, func(*sql.Rows) (*Apps, error)) {
 			AppOIDCConfigColumnLoginVersion.identifier(),
 			AppOIDCConfigColumnLoginBaseURI.identifier(),
 			AppOIDCConfigColumnRegistrationAccessTokenHash.identifier(),
+		AppOIDCConfigColumnJwksInline.identifier(),
 
 			AppSAMLConfigColumnAppID.identifier(),
 			AppSAMLConfigColumnEntityID.identifier(),
@@ -1075,6 +1089,7 @@ func prepareAppsQuery() (sq.SelectBuilder, func(*sql.Rows) (*Apps, error)) {
 					&oidcConfig.loginVersion,
 					&oidcConfig.loginBaseURI,
 					&oidcConfig.registrationAccessTokenHash,
+		&oidcConfig.jwksInline,
 
 					&samlConfig.appID,
 					&samlConfig.entityID,
@@ -1183,6 +1198,11 @@ type sqlOIDCConfig struct {
 	loginVersion                sql.NullInt16
 	loginBaseURI                sql.NullString
 	registrationAccessTokenHash sql.NullString
+	// jwksInline carries the inline JWK Set bytes per
+	// cavekit-inline-jwks.md R3 / T-015. Nullable; nil when the row
+	// stores no inline JWKS (which is the Phase 1 default for every
+	// existing app).
+	jwksInline []byte
 }
 
 func (c sqlOIDCConfig) set(app *App) {
@@ -1209,6 +1229,7 @@ func (c sqlOIDCConfig) set(app *App) {
 		BackChannelLogoutURI:     c.backChannelLogoutURI.String,
 		LoginVersion:             domain.LoginVersion(c.loginVersion.Int16),
 		IsDynamicallyRegistered:  c.registrationAccessTokenHash.Valid,
+		JwksInline:               c.jwksInline,
 	}
 	if c.loginBaseURI.Valid {
 		app.OIDCConfig.LoginBaseURI = &c.loginBaseURI.String

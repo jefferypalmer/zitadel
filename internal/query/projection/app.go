@@ -69,6 +69,12 @@ const (
 	AppOIDCConfigColumnRegistrationAccessTokenExpiresAt = "registration_access_token_expires_at"
 	AppOIDCConfigColumnDCRMeta                          = "dcr_meta"
 
+	// AppOIDCConfigColumnJwksInline holds the inline JWK Set
+	// (cavekit-inline-jwks.md R3 / T-015). Nullable; mutually exclusive
+	// at storage time with `jwks_uri` (when that column lands — see
+	// cavekit-inline-jwks.md R3 AC).
+	AppOIDCConfigColumnJwksInline = "jwks_inline"
+
 	appSAMLTableSuffix              = "saml_configs"
 	AppSAMLConfigColumnAppID        = "app_id"
 	AppSAMLConfigColumnInstanceID   = "instance_id"
@@ -145,6 +151,7 @@ func (*appProjection) Init() *old_handler.Check {
 			handler.NewColumn(AppOIDCConfigColumnRegistrationAccessTokenHash, handler.ColumnTypeText, handler.Nullable()),
 			handler.NewColumn(AppOIDCConfigColumnRegistrationAccessTokenExpiresAt, handler.ColumnTypeTimestamp, handler.Nullable()),
 			handler.NewColumn(AppOIDCConfigColumnDCRMeta, handler.ColumnTypeJSONB, handler.Nullable()),
+			handler.NewColumn(AppOIDCConfigColumnJwksInline, handler.ColumnTypeJSONB, handler.Nullable()),
 		},
 			handler.NewPrimaryKey(AppOIDCConfigColumnInstanceID, AppOIDCConfigColumnAppID),
 			appOIDCTableSuffix,
