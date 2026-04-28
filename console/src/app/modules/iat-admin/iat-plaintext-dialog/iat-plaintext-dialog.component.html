@@ -16,7 +16,16 @@
       <button mat-icon-button type="button" (click)="copy()" matTooltip="{{ 'ACTIONS.COPY' | translate }}">
         <i class="las la-copy"></i>
       </button>
+      <button
+        mat-icon-button
+        type="button"
+        (click)="remask()"
+        matTooltip="{{ 'DESCRIPTIONS.DCR.IAT.PLAINTEXT_REMASK' | translate }}"
+      >
+        <i class="las la-eye-slash"></i>
+      </button>
     </div>
+    <p class="iat-plaintext-automask-hint">{{ 'DESCRIPTIONS.DCR.IAT.PLAINTEXT_AUTOMASK_HINT' | translate }}</p>
   } @else {
     <button mat-stroked-button type="button" (click)="reveal()">
       <i class="las la-eye"></i>

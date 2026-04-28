@@ -2,6 +2,9 @@
   title="{{ 'DESCRIPTIONS.DCR.CLIENTS.TITLE' | translate }}"
   description="{{ 'DESCRIPTIONS.DCR.CLIENTS.DESCRIPTION' | translate }}"
 >
+  @if (loading$ | async) {
+    <mat-progress-bar mode="indeterminate" data-e2e="dcr-clients-loading"></mat-progress-bar>
+  }
   @if ((clients$ | async)?.length) {
     <table mat-table [dataSource]="(clients$ | async) ?? []" class="dcr-clients-table" data-e2e="dcr-clients-table">
       <ng-container matColumnDef="clientId">

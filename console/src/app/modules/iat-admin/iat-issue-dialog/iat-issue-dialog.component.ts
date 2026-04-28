@@ -12,6 +12,10 @@ export interface IatIssueDialogResult {
 }
 
 const HOUR_SECONDS = 3600;
+// One-year cap on lifetime input. Without an explicit max, scientific
+// notation (`1e3` → 3.6M seconds) silently accepts unreasonable lifetimes.
+const MAX_LIFETIME_HOURS = 8760;
+const MAX_USES_CAP = 1_000_000;
 
 @Component({
   selector: 'cnsl-iat-issue-dialog',
@@ -20,10 +24,19 @@ const HOUR_SECONDS = 3600;
   standalone: false,
 })
 export class IatIssueDialogComponent {
+  public readonly maxLifetimeHours = MAX_LIFETIME_HOURS;
+  public readonly maxUsesCap = MAX_USES_CAP;
+
   public readonly form = new FormGroup({
     projectId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
-    lifetimeHours: new FormControl<number>(24, { nonNullable: true, validators: [Validators.min(0)] }),
-    maxUses: new FormControl<number>(1, { nonNullable: true, validators: [Validators.min(0)] }),
+    lifetimeHours: new FormControl<number>(24, {
+      nonNullable: true,
+      validators: [Validators.min(0), Validators.max(MAX_LIFETIME_HOURS)],
+    }),
+    maxUses: new FormControl<number>(1, {
+      nonNullable: true,
+      validators: [Validators.min(0), Validators.max(MAX_USES_CAP)],
+    }),
     allowedGrantTypes: new FormControl<string[]>([], { nonNullable: true }),
     allowedRedirectUriPatterns: new FormControl<string>('', { nonNullable: true }),
     description: new FormControl<string>('', { nonNullable: true }),
@@ -53,8 +66,8 @@ export class IatIssueDialogComponent {
       .filter((line) => line.length > 0);
     this.ref.close({
       projectId: v.projectId.trim(),
-      lifetimeSeconds: Math.max(0, v.lifetimeHours) * HOUR_SECONDS,
-      maxUses: Math.max(0, v.maxUses),
+      lifetimeSeconds: v.lifetimeHours * HOUR_SECONDS,
+      maxUses: v.maxUses,
       allowedGrantTypes: v.allowedGrantTypes,
       allowedRedirectUriPatterns: patterns,
       description: v.description,

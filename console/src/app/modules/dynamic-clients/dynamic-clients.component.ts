@@ -36,6 +36,9 @@ export class DynamicClientsComponent implements OnChanges {
   }
 
   private load(): void {
+    if (this.loading$.value) {
+      return;
+    }
     this.loading$.next(true);
     this.mgmt
       .listApps(this.projectId, 100, 0)

@@ -46,7 +46,8 @@ describe('dcr — initial access tokens', () => {
       // We assert at least one revoked-status badge appears for our project.
       cy.get('[data-e2e="iat-admin-table"]')
         .contains('tr', projectId)
-        .should('contain.text', /Revoked|Widerrufen/i.toString());
+        .invoke('text')
+        .should('match', /Revoked|Widerrufen/i);
     });
   });
 });

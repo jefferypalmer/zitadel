@@ -328,7 +328,6 @@
         "REGISTRATION_METHOD": "Registrierungsmethode",
         "METHOD_ANONYMOUS": "Anonym",
         "METHOD_IAT": "Initial Access Token",
-        "IAT_USED": "Initial Access Token verwendet",
         "COL_CLIENT_ID": "Client-ID",
         "COL_CLIENT_NAME": "Client-Name",
         "COL_CREATED_AT": "Registriert am",
@@ -366,7 +365,10 @@
         "COL_STATUS": "Status",
         "STATUS_ACTIVE": "Aktiv",
         "STATUS_REVOKED": "Widerrufen",
-        "COL_CREATED_AT": "Erstellt am"
+        "COL_CREATED_AT": "Erstellt am",
+        "PLAINTEXT_REMASK": "Token verbergen",
+        "PLAINTEXT_AUTOMASK_HINT": "Der Token wird nach 60 Sekunden automatisch ausgeblendet.",
+        "REVOKE_PROJECT_REQUIRED": "Initial Access Token kann ohne Projekt-ID nicht widerrufen werden."
       }
     }
   },

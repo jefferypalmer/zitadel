@@ -57,6 +57,20 @@ Dispatching both in parallel via ck:task-builder subagents in isolated worktrees
 Waves executed: 4 (T-070, T-071, T-072+T-076+T-077, T-078)
 Tasks completed: 90/90 (Tier 6 frontend chain closeout; T-013 remains human-owned upstream PR push)
 
+### Iteration 5 — 2026-04-28 (Tier 8 — wave 1 sweep)
+- T-091: DONE. `iat.cy.ts:49` regex now asserts via `.invoke('text').should('match', /Revoked|Widerrufen/i)`.
+- T-092: DONE. `AdminService.listInitialAccessTokens(projectId, query?)` + `<cnsl-paginator>` + `totalResult$` + `loadPage(pageIndex, pageSize)`.
+- T-093: DONE. Revoke refuses falsy `projectId`; toast `REVOKE_PROJECT_REQUIRED`.
+- T-094: DONE. `IatPlaintextDialogComponent.close()` zeroes `data.token`; `ngOnDestroy` mirrors. Caller drops local response token.
+- T-095: DONE. `Validators.max(8760)` on lifetimeHours, `max(1e6)` on maxUses; dead Math.max clamps removed.
+- T-097: DONE. 60-second auto-mask + remask button on plaintext dialog.
+- T-098: DONE. Both modules: Issue/Refresh `[disabled]` on loading$, progress-bar render, double-fetch guard in load methods.
+- T-099: DONE. IAT block moved to file bottom of admin.service.ts; `IAT_USED` key dropped from en+de.
+- T-096: BLOCKED on App proto extension (human-owned).
+- Files: console/src/app/modules/iat-admin/{iat-admin.component.{ts,html}, iat-admin.module.ts, iat-issue-dialog/iat-issue-dialog.component.{ts,html}, iat-plaintext-dialog/iat-plaintext-dialog.component.{ts,html}}; console/src/app/modules/dynamic-clients/{dynamic-clients.component.{ts,html}, dynamic-clients.module.ts}; console/src/app/services/admin.service.ts; console/src/assets/i18n/{en,de}.json; tests/functional-ui/cypress/e2e/dcr/iat.cy.ts.
+- Validation: `tsc --noEmit -p tsconfig.app.json` PASSES (zero errors). `pnpm nx affected --targets=lint` PASSES (after one prettier auto-fix on admin.service.ts). Build/test deferred to CI (Node 20+ + Go).
+- Tier 8 status: 8/9 done (T-096 BLOCKED on proto). Frontier next: empty until proto extension lands.
+
 ═══ /ck:check 2026-04-27 (second pass) ═══
 Verdict: REVISE — 0 P0, 3 P1, 6 P2, 5 P3 across the Tier 6 frontend diff.
 Coverage: R1 PARTIAL (proto gap blocks AC3), R2 COMPLETE, R3 COMPLETE, R4 PARTIAL (fixture + click-through + local build/test).

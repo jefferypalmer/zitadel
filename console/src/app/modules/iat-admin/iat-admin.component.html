@@ -3,7 +3,14 @@
   description="{{ 'DESCRIPTIONS.DCR.IAT.DESCRIPTION' | translate }}"
 >
   <div class="iat-admin-actions card-actions" card-actions>
-    <button mat-raised-button color="primary" type="button" data-e2e="iat-issue-button" (click)="openIssueDialog()">
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      data-e2e="iat-issue-button"
+      [disabled]="loading$ | async"
+      (click)="openIssueDialog()"
+    >
       <i class="las la-plus"></i>
       {{ 'DESCRIPTIONS.DCR.IAT.ISSUE_BUTTON' | translate }}
     </button>
@@ -11,12 +18,17 @@
       mat-icon-button
       type="button"
       data-e2e="iat-refresh-button"
+      [disabled]="loading$ | async"
       (click)="refresh()"
       matTooltip="{{ 'ACTIONS.REFRESH' | translate }}"
     >
       <i class="las la-sync"></i>
     </button>
   </div>
+
+  @if (loading$ | async) {
+    <mat-progress-bar mode="indeterminate" data-e2e="iat-admin-loading"></mat-progress-bar>
+  }
 
   @if ((tokens$ | async)?.length) {
     <table mat-table [dataSource]="(tokens$ | async) ?? []" class="iat-admin-table" data-e2e="iat-admin-table">
@@ -80,6 +92,13 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
+    <cnsl-paginator
+      [length]="totalResult$ | async"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[25, 50, 100, 250]"
+      (page)="onPaginatorChange($event)"
+      data-e2e="iat-admin-paginator"
+    ></cnsl-paginator>
   } @else {
     <div class="iat-admin-empty" data-e2e="iat-admin-empty">
       <p>{{ 'DESCRIPTIONS.DCR.IAT.EMPTY' | translate }}</p>

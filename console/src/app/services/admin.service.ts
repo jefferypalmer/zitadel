@@ -1152,27 +1152,6 @@ export class AdminService {
     return this.grpcService.admin.listSecretGenerators(req, null).then((resp) => resp.toObject());
   }
 
-  /* Initial Access Tokens (DCR) */
-
-  public createInitialAccessToken(req: CreateInitialAccessTokenRequest): Promise<CreateInitialAccessTokenResponse.AsObject> {
-    return this.grpcService.admin.createInitialAccessToken(req, null).then((resp) => resp.toObject());
-  }
-
-  public listInitialAccessTokens(projectId: string | null): Promise<ListInitialAccessTokensResponse.AsObject> {
-    const req = new ListInitialAccessTokensRequest();
-    if (projectId) {
-      req.setProjectId(projectId);
-    }
-    return this.grpcService.admin.listInitialAccessTokens(req, null).then((resp) => resp.toObject());
-  }
-
-  public revokeInitialAccessToken(iatId: string, projectId: string): Promise<RevokeInitialAccessTokenResponse.AsObject> {
-    const req = new RevokeInitialAccessTokenRequest();
-    req.setIatId(iatId);
-    req.setProjectId(projectId);
-    return this.grpcService.admin.revokeInitialAccessToken(req, null).then((resp) => resp.toObject());
-  }
-
   public getSecretGenerator(req: GetSecretGeneratorRequest): Promise<GetSecretGeneratorResponse.AsObject> {
     return this.grpcService.admin.getSecretGenerator(req, null).then((resp) => resp.toObject());
   }
@@ -1424,5 +1403,32 @@ export class AdminService {
 
   public listMilestones(req: ListMilestonesRequest): Promise<ListMilestonesResponse.AsObject> {
     return this.grpcService.admin.listMilestones(req, null).then((resp) => resp.toObject());
+  }
+
+  /* Initial Access Tokens (DCR) */
+
+  public createInitialAccessToken(req: CreateInitialAccessTokenRequest): Promise<CreateInitialAccessTokenResponse.AsObject> {
+    return this.grpcService.admin.createInitialAccessToken(req, null).then((resp) => resp.toObject());
+  }
+
+  public listInitialAccessTokens(
+    projectId: string | null,
+    query?: ListQuery,
+  ): Promise<ListInitialAccessTokensResponse.AsObject> {
+    const req = new ListInitialAccessTokensRequest();
+    if (projectId) {
+      req.setProjectId(projectId);
+    }
+    if (query) {
+      req.setQuery(query);
+    }
+    return this.grpcService.admin.listInitialAccessTokens(req, null).then((resp) => resp.toObject());
+  }
+
+  public revokeInitialAccessToken(iatId: string, projectId: string): Promise<RevokeInitialAccessTokenResponse.AsObject> {
+    const req = new RevokeInitialAccessTokenRequest();
+    req.setIatId(iatId);
+    req.setProjectId(projectId);
+    return this.grpcService.admin.revokeInitialAccessToken(req, null).then((resp) => resp.toObject());
   }
 }
