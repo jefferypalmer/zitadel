@@ -782,6 +782,11 @@ func startAPIs(
 						AppID:       req.AppID,
 						App:         req.Clamped.ToOIDCApp(),
 						RATLifetime: config.OIDC.DCR.RegistrationAccessToken.Lifetime,
+						// cavekit-inline-jwks.md R4 / T-021: thread the
+						// canonical bytes through. nil = neither field
+						// in PUT body → command emits .removed if a row
+						// previously stored inline jwks.
+						JwksInline:  []byte(req.Clamped.Jwks),
 					}
 					res, err := commands.UpdateRegisteredClient(ctx, in)
 					if err != nil {
@@ -1065,5 +1070,9 @@ func (a *dcrManageQueriesAdapter) DCRMetadataByClientID(ctx context.Context, cli
 		ApplicationType:  domain.RFC7591ApplicationTypeString(row.ApplicationType),
 		AuthMethodType:   domain.RFC7591AuthMethodString(row.AuthMethodType),
 		DCRMeta:          []byte(row.DCRMeta),
+		JwksInline:       []byte(row.JwksInline),
+		// JwksURI: not yet projected — Phase 1 has no jwks_uri column on
+		// apps7_oidc_configs. When that column lands, set it here so the
+		// GET handler's three-state branching has the URI form available.
 	}, nil
 }

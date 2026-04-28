@@ -45,6 +45,16 @@ type ManageMetaRow struct {
 	ApplicationType  string
 	AuthMethodType   string
 	DCRMeta          []byte
+
+	// cavekit-inline-jwks.md R5 / T-022. JwksInline carries the canonical
+	// (sorted-key) bytes when the row stores inline `jwks`; nil when the
+	// row stores `jwks_uri` instead, or when the row stores neither.
+	// JwksURI mirrors the (currently uncolumned) `jwks_uri` field — kept
+	// here so the GET writer's three-state logic (R5: inline → echo
+	// jwks; uri → echo jwks_uri, omit jwks; neither → omit both) has a
+	// single source of truth in the row struct.
+	JwksInline []byte
+	JwksURI    string
 }
 
 // ManageRATRow mirrors the subset of [query.DCRRATLookup] the manage

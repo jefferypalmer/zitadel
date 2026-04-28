@@ -55,6 +55,16 @@ type ManageReadResponse struct {
 	DefaultACRValues []string `json:"default_acr_values,omitempty"`
 	InitiateLoginURI string   `json:"initiate_login_uri,omitempty"`
 	Scope            string   `json:"scope,omitempty"`
+
+	// JwksURI / Jwks: cavekit-inline-jwks.md R5 / T-022.
+	//
+	// json:omitempty on json.RawMessage emits no `jwks` key when the
+	// field is nil — RFC 7592 GET MUST NOT emit `null` for an unset
+	// inline jwks (kit explicit). When the row stores inline jwks,
+	// the bytes are echoed verbatim (modulo the sorted-key
+	// normalization jwks_inline.Validate already applied).
+	JwksURI string          `json:"jwks_uri,omitempty"`
+	Jwks    json.RawMessage `json:"jwks,omitempty"`
 }
 
 // dcrMetaPassthrough is the on-the-wire JSONB shape of the dcr_meta
@@ -173,6 +183,17 @@ func buildManageReadResponse(
 	// Keeping the parameter on the signature documents the contract
 	// at the call site.
 	_ = secretExpiresConfigured
+
+	// cavekit-inline-jwks.md R5 / T-022 — three-state JWKS rendering.
+	switch {
+	case len(row.JwksInline) > 0:
+		// Echo verbatim. The bytes were sorted-key-normalized at
+		// validate time (T-007), so a captured-PUT-then-GET-roundtrip
+		// is byte-equal modulo key order.
+		resp.Jwks = json.RawMessage(row.JwksInline)
+	case row.JwksURI != "":
+		resp.JwksURI = row.JwksURI
+	}
 
 	if len(row.DCRMeta) > 0 {
 		var meta dcrMetaPassthrough

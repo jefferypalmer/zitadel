@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -372,6 +373,15 @@ type UpdateRegisteredClientInput struct {
 	// (so a previously-finite RAT cannot be silently extended by a
 	// rotation that fails to specify a lifetime).
 	RATLifetime time.Duration
+
+	// JwksInline (cavekit-inline-jwks.md R4 / T-021) — the canonical
+	// (sorted-key) bytes the caller wants persisted as inline `jwks`.
+	// nil = "PUT did not include `jwks` (and did not include `jwks_uri`
+	// either, since they're mutually exclusive)". The command compares
+	// against the existing row's stored bytes and emits one of the
+	// three events: set / changed / removed. nil with the row already
+	// nil emits no event (idempotent no-op).
+	JwksInline []byte
 }
 
 // UpdateRegisteredClientResult mirrors the subset of the persisted state
@@ -554,6 +564,20 @@ func (c *Commands) UpdateRegisteredClient(ctx context.Context, in *UpdateRegiste
 		// `crypto.SecretOrEncodedHash("", "")` yields nil, which the
 		// app-lookup path treats as "no secret stored".
 		cmds = append(cmds, project_repo.NewOIDCConfigSecretChangedEvent(ctx, projectAgg, app.AppID, ""))
+	}
+
+	// Inline JWKS diff (cavekit-inline-jwks.md R4 / T-021). Compare the
+	// requested bytes to the existing row's stored value and emit
+	// exactly one of the three events when they differ:
+	//   - existing nil + requested non-nil → `oidc_config.jwks.inline.set`
+	//   - existing non-nil + requested non-nil + bytes differ → `.changed`
+	//   - existing non-nil + requested nil → `.removed`
+	//   - existing == requested (incl. both nil) → no event (idempotent).
+	// The `jwks_uri ↔ jwks` mutual-exclusion at storage is the projection
+	// reducer's responsibility (T-016 documented), so this command only
+	// owns the inline-jwks side.
+	if jwksEvent := buildJwksInlineDiffEvent(ctx, projectAgg, in.AppID, existing.JwksInline, in.JwksInline); jwksEvent != nil {
+		cmds = append(cmds, jwksEvent)
 	}
 
 	// RAT rotation (cavekit-manage-handler.md R5 AC7-9 / T-055). Every
@@ -870,3 +894,32 @@ func (c *Commands) DeleteRegisteredClient(ctx context.Context, projectID, orgID,
 	return revokedSessions, nil
 }
 
+
+// buildJwksInlineDiffEvent computes the single event (or nil) needed
+// to transition the row's stored inline JWKS from `current` to
+// `requested`. Returns nil for the no-op case (current == requested,
+// including both nil). Pure — no eventstore IO.
+//
+// cavekit-inline-jwks.md R4: PUT body validated per R1+R2 has already
+// canonicalised `requested` (sorted-key bytes from jwks_inline.Validate),
+// and `current` carries the canonical bytes that were persisted. So a
+// byte-equal comparison is the right diff — no JSON re-decode needed.
+func buildJwksInlineDiffEvent(
+	ctx context.Context,
+	projectAgg *eventstore.Aggregate,
+	appID string,
+	current, requested []byte,
+) eventstore.Command {
+	switch {
+	case len(current) == 0 && len(requested) == 0:
+		return nil
+	case len(current) == 0 && len(requested) > 0:
+		return project_repo.NewApplicationOIDCConfigJwksInlineSetEvent(ctx, projectAgg, appID, append([]byte(nil), requested...))
+	case len(current) > 0 && len(requested) == 0:
+		return project_repo.NewApplicationOIDCConfigJwksInlineRemovedEvent(ctx, projectAgg, appID)
+	case bytes.Equal(current, requested):
+		return nil
+	default:
+		return project_repo.NewApplicationOIDCConfigJwksInlineChangedEvent(ctx, projectAgg, appID, append([]byte(nil), requested...))
+	}
+}

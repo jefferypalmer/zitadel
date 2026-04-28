@@ -27,7 +27,8 @@ select row_to_json(r) from (
            c.response_types,
            c.application_type,
            c.auth_method_type,
-           c.dcr_meta
+           c.dcr_meta,
+           c.jwks_inline
     from projections.apps7_oidc_configs c
     join projections.apps7 a on a.id = c.app_id
         and a.instance_id = c.instance_id

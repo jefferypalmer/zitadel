@@ -88,6 +88,10 @@ type DCRGetMetadata struct {
 	ApplicationType   *domain.OIDCApplicationType             `json:"application_type,omitempty"`
 	AuthMethodType    *domain.OIDCAuthMethodType              `json:"auth_method_type,omitempty"`
 	DCRMeta           json.RawMessage                         `json:"dcr_meta,omitempty"`
+	// JwksInline (cavekit-inline-jwks.md R5 / T-022) carries the
+	// canonical sorted-key bytes of the stored inline JWK Set when the
+	// row holds one; nil otherwise.
+	JwksInline json.RawMessage `json:"jwks_inline,omitempty"`
 }
 
 //go:embed dcr_metadata_by_client_id.sql

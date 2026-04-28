@@ -40,6 +40,13 @@ type OIDCApplicationWriteModel struct {
 	LoginVersion             domain.LoginVersion
 	LoginBaseURI             string
 	oidc                     bool
+
+	// JwksInline (cavekit-inline-jwks.md R3 / R4 / T-016 / T-021): the
+	// canonical bytes currently stored on apps7_oidc_configs.jwks_inline.
+	// nil ↔ "no inline jwks stored". The PUT command (T-021) diffs this
+	// against the requested value to decide which of the three
+	// (set/changed/removed) events to emit.
+	JwksInline []byte
 }
 
 func NewOIDCApplicationWriteModelWithAppID(projectID, appID, resourceOwner string) *OIDCApplicationWriteModel {
@@ -108,6 +115,21 @@ func (wm *OIDCApplicationWriteModel) AppendEvents(events ...eventstore.Event) {
 				continue
 			}
 			wm.WriteModel.AppendEvents(e)
+		case *project.ApplicationOIDCConfigJwksInlineSetEvent:
+			if e.AppID != wm.AppID {
+				continue
+			}
+			wm.WriteModel.AppendEvents(e)
+		case *project.ApplicationOIDCConfigJwksInlineChangedEvent:
+			if e.AppID != wm.AppID {
+				continue
+			}
+			wm.WriteModel.AppendEvents(e)
+		case *project.ApplicationOIDCConfigJwksInlineRemovedEvent:
+			if e.AppID != wm.AppID {
+				continue
+			}
+			wm.WriteModel.AppendEvents(e)
 		case *project.ProjectRemovedEvent:
 			wm.WriteModel.AppendEvents(e)
 		}
@@ -142,6 +164,12 @@ func (wm *OIDCApplicationWriteModel) Reduce() error {
 			wm.HashedSecret = crypto.SecretOrEncodedHash(e.ClientSecret, e.HashedSecret)
 		case *project.OIDCConfigSecretHashUpdatedEvent:
 			wm.HashedSecret = e.HashedSecret
+		case *project.ApplicationOIDCConfigJwksInlineSetEvent:
+			wm.JwksInline = append([]byte(nil), e.JwksInline...)
+		case *project.ApplicationOIDCConfigJwksInlineChangedEvent:
+			wm.JwksInline = append([]byte(nil), e.JwksInline...)
+		case *project.ApplicationOIDCConfigJwksInlineRemovedEvent:
+			wm.JwksInline = nil
 		case *project.ProjectRemovedEvent:
 			wm.State = domain.AppStateRemoved
 		}
