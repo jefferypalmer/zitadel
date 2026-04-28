@@ -292,6 +292,69 @@ must rewrite into `X-Forwarded-For` at the ingress.
 The DCR endpoints run inside the same HTTP server as `/oidc/v1/userinfo`
 and inherit the same TLS posture. There are no DCR-specific TLS knobs.
 
+## Observability
+
+DCR emits OpenTelemetry spans and metrics under the `oidc.dcr.*` and
+`zitadel.dcr.*` namespaces respectively. Phase 1 ships the registration
+hot path counters; Phase 2 adds three counters covering org-policy churn,
+software_statement verification, and the per-issuer JWKS cache.
+
+### Metrics
+
+| Metric | Type | Labels | Source |
+|--------|------|--------|--------|
+| `zitadel.dcr.registrations_total` | counter | `result`, `auth_method`, `application_type` | every `POST /oidc/v1/register` exit |
+| `zitadel.dcr.request_duration_seconds` | histogram | — | every DCR HTTP request |
+| `zitadel.dcr.errors_total` | counter | `code` (RFC 7591 error code) | every error envelope emitted |
+| `zitadel.dcr.iat.consumed_total` | counter | — | every successful IAT slot consume |
+| `zitadel.dcr.iat.exhausted_total` | counter | — | every IAT consume that fails because all slots are taken |
+| `zitadel.dcr.org_policy_changes_total` | counter | `org_id`, `scope ∈ {org,instance}`, `result ∈ {accepted,rejected}` | every `OrgDCRPolicy*` / `InstanceDCRPolicy*` command exit |
+| `zitadel.dcr.software_statement_verifications_total` | counter | `iss`, `result ∈ {accepted,untrusted,expired,replay,invalid_signature,invalid_structure,fetch_failed,unsupported_algorithm,missing_required_claim,not_yet_valid}` | every `software_statement` verifier exit |
+| `zitadel.dcr.software_statement_jwks_cache_hits_total` | counter | `iss`, `outcome ∈ {hit,miss,refetch_failed}` | every per-issuer JWKS cache lookup |
+
+Notes:
+
+- `zitadel.dcr.org_policy_changes_total` carries `scope=instance` for
+  the instance-default tier with `org_id="instance"` (label cardinality
+  bound). Org commands carry `scope=org` with `org_id` set to the
+  resource owner.
+- `zitadel.dcr.software_statement_jwks_cache_hits_total` reports
+  `outcome=refetch_failed` only when the cache previously held an
+  entry for the issuer and the rotation refetch failed — fail-closed
+  per RFC 7591 §2.3 (the verifier MUST NOT serve stale on rotation
+  refetch failure).
+- The Console UI does NOT introduce its own OTel spans or metrics.
+  Operator panel actions hit the standard Management gRPC surface and
+  surface inside the existing gRPC server-interceptor instrumentation.
+
+### Span attributes
+
+| Span | Attribute | Source | Notes |
+|------|-----------|--------|-------|
+| `oidc.dcr.register` | `dcr.policy.scope = org \| instance \| static-config` | merged DCR policy resolution at register time | Reports the tier the per-(instance, org) merge resolved against. The org allow-list URI list itself is NEVER an attribute. |
+| `oidc.dcr.register`, `oidc.dcr.update` | `dcr.jwks.source = inline \| uri \| none` | clamped request body | `inline` when the body provided inline `jwks`; `uri` when only `jwks_uri` was provided; `none` when neither. The JWK Set content is NEVER an attribute. |
+| `oidc.dcr.software_statement.verify` | `iss`, `result` | parsed `software_statement` body + verifier outcome | The raw JWT, raw timestamps, and JWKS payload are NEVER attributes — `iss` is RFC 7519 §4.1.1 identifier-only, non-secret. |
+
+### Audit log events
+
+`project.application.dynamically.registered` and
+`project.application.registration_access_token.rotated` are the two
+DCR-specific events on the project aggregate. The rotation event is
+emitted on **both** operator-initiated rotation (Phase 2 console-side
+"Rotate RAT" button) and client-initiated rotation (RFC 7592 PUT). Audit
+consumers MUST NOT use the event type alone to distinguish operator
+vs. client rotation — read the eventstore actor field on the event row
+to disambiguate. The payload is identical in both cases.
+
+`OrgDCRPolicy*` / `InstanceDCRPolicy*` commands also emit a redacted
+INFO log on success and a WARN log on R4/R5 validation failure. The
+INFO payload reports `instance_id, resource_owner, scope,
+allowed_audiences_count` (an `int`, never the URI list) and the
+lifetime; the WARN payload reports `instance_id, resource_owner,
+error_key, first_violating_value` and never the full submitted list —
+org allow-lists may name internal-only resources whose existence is
+itself sensitive.
+
 ## Configuration reference
 
 ```yaml
