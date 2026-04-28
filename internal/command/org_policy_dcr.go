@@ -13,18 +13,23 @@ import (
 )
 
 // SetOrgDCRPolicy creates an org-scope DCR policy override
-// (cavekit-org-dcr-policy.md R1 / T-011). Subset / cap narrowing
-// validation lives in T-018 / T-019; this command enforces only
-// existence + change semantics.
+// (cavekit-org-dcr-policy.md R1 / T-011 + R4/R5 validation T-018/T-019).
 //
 // `allowedAudiences == nil` and `registrationAccessTokenLifetime == nil`
 // each encode "inherit upper tier" — both NULL means the org row holds no
 // override at all but is still present (so audit trail records the create).
+//
+// Non-nil org values are validated against the EFFECTIVE instance default
+// (instance row when present, static-config defaults otherwise) at
+// command time:
+//   - allowedAudiences: subset check vs instance allow-list (R4).
+//   - registrationAccessTokenLifetime: ≤ instance cap (R5).
 func (c *Commands) SetOrgDCRPolicy(
 	ctx context.Context,
 	orgID string,
 	allowedAudiences *[]string,
 	registrationAccessTokenLifetime *time.Duration,
+	staticDefaults DCRStaticDefaults,
 ) (_ *domain.ObjectDetails, err error) {
 	ctx, span := tracing.NewSpan(ctx)
 	defer func() { span.EndWithError(err) }()
@@ -40,6 +45,9 @@ func (c *Commands) SetOrgDCRPolicy(
 	if wm.State == domain.PolicyStateActive {
 		return nil, zerrors.ThrowAlreadyExists(nil, "ORGD-DcR02", "Errors.Org.DCRPolicy.AlreadyExists")
 	}
+	if err := c.validateOrgDCRPolicyAgainstInstance(ctx, allowedAudiences, registrationAccessTokenLifetime, staticDefaults); err != nil {
+		return nil, err
+	}
 	orgAgg := org.NewAggregate(orgID)
 	pushedEvents, err := c.eventstore.Push(ctx,
 		org.NewOrgDCRPolicyAddedEvent(ctx, &orgAgg.Aggregate, allowedAudiences, registrationAccessTokenLifetime),
@@ -53,11 +61,19 @@ func (c *Commands) SetOrgDCRPolicy(
 // UpdateOrgDCRPolicy mutates an existing org-scope DCR policy. nil
 // arguments mean "no change for this field" (NOT "set to inherit") —
 // to clear an override use ResetOrgDCRPolicy.
+//
+// Validation runs identically to Set — non-nil values are subset/cap-
+// narrowed against the effective instance default. Tightened-instance
+// edge case (kit R4/R5): when the instance has narrowed since the org
+// last set its override, this Update will refuse to push any value
+// that no longer fits — historical events stay unchanged on the
+// aggregate; only future updates are gated.
 func (c *Commands) UpdateOrgDCRPolicy(
 	ctx context.Context,
 	orgID string,
 	allowedAudiences *[]string,
 	registrationAccessTokenLifetime *time.Duration,
+	staticDefaults DCRStaticDefaults,
 ) (_ *domain.ObjectDetails, err error) {
 	ctx, span := tracing.NewSpan(ctx)
 	defer func() { span.EndWithError(err) }()
@@ -72,6 +88,9 @@ func (c *Commands) UpdateOrgDCRPolicy(
 	}
 	if !wm.State.Exists() {
 		return nil, zerrors.ThrowNotFound(nil, "ORGD-DcR04", "Errors.Org.DCRPolicy.NotFound")
+	}
+	if err := c.validateOrgDCRPolicyAgainstInstance(ctx, allowedAudiences, registrationAccessTokenLifetime, staticDefaults); err != nil {
+		return nil, err
 	}
 
 	changes := buildDCRPolicyChanges(&wm.PolicyDCRWriteModel,
@@ -90,6 +109,39 @@ func (c *Commands) UpdateOrgDCRPolicy(
 		return nil, err
 	}
 	return pushedEventsToObjectDetails(pushedEvents), nil
+}
+
+// validateOrgDCRPolicyAgainstInstance runs the R4 (subset) + R5 (cap)
+// gates against the effective instance default. nil args bypass their
+// respective gate (= "inherit"); non-nil args are validated.
+func (c *Commands) validateOrgDCRPolicyAgainstInstance(
+	ctx context.Context,
+	allowedAudiences *[]string,
+	registrationAccessTokenLifetime *time.Duration,
+	staticDefaults DCRStaticDefaults,
+) error {
+	// Skip the round-trip when both args are nil — caller is just
+	// recording an "inherit everything" override.
+	if allowedAudiences == nil && registrationAccessTokenLifetime == nil {
+		return nil
+	}
+	instanceWM, err := c.instanceDCRPolicyWriteModel(ctx)
+	if err != nil {
+		return err
+	}
+	if allowedAudiences != nil {
+		effectiveAudiences, _ := effectiveInstanceAllowedAudiences(&instanceWM.PolicyDCRWriteModel, staticDefaults)
+		if err := validateOrgAllowedAudiencesSubset(*allowedAudiences, effectiveAudiences); err != nil {
+			return err
+		}
+	}
+	if registrationAccessTokenLifetime != nil {
+		effectiveLifetime, _ := effectiveInstanceLifetime(&instanceWM.PolicyDCRWriteModel, staticDefaults)
+		if err := validateOrgLifetimeCap(*registrationAccessTokenLifetime, effectiveLifetime); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ResetOrgDCRPolicy removes the org-scope override so the effective
