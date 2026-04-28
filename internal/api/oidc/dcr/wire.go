@@ -13,6 +13,7 @@ import (
 
 	"github.com/zitadel/zitadel/internal/api/authz"
 	http_util "github.com/zitadel/zitadel/internal/api/http"
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr/software_statement"
 	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 )
 
@@ -160,6 +161,15 @@ type RegistrationDeps struct {
 	// `config.OIDC.DCR.SoftwareStatement.Enabled`.
 	SoftwareStatementEnabled bool
 
+	// SoftwareStatementPipeline drives the parse → lookup → verify →
+	// required-claims → replay-record → override-mapping flow when the
+	// request body carries a software_statement (cavekit-software-
+	// statement.md R2..R9 / T-031). Optional — nil disables the
+	// pipeline (Phase 1 fallback: any non-empty software_statement
+	// rejects via R4 as `unapproved_software_statement`). Production
+	// wires this only when SoftwareStatementEnabled=true.
+	SoftwareStatementPipeline *software_statement.PipelineDeps
+
 	// AntiEnumDummyHash is the precomputed dummy Passwap hash used
 	// by [ResolveIAT] for timing equivalence between known-and-wrong
 	// and unknown branches. MUST be built via [BuildAntiEnumDummyHash]
@@ -238,6 +248,14 @@ type RegisterRequest struct {
 	ClientNameUnclamped string
 	RemoteIPString      string
 	UserAgent           string
+
+	// SoftwareStatementJTI carries the verified JWT's jti claim per
+	// cavekit-software-statement.md R8 / T-031 — populated only when
+	// the request body contained a software_statement that PASSED the
+	// full pipeline (parse → trusted-issuer lookup → verify → required-
+	// claims → replay-record). Empty string when no software_statement
+	// was supplied (preserves the Phase 1 sentinel).
+	SoftwareStatementJTI string
 }
 
 // RegisterResult is the dcr-internal shape returned by the closure.
@@ -424,6 +442,48 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			writeDispatchError(ctx, w, err)
 			return
 		}
+
+		// 3a. software_statement pipeline (cavekit-software-statement.md
+		// R2..R9 / T-031). Skip when pipeline isn't wired or the body
+		// carried no software_statement. Pipeline failures (R2/R3/R5/R7/R9)
+		// produce *software_statement.ParseError which we translate to
+		// the same RFC 7591 envelope writeDispatchError emits for
+		// ClampError. NO event is pushed on a pipeline rejection.
+		var softwareStatementJTI string
+		if deps.SoftwareStatementPipeline != nil && clamped.SoftwareStatement != "" {
+			ssResult, ssErr := software_statement.Run(ctx, clamped.SoftwareStatement, *deps.SoftwareStatementPipeline)
+			if ssErr != nil {
+				recordError(ctx, ssErr.Code)
+				WriteError(w, http.StatusBadRequest, ssErr.Code,
+					ssErr.Description)
+				return
+			}
+			if ssResult != nil {
+				softwareStatementJTI = ssResult.JTI
+
+				// Apply R6 override mapping: re-clamp the merged body so
+				// JWT-supplied redirect_uris / grant_types / etc. still
+				// pass the Phase 1 R4 allow-lists (kit explicit: "merged
+				// result still flows through Phase 1 R4 clamps").
+				if len(ssResult.MergedExtra) > 0 {
+					mergedDecoded, mergeErr := mergeOverrideClaims(decoded, ssResult.MergedExtra)
+					if mergeErr != nil {
+						recordError(ctx, ErrCodeInvalidClientMetadata)
+						WriteError(w, http.StatusBadRequest, ErrCodeInvalidClientMetadata,
+							"software_statement override merge failed")
+						return
+					}
+					reclamped, clampErr := ValidateAndClampMetadata(deps.Config, mergedDecoded,
+						deps.SupportedSigAlgs, deps.SoftwareStatementEnabled)
+					if clampErr != nil {
+						writeDispatchError(ctx, w, clampErr)
+						return
+					}
+					clamped = reclamped
+				}
+			}
+		}
+
 		// Populate application_type label now that clamp succeeded —
 		// metric label cardinality is bounded by the
 		// [DCRConfigSubset.AllowedApplicationTypes] config (R8 AC1).
@@ -466,14 +526,15 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			registrationMethod = RegMethodIAT
 		}
 		req := &RegisterRequest{
-			Clamped:             clamped,
-			OrgID:               regCtx.OrgID,
-			ProjectID:           regCtx.ProjectID,
-			IATID:               regCtx.IATID,
-			RegistrationMethod:  registrationMethod,
-			ClientNameUnclamped: decoded.ClientName,
-			RemoteIPString:      http_util.RemoteIPStringFromRequest(r),
-			UserAgent:           r.UserAgent(),
+			Clamped:              clamped,
+			OrgID:                regCtx.OrgID,
+			ProjectID:            regCtx.ProjectID,
+			IATID:                regCtx.IATID,
+			RegistrationMethod:   registrationMethod,
+			ClientNameUnclamped:  decoded.ClientName,
+			RemoteIPString:       http_util.RemoteIPStringFromRequest(r),
+			UserAgent:            r.UserAgent(),
+			SoftwareStatementJTI: softwareStatementJTI,
 		}
 		result, err := deps.Register(ctx, req)
 		if err != nil {

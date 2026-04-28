@@ -731,6 +731,7 @@ func startAPIs(
 					ProjectID:            req.ProjectID,
 					IATID:                req.IATID,
 					DCRMeta:              dcrMeta,
+					SoftwareStatementJTI: req.SoftwareStatementJTI,
 					RegistrationMethod:   req.RegistrationMethod,
 					ClientNameUnclamped:  req.ClientNameUnclamped,
 					RemoteIPString:       req.RemoteIPString,
