@@ -233,7 +233,25 @@ func (s *Server) verifyClientAssertion(ctx context.Context, client *query.OIDCCl
 	if assertion == "" {
 		return oidc.ErrInvalidClient().WithDescription("empty client assertion")
 	}
-	verifier := op.NewJWTProfileVerifierKeySet(keySetMap(client.PublicKeys), op.IssuerFromContext(ctx), time.Hour, client.ClockSkew)
+	// cavekit-inline-jwks.md R6 / T-032: when the row stores inline JWKS,
+	// select the verification key from the inline `keys[].kid` set. PUT-
+	// time key rotation overwrites the column, so the next token request
+	// authenticates against the new key — old plaintext fails verify.
+	// jwks_uri-only rows (legacy / Phase 1) keep the keySetMap path
+	// unchanged. Neither field stored AND private_key_jwt configured →
+	// keySetMap on an empty/nil PublicKeys map produces "no signing
+	// material", which already maps to invalid_client downstream.
+	var keySet oidc.KeySet
+	if len(client.JwksInline) > 0 {
+		ks, parseErr := newInlineJWKSKeySet(client.JwksInline)
+		if parseErr != nil {
+			return oidc.ErrInvalidClient().WithParent(parseErr).WithReturnParentToClient(authz.GetFeatures(ctx).DebugOIDCParentError).WithDescription("invalid stored jwks")
+		}
+		keySet = ks
+	} else {
+		keySet = keySetMap(client.PublicKeys)
+	}
+	verifier := op.NewJWTProfileVerifierKeySet(keySet, op.IssuerFromContext(ctx), time.Hour, client.ClockSkew)
 	if _, err := op.VerifyJWTAssertion(ctx, assertion, verifier); err != nil {
 		return oidc.ErrInvalidClient().WithParent(err).WithReturnParentToClient(authz.GetFeatures(ctx).DebugOIDCParentError).WithDescription("invalid assertion")
 	}

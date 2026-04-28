@@ -45,6 +45,13 @@ type OIDCClient struct {
 	LoginBaseURI             *URL                       `json:"login_base_uri,omitempty"`
 	ProjectRoleKeys          []string                   `json:"project_role_keys,omitempty"`
 	Settings                 *OIDCSettings              `json:"settings,omitempty"`
+
+	// JwksInline carries the canonical (sorted-key) inline JWK Set bytes
+	// per cavekit-inline-jwks.md R6 / T-032. Non-nil means the row stores
+	// inline JWKS; the token-endpoint private_key_jwt verifier MUST select
+	// keys from this set rather than from PublicKeys (which is the legacy
+	// AuthNKey-driven service-account JWT path).
+	JwksInline []byte `json:"jwks_inline,omitempty"`
 }
 
 type URL url.URL
