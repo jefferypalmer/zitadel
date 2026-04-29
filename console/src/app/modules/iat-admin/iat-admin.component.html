@@ -93,7 +93,7 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
     <cnsl-paginator
-      [length]="totalResult$ | async"
+      [length]="(totalResult$ | async) ?? 0"
       [pageSize]="pageSize"
       [pageSizeOptions]="[25, 50, 100, 250]"
       (page)="onPaginatorChange($event)"
