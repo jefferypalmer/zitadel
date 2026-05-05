@@ -86,17 +86,105 @@ async function writeJSON(path, value) {
   await writeFile(path, JSON.stringify(value, null, 2) + '\n', 'utf8');
 }
 
-// callClaude — minimal API call. T-012 hardens this with the strict
-// glossary / placeholder / JSON-only contract.
+// PROTECTED_GLOSSARY — domain terms that MUST appear verbatim in the
+// translation if they appear in the source. Matched case-sensitively.
+// Plus any all-uppercase initialism of length 2-6 detected dynamically
+// in source values (cavekit-i18n-pipeline.md R2).
+export const PROTECTED_GLOSSARY = [
+  'Zitadel', 'OAuth', 'OIDC', 'JWT', 'JWKS', 'DCR', 'IAT', 'RAT',
+  'RFC 7591', 'RFC 7592', 'RFC 8707', 'PKCE', 'MCP',
+  'URL', 'URI', 'HTTP', 'HTTPS', 'JSON',
+];
+
+// PLACEHOLDER_RE matches every ICU `{...}` placeholder and every
+// printf-style `%s`/`%d`/`%v` token. The set is compared between
+// source and translation per-key; any divergence is fatal.
+//
+// `{...}` matches greedy-but-not-cross-newline so multi-line JSON
+// values still segment correctly.
+const PLACEHOLDER_RE = /\{[^}\n]*\}|%[sdv]/g;
+
+export function extractPlaceholders(value) {
+  if (typeof value !== 'string') return [];
+  const matches = value.match(PLACEHOLDER_RE);
+  return matches ? [...matches].sort() : [];
+}
+
+export function detectInitialisms(value) {
+  if (typeof value !== 'string') return [];
+  const matches = value.match(/\b[A-Z]{2,6}\b/g);
+  return matches ? [...new Set(matches)] : [];
+}
+
+// validateLeafTranslation runs cavekit-i18n-pipeline.md R2 per-key
+// invariants on a single (source, translated) pair. Returns null on
+// pass; an error message string on fail.
+export function validateLeafTranslation(srcValue, transValue, key) {
+  if (typeof srcValue !== 'string' || typeof transValue !== 'string') {
+    return null; // non-string leaves bypass — we still wrote them through
+  }
+  const srcPlaceholders = extractPlaceholders(srcValue);
+  const transPlaceholders = extractPlaceholders(transValue);
+  if (JSON.stringify(srcPlaceholders) !== JSON.stringify(transPlaceholders)) {
+    return `placeholder-set divergence at ${key}: source ${JSON.stringify(srcPlaceholders)}, translated ${JSON.stringify(transPlaceholders)}\n  src: ${srcValue}\n  trans: ${transValue}`;
+  }
+  const protectedTerms = [
+    ...PROTECTED_GLOSSARY,
+    ...detectInitialisms(srcValue),
+  ];
+  for (const term of protectedTerms) {
+    if (srcValue.includes(term) && !transValue.includes(term)) {
+      return `protected-glossary divergence at ${key}: term ${JSON.stringify(term)} missing from translation\n  src: ${srcValue}\n  trans: ${transValue}`;
+    }
+  }
+  return null;
+}
+
+// validateTranslations walks the source + translations objects in
+// lockstep, applying validateLeafTranslation at each leaf. Throws on
+// the first divergence (the kit mandates fail-and-exit; partial writes
+// would corrupt the locale file).
+export function validateTranslations(source, translations, prefix = '') {
+  if (translations === null || typeof translations !== 'object' || Array.isArray(translations)) {
+    return;
+  }
+  for (const key of Object.keys(translations)) {
+    const path = prefix === '' ? key : `${prefix}.${key}`;
+    const srcVal = source?.[key];
+    const transVal = translations[key];
+    if (transVal !== null && typeof transVal === 'object' && !Array.isArray(transVal)) {
+      validateTranslations(srcVal, transVal, path);
+      continue;
+    }
+    const err = validateLeafTranslation(srcVal, transVal, path);
+    if (err) throw new Error(err);
+  }
+}
+
+const SYSTEM_PROMPT = [
+  'You are a professional software localizer. Translate JSON values from English into the target locale.',
+  '',
+  'PROTECTED GLOSSARY — these terms MUST appear verbatim (same casing, same spacing) in the translation when they appear in the source:',
+  ...PROTECTED_GLOSSARY.map(t => `  - ${t}`),
+  'Plus any all-uppercase initialism of length 2-6 in the source MUST appear verbatim in the translation.',
+  '',
+  'PLACEHOLDER PRESERVATION — every {placeholder}, {0}, {count}, {userName}, %s, %d token MUST appear verbatim in the translation. Do NOT reorder, localize, or translate placeholders.',
+  '',
+  'OUTPUT FORMAT — respond with a SINGLE JSON object that has EXACTLY the same nested shape as the input. No prose. No markdown fences. No commentary. JSON ONLY.',
+].join('\n');
+
+// callClaude calls the Anthropic Messages API and validates the
+// response per cavekit-i18n-pipeline.md R2: temperature 0, max_tokens
+// >=8192, JSON-only output, per-key glossary + placeholder check.
+// On any validation failure the caller exits non-zero per-locale (the
+// kit mandates fail-and-exit; partial writes would corrupt the file).
 async function callClaude(env, sourceMissingPayload, locale) {
   const userPrompt = [
-    'Translate every value in the JSON below into ' + locale + '.',
-    'Preserve every {placeholder}, {0}, %s, %d token VERBATIM (no reordering, no localization).',
-    'Keep these terms verbatim in the translation: Zitadel, OAuth, OIDC, JWT, JWKS, DCR, IAT, RAT,',
-    'RFC 7591, RFC 7592, RFC 8707, PKCE, MCP, URL, URI, HTTP, HTTPS, JSON, plus any ALL-CAPS',
-    'initialism of length 2-6.',
-    'Respond with a SINGLE JSON object having exactly the same shape as the input.',
-    'No prose, no markdown fences, no commentary — JSON ONLY.',
+    `Target locale: ${locale}`,
+    '',
+    'Translate every value in the JSON below into the target locale.',
+    'Apply the protected-glossary and placeholder-preservation rules verbatim.',
+    'Respond with JSON only.',
     '',
     JSON.stringify(sourceMissingPayload, null, 2),
   ].join('\n');
@@ -112,6 +200,7 @@ async function callClaude(env, sourceMissingPayload, locale) {
       model: env.model,
       max_tokens: 8192,
       temperature: 0,
+      system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
     }),
   });
@@ -131,6 +220,7 @@ async function callClaude(env, sourceMissingPayload, locale) {
   } catch (err) {
     throw new Error('Anthropic API returned non-JSON: ' + text.slice(0, 500));
   }
+  validateTranslations(sourceMissingPayload, parsed);
   return parsed;
 }
 
@@ -213,7 +303,13 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  process.stderr.write(`translate-i18n: fatal: ${err.message}\n`);
-  process.exit(1);
-});
+// Only run main() when this file is invoked as the script entrypoint —
+// importing it from a test for the exported validators must not fire
+// the pipeline.
+if (import.meta.url === `file://${process.argv[1]}` ||
+    process.argv[1]?.endsWith('translate-i18n.mjs')) {
+  main().catch(err => {
+    process.stderr.write(`translate-i18n: fatal: ${err.message}\n`);
+    process.exit(1);
+  });
+}

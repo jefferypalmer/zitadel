@@ -11,7 +11,7 @@
     "generate": "pnpm exec buf generate ../proto --include-imports --include-wkt",
     "clean": "rm -rf dist .angular node_modules src/app/proto/generated",
     "translate-i18n": "node scripts/translate-i18n.mjs",
-    "translate-i18n:test": "node --test scripts/translate-i18n.merge.test.mjs"
+    "translate-i18n:test": "node --test scripts/translate-i18n.merge.test.mjs scripts/translate-i18n.validate.test.mjs"
   },
   "private": true,
   "dependencies": {
