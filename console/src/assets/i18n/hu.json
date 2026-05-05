@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Token megjelenítése vagy elrejtése",
         "DISMISS": "Bezárás"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Az ügyfél által kezelt (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Dinamikusan regisztrált alkalmazás",
+        "REGISTRATION_CLIENT_URI": "Regisztrációs kliens URI",
+        "RAT_LAST_ROTATED": "RAT utolsó forgatása",
+        "ROTATE_RAT_BUTTON": "Registration Access Token forgatása",
+        "DEACTIVATE_LABEL": "Deaktiválás",
+        "DELETE_LABEL": "Törlés",
+        "NO_WRITE_TOOLTIP": "Nincs jogosultsága az alkalmazás kezelésére."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Új Registration Access Token",
+        "COPY_BUTTON": "Másolás",
+        "CONFIRM_BUTTON": "Elmentettem",
+        "AUTO_MASK_NOTE": "A token 60 másodperc múlva elrejtődik. Mentse el most.",
+        "REMASK_BUTTON": "Elrejtés most",
+        "WARNING": "Nem fogja újra látni ezt a tokent."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Még nem adtak ki Initial Access Tokens-t.",
+        "ISSUE_BUTTON": "Initial Access Token kiadása",
+        "ISSUE_DIALOG_TITLE": "Initial Access Token kiadása",
+        "REVOKE_BUTTON": "Visszavonás",
+        "REVOKE_CONFIRM": "Visszavonja ezt az Initial Access Tokent?",
+        "PROJECT_ID_LABEL": "Projekt",
+        "LIFETIME_LABEL": "Élettartam",
+        "MAX_USES_LABEL": "Max. felhasználás",
+        "ALLOWED_GRANT_TYPES_LABEL": "Engedélyezett Grant Type-ok",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Engedélyezett Redirect URI minták",
+        "DESCRIPTION_LABEL": "Leírás"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR-szabályzat",
+        "ALLOWED_AUDIENCES_LABEL": "Engedélyezett Audiences (soronként egy URI)",
+        "ALLOWED_AUDIENCES_HINT": "Minden bejegyzésnek abszolút https URI-nak kell lennie, amelyet az alapértelmezett példánybeállítás elfogad.",
+        "LIFETIME_LABEL": "Registration Access Token élettartama",
+        "LIFETIME_HINT": "Nem haladhatja meg az alapértelmezett példánybeállítást. A „nincs lejárat\" beállításhoz csak akkor használjon 0-t, ha az alapértelmezett is 0.",
+        "SAVE_BUTTON": "Mentés",
+        "RESET_BUTTON": "Visszaállítás az alapértelmezett példánybeállításra",
+        "INHERITED_INDICATOR": "Az alapértelmezett példánybeállításból örökölve",
+        "READ_ONLY_NOTE": "Nincs jogosultsága a szabályzat szerkesztésére."
       }
     }
   },

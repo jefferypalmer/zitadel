@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Tokeni göster veya gizle",
         "DISMISS": "Kapat"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "İstemci tarafından yönetiliyor (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Dinamik olarak kaydedilmiş uygulama",
+        "REGISTRATION_CLIENT_URI": "Kayıt istemcisi URI",
+        "RAT_LAST_ROTATED": "RAT son döndürme",
+        "ROTATE_RAT_BUTTON": "Registration Access Token döndür",
+        "DEACTIVATE_LABEL": "Devre dışı bırak",
+        "DELETE_LABEL": "Sil",
+        "NO_WRITE_TOOLTIP": "Bu uygulamayı yönetme izniniz yok."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Yeni Registration Access Token",
+        "COPY_BUTTON": "Kopyala",
+        "CONFIRM_BUTTON": "Kaydettim",
+        "AUTO_MASK_NOTE": "Bu token 60 saniye sonra maskelenecek. Şimdi kaydedin.",
+        "REMASK_BUTTON": "Şimdi maskele",
+        "WARNING": "Bu tokeni bir daha görmeyeceksiniz."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Henüz Initial Access Tokens verilmedi.",
+        "ISSUE_BUTTON": "Initial Access Token ver",
+        "ISSUE_DIALOG_TITLE": "Initial Access Token ver",
+        "REVOKE_BUTTON": "İptal",
+        "REVOKE_CONFIRM": "Bu Initial Access Token iptal edilsin mi?",
+        "PROJECT_ID_LABEL": "Proje",
+        "LIFETIME_LABEL": "Süre",
+        "MAX_USES_LABEL": "Maks. kullanım",
+        "ALLOWED_GRANT_TYPES_LABEL": "İzin verilen Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "İzin verilen Redirect URI desenleri",
+        "DESCRIPTION_LABEL": "Açıklama"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR politikası",
+        "ALLOWED_AUDIENCES_LABEL": "İzin verilen Audiences (her satıra bir URI)",
+        "ALLOWED_AUDIENCES_HINT": "Her giriş, instance varsayılanının kabul ettiği mutlak https URI olmalıdır.",
+        "LIFETIME_LABEL": "Registration Access Token süresi",
+        "LIFETIME_HINT": "Instance varsayılanını aşamaz. \"Sona erme yok\" için yalnızca instance varsayılanı da 0 olduğunda 0 kullanın.",
+        "SAVE_BUTTON": "Kaydet",
+        "RESET_BUTTON": "Instance varsayılanına sıfırla",
+        "INHERITED_INDICATOR": "Instance varsayılanından devralındı",
+        "READ_ONLY_NOTE": "Bu politikayı düzenleme izniniz yok."
       }
     }
   },

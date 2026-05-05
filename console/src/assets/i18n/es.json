@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Mostrar u ocultar token",
         "DISMISS": "Cerrar"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Gestionado por el cliente (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "App registrada dinámicamente",
+        "REGISTRATION_CLIENT_URI": "URI de cliente de registro",
+        "RAT_LAST_ROTATED": "RAT rotado por última vez",
+        "ROTATE_RAT_BUTTON": "Rotar Registration Access Token",
+        "DEACTIVATE_LABEL": "Desactivar",
+        "DELETE_LABEL": "Eliminar",
+        "NO_WRITE_TOOLTIP": "No tiene permisos para gestionar esta app."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Nuevo Registration Access Token",
+        "COPY_BUTTON": "Copiar",
+        "CONFIRM_BUTTON": "Lo he guardado",
+        "AUTO_MASK_NOTE": "Este token se enmascarará en 60 segundos. Guárdelo ahora.",
+        "REMASK_BUTTON": "Enmascarar ahora",
+        "WARNING": "No volverá a ver este token."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Aún no se han emitido Initial Access Tokens.",
+        "ISSUE_BUTTON": "Emitir Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Emitir Initial Access Token",
+        "REVOKE_BUTTON": "Revocar",
+        "REVOKE_CONFIRM": "¿Revocar este Initial Access Token?",
+        "PROJECT_ID_LABEL": "Proyecto",
+        "LIFETIME_LABEL": "Vigencia",
+        "MAX_USES_LABEL": "Máx. usos",
+        "ALLOWED_GRANT_TYPES_LABEL": "Grant Types permitidos",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Patrones de Redirect URI permitidos",
+        "DESCRIPTION_LABEL": "Descripción"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "Política DCR",
+        "ALLOWED_AUDIENCES_LABEL": "Audiencias permitidas (una URI por línea)",
+        "ALLOWED_AUDIENCES_HINT": "Cada entrada debe ser una URI https absoluta aceptada por la configuración predeterminada de la instancia.",
+        "LIFETIME_LABEL": "Vigencia del Registration Access Token",
+        "LIFETIME_HINT": "No debe exceder la configuración predeterminada de la instancia. Use 0 para «sin expiración» solo cuando la configuración predeterminada también sea 0.",
+        "SAVE_BUTTON": "Guardar",
+        "RESET_BUTTON": "Restablecer al valor predeterminado de la instancia",
+        "INHERITED_INDICATOR": "Heredado de la configuración predeterminada de la instancia",
+        "READ_ONLY_NOTE": "No tiene permisos para editar esta política."
       }
     }
   },

@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "토큰 표시 또는 숨기기",
         "DISMISS": "닫기"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "클라이언트가 관리 (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "동적으로 등록된 앱",
+        "REGISTRATION_CLIENT_URI": "등록 클라이언트 URI",
+        "RAT_LAST_ROTATED": "RAT 마지막 회전",
+        "ROTATE_RAT_BUTTON": "Registration Access Token 회전",
+        "DEACTIVATE_LABEL": "비활성화",
+        "DELETE_LABEL": "삭제",
+        "NO_WRITE_TOOLTIP": "이 앱을 관리할 권한이 없습니다."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "새 Registration Access Token",
+        "COPY_BUTTON": "복사",
+        "CONFIRM_BUTTON": "저장했습니다",
+        "AUTO_MASK_NOTE": "이 토큰은 60초 후에 마스킹됩니다. 지금 저장하세요.",
+        "REMASK_BUTTON": "지금 마스킹",
+        "WARNING": "이 토큰은 다시 표시되지 않습니다."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "아직 발급된 Initial Access Tokens가 없습니다.",
+        "ISSUE_BUTTON": "Initial Access Token 발급",
+        "ISSUE_DIALOG_TITLE": "Initial Access Token 발급",
+        "REVOKE_BUTTON": "폐기",
+        "REVOKE_CONFIRM": "이 Initial Access Token을 폐기하시겠습니까?",
+        "PROJECT_ID_LABEL": "프로젝트",
+        "LIFETIME_LABEL": "유효 기간",
+        "MAX_USES_LABEL": "최대 사용 횟수",
+        "ALLOWED_GRANT_TYPES_LABEL": "허용된 Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "허용된 Redirect URI 패턴",
+        "DESCRIPTION_LABEL": "설명"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR 정책",
+        "ALLOWED_AUDIENCES_LABEL": "허용된 Audiences (한 줄에 하나의 URI)",
+        "ALLOWED_AUDIENCES_HINT": "각 항목은 인스턴스 기본값에서 허용하는 절대 https URI여야 합니다.",
+        "LIFETIME_LABEL": "Registration Access Token 유효 기간",
+        "LIFETIME_HINT": "인스턴스 기본값을 초과해서는 안 됩니다. \"만료 없음\"의 경우 인스턴스 기본값이 0일 때만 0을 사용하세요.",
+        "SAVE_BUTTON": "저장",
+        "RESET_BUTTON": "인스턴스 기본값으로 재설정",
+        "INHERITED_INDICATOR": "인스턴스 기본값에서 상속됨",
+        "READ_ONLY_NOTE": "이 정책을 편집할 권한이 없습니다."
       }
     }
   },

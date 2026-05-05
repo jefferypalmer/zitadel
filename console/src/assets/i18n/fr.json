@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Afficher ou masquer le token",
         "DISMISS": "Fermer"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Géré par le client (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Application enregistrée dynamiquement",
+        "REGISTRATION_CLIENT_URI": "URI du client d'enregistrement",
+        "RAT_LAST_ROTATED": "Dernière rotation du RAT",
+        "ROTATE_RAT_BUTTON": "Pivoter le Registration Access Token",
+        "DEACTIVATE_LABEL": "Désactiver",
+        "DELETE_LABEL": "Supprimer",
+        "NO_WRITE_TOOLTIP": "Vous n'avez pas l'autorisation de gérer cette application."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Nouveau Registration Access Token",
+        "COPY_BUTTON": "Copier",
+        "CONFIRM_BUTTON": "Je l'ai sauvegardé",
+        "AUTO_MASK_NOTE": "Ce token sera masqué dans 60 secondes. Sauvegardez-le maintenant.",
+        "REMASK_BUTTON": "Masquer maintenant",
+        "WARNING": "Vous ne reverrez plus ce token."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Aucun Initial Access Token n'a encore été émis.",
+        "ISSUE_BUTTON": "Émettre un Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Émettre un Initial Access Token",
+        "REVOKE_BUTTON": "Révoquer",
+        "REVOKE_CONFIRM": "Révoquer cet Initial Access Token ?",
+        "PROJECT_ID_LABEL": "Projet",
+        "LIFETIME_LABEL": "Durée de vie",
+        "MAX_USES_LABEL": "Utilisations max.",
+        "ALLOWED_GRANT_TYPES_LABEL": "Grant Types autorisés",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Modèles de Redirect URI autorisés",
+        "DESCRIPTION_LABEL": "Description du token"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "Politique DCR",
+        "ALLOWED_AUDIENCES_LABEL": "Audiences autorisées (une URI par ligne)",
+        "ALLOWED_AUDIENCES_HINT": "Chaque entrée doit être une URI https absolue acceptée par la configuration par défaut de l'instance.",
+        "LIFETIME_LABEL": "Durée de vie du Registration Access Token",
+        "LIFETIME_HINT": "Ne doit pas dépasser la configuration par défaut de l'instance. Utilisez 0 pour « pas d'expiration » uniquement lorsque la configuration par défaut est également 0.",
+        "SAVE_BUTTON": "Enregistrer",
+        "RESET_BUTTON": "Réinitialiser à la valeur par défaut de l'instance",
+        "INHERITED_INDICATOR": "Hérité de la configuration par défaut de l'instance",
+        "READ_ONLY_NOTE": "Vous n'avez pas l'autorisation de modifier cette politique."
       }
     }
   },

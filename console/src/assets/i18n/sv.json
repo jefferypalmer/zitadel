@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Visa eller dölj token",
         "DISMISS": "Stäng"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Hanteras av klienten (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Dynamiskt registrerad app",
+        "REGISTRATION_CLIENT_URI": "Registreringsklient-URI",
+        "RAT_LAST_ROTATED": "RAT senast roterad",
+        "ROTATE_RAT_BUTTON": "Rotera Registration Access Token",
+        "DEACTIVATE_LABEL": "Avaktivera",
+        "DELETE_LABEL": "Ta bort",
+        "NO_WRITE_TOOLTIP": "Du har inte behörighet att hantera denna app."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Nytt Registration Access Token",
+        "COPY_BUTTON": "Kopiera",
+        "CONFIRM_BUTTON": "Jag har sparat den",
+        "AUTO_MASK_NOTE": "Denna token kommer att maskeras om 60 sekunder. Spara den nu.",
+        "REMASK_BUTTON": "Maskera nu",
+        "WARNING": "Du kommer inte se denna token igen."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Inga Initial Access Tokens har utfärdats än.",
+        "ISSUE_BUTTON": "Utfärda Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Utfärda Initial Access Token",
+        "REVOKE_BUTTON": "Återkalla",
+        "REVOKE_CONFIRM": "Återkalla denna Initial Access Token?",
+        "PROJECT_ID_LABEL": "Projekt",
+        "LIFETIME_LABEL": "Livstid",
+        "MAX_USES_LABEL": "Max antal användningar",
+        "ALLOWED_GRANT_TYPES_LABEL": "Tillåtna Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Tillåtna Redirect URI-mönster",
+        "DESCRIPTION_LABEL": "Beskrivning"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR-policy",
+        "ALLOWED_AUDIENCES_LABEL": "Tillåtna Audiences (en URI per rad)",
+        "ALLOWED_AUDIENCES_HINT": "Varje post måste vara en absolut https-URI som accepteras av instansens standardinställning.",
+        "LIFETIME_LABEL": "Livstid för Registration Access Token",
+        "LIFETIME_HINT": "Får inte överskrida instansens standardinställning. Använd 0 för \"ingen utgång\" endast när standardinställningen också är 0.",
+        "SAVE_BUTTON": "Spara",
+        "RESET_BUTTON": "Återställ till instansens standard",
+        "INHERITED_INDICATOR": "Ärvt från instansens standardinställning",
+        "READ_ONLY_NOTE": "Du har inte behörighet att redigera denna policy."
       }
     }
   },

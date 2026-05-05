@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Tampilkan atau sembunyikan token",
         "DISMISS": "Tutup"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Dikelola oleh klien (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Aplikasi Terdaftar Dinamis",
+        "REGISTRATION_CLIENT_URI": "URI klien pendaftaran",
+        "RAT_LAST_ROTATED": "RAT terakhir dirotasi",
+        "ROTATE_RAT_BUTTON": "Rotasi Registration Access Token",
+        "DEACTIVATE_LABEL": "Nonaktifkan",
+        "DELETE_LABEL": "Hapus",
+        "NO_WRITE_TOOLTIP": "Anda tidak memiliki izin untuk mengelola aplikasi ini."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Registration Access Token Baru",
+        "COPY_BUTTON": "Salin",
+        "CONFIRM_BUTTON": "Saya sudah menyimpannya",
+        "AUTO_MASK_NOTE": "Token ini akan disembunyikan dalam 60 detik. Simpan sekarang.",
+        "REMASK_BUTTON": "Sembunyikan sekarang",
+        "WARNING": "Anda tidak akan melihat token ini lagi."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Belum ada Initial Access Tokens yang diterbitkan.",
+        "ISSUE_BUTTON": "Terbitkan Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Terbitkan Initial Access Token",
+        "REVOKE_BUTTON": "Cabut",
+        "REVOKE_CONFIRM": "Cabut Initial Access Token ini?",
+        "PROJECT_ID_LABEL": "Proyek",
+        "LIFETIME_LABEL": "Masa berlaku",
+        "MAX_USES_LABEL": "Maks. penggunaan",
+        "ALLOWED_GRANT_TYPES_LABEL": "Grant Types yang diizinkan",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Pola Redirect URI yang diizinkan",
+        "DESCRIPTION_LABEL": "Deskripsi"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "Kebijakan DCR",
+        "ALLOWED_AUDIENCES_LABEL": "Audiences yang diizinkan (satu URI per baris)",
+        "ALLOWED_AUDIENCES_HINT": "Setiap entri harus berupa URI https absolut yang diterima oleh pengaturan default instance.",
+        "LIFETIME_LABEL": "Masa berlaku Registration Access Token",
+        "LIFETIME_HINT": "Tidak boleh melebihi pengaturan default instance. Gunakan 0 untuk \"tanpa kedaluwarsa\" hanya jika default instance juga 0.",
+        "SAVE_BUTTON": "Simpan",
+        "RESET_BUTTON": "Atur ulang ke default instance",
+        "INHERITED_INDICATOR": "Diwarisi dari pengaturan default instance",
+        "READ_ONLY_NOTE": "Anda tidak memiliki izin untuk mengedit kebijakan ini."
       }
     }
   },

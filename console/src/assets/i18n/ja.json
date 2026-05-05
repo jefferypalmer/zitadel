@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "トークンの表示・非表示",
         "DISMISS": "閉じる"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "クライアントが管理 (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "動的に登録されたアプリ",
+        "REGISTRATION_CLIENT_URI": "登録クライアント URI",
+        "RAT_LAST_ROTATED": "RAT の最終ローテーション",
+        "ROTATE_RAT_BUTTON": "Registration Access Token をローテーション",
+        "DEACTIVATE_LABEL": "無効化",
+        "DELETE_LABEL": "削除",
+        "NO_WRITE_TOOLTIP": "このアプリを管理する権限がありません。"
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "新しい Registration Access Token",
+        "COPY_BUTTON": "コピー",
+        "CONFIRM_BUTTON": "保存しました",
+        "AUTO_MASK_NOTE": "このトークンは 60 秒後にマスクされます。今すぐ保存してください。",
+        "REMASK_BUTTON": "今すぐマスク",
+        "WARNING": "このトークンは再度表示されません。"
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "まだ Initial Access Tokens は発行されていません。",
+        "ISSUE_BUTTON": "Initial Access Token を発行",
+        "ISSUE_DIALOG_TITLE": "Initial Access Token を発行",
+        "REVOKE_BUTTON": "失効",
+        "REVOKE_CONFIRM": "この Initial Access Token を失効しますか？",
+        "PROJECT_ID_LABEL": "プロジェクト",
+        "LIFETIME_LABEL": "有効期間",
+        "MAX_USES_LABEL": "最大使用回数",
+        "ALLOWED_GRANT_TYPES_LABEL": "許可された Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "許可された Redirect URI パターン",
+        "DESCRIPTION_LABEL": "説明"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR ポリシー",
+        "ALLOWED_AUDIENCES_LABEL": "許可された Audiences（1 行に 1 URI）",
+        "ALLOWED_AUDIENCES_HINT": "インスタンスの既定値が受け入れる絶対 https URI を各エントリに指定する必要があります。",
+        "LIFETIME_LABEL": "Registration Access Token の有効期間",
+        "LIFETIME_HINT": "インスタンスの既定値を超えてはいけません。「期限なし」には、インスタンスの既定値も 0 の場合にのみ 0 を指定してください。",
+        "SAVE_BUTTON": "保存",
+        "RESET_BUTTON": "インスタンスの既定値にリセット",
+        "INHERITED_INDICATOR": "インスタンスの既定値から継承",
+        "READ_ONLY_NOTE": "このポリシーを編集する権限がありません。"
       }
     }
   },

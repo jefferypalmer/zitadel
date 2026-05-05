@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Прикажи или скриј токен",
         "DISMISS": "Затвори"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Управувано од клиентот (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Динамички регистрирана апликација",
+        "REGISTRATION_CLIENT_URI": "URI на регистрациониот клиент",
+        "RAT_LAST_ROTATED": "RAT последно ротиран",
+        "ROTATE_RAT_BUTTON": "Ротирај Registration Access Token",
+        "DEACTIVATE_LABEL": "Деактивирај",
+        "DELETE_LABEL": "Избриши",
+        "NO_WRITE_TOOLTIP": "Немаш дозвола да управуваш со оваа апликација."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Нов Registration Access Token",
+        "COPY_BUTTON": "Копирај",
+        "CONFIRM_BUTTON": "Го зачував",
+        "AUTO_MASK_NOTE": "Овој токен ќе биде маскиран за 60 секунди. Зачувај го сега.",
+        "REMASK_BUTTON": "Маскирај сега",
+        "WARNING": "Нема повторно да го видиш овој токен."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Сè уште нема издадени Initial Access Tokens.",
+        "ISSUE_BUTTON": "Издади Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Издади Initial Access Token",
+        "REVOKE_BUTTON": "Повлечи",
+        "REVOKE_CONFIRM": "Повлекување на овој Initial Access Token?",
+        "PROJECT_ID_LABEL": "Проект",
+        "LIFETIME_LABEL": "Траење",
+        "MAX_USES_LABEL": "Макс. употреби",
+        "ALLOWED_GRANT_TYPES_LABEL": "Дозволени Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Дозволени Redirect URI шеми",
+        "DESCRIPTION_LABEL": "Опис"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR политика",
+        "ALLOWED_AUDIENCES_LABEL": "Дозволени Audiences (еден URI по линија)",
+        "ALLOWED_AUDIENCES_HINT": "Секој запис мора да биде апсолутен https URI прифатен од стандардната конфигурација на инстанцата.",
+        "LIFETIME_LABEL": "Траење на Registration Access Token",
+        "LIFETIME_HINT": "Не смее да го надмине стандардот на инстанцата. Користи 0 за „без истекување\" само кога стандардот на инстанцата исто така е 0.",
+        "SAVE_BUTTON": "Зачувај",
+        "RESET_BUTTON": "Врати на стандардот на инстанцата",
+        "INHERITED_INDICATOR": "Наследено од стандардот на инстанцата",
+        "READ_ONLY_NOTE": "Немаш дозвола да ја уредуваш оваа политика."
       }
     }
   },

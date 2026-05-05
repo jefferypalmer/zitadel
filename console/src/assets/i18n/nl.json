@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Token tonen of verbergen",
         "DISMISS": "Sluiten"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Beheerd door client (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Dynamisch geregistreerde app",
+        "REGISTRATION_CLIENT_URI": "Registratieclient-URI",
+        "RAT_LAST_ROTATED": "RAT laatst geroteerd",
+        "ROTATE_RAT_BUTTON": "Registration Access Token roteren",
+        "DEACTIVATE_LABEL": "Deactiveren",
+        "DELETE_LABEL": "Verwijderen",
+        "NO_WRITE_TOOLTIP": "U hebt geen rechten om deze app te beheren."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Nieuwe Registration Access Token",
+        "COPY_BUTTON": "Kopiëren",
+        "CONFIRM_BUTTON": "Ik heb het opgeslagen",
+        "AUTO_MASK_NOTE": "Dit token wordt over 60 seconden gemaskeerd. Sla het nu op.",
+        "REMASK_BUTTON": "Nu maskeren",
+        "WARNING": "U zult dit token niet opnieuw zien."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Nog geen Initial Access Tokens uitgegeven.",
+        "ISSUE_BUTTON": "Initial Access Token uitgeven",
+        "ISSUE_DIALOG_TITLE": "Initial Access Token uitgeven",
+        "REVOKE_BUTTON": "Intrekken",
+        "REVOKE_CONFIRM": "Deze Initial Access Token intrekken?",
+        "PROJECT_ID_LABEL": "Project-ID",
+        "LIFETIME_LABEL": "Levensduur",
+        "MAX_USES_LABEL": "Max. gebruik",
+        "ALLOWED_GRANT_TYPES_LABEL": "Toegestane Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Toegestane Redirect URI-patronen",
+        "DESCRIPTION_LABEL": "Beschrijving"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR-beleid",
+        "ALLOWED_AUDIENCES_LABEL": "Toegestane Audiences (één URI per regel)",
+        "ALLOWED_AUDIENCES_HINT": "Elke invoer moet een absolute https-URI zijn die door de standaard instantie-instelling wordt geaccepteerd.",
+        "LIFETIME_LABEL": "Levensduur van Registration Access Token",
+        "LIFETIME_HINT": "Mag de standaard instantie-instelling niet overschrijden. Gebruik 0 voor \"geen verloop\" alleen als de standaard ook 0 is.",
+        "SAVE_BUTTON": "Opslaan",
+        "RESET_BUTTON": "Terugzetten naar standaard instantie",
+        "INHERITED_INDICATOR": "Overgenomen van standaard instantie-instelling",
+        "READ_ONLY_NOTE": "U hebt geen rechten om dit beleid te bewerken."
       }
     }
   },

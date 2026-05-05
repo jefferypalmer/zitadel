@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Pokaż lub ukryj token",
         "DISMISS": "Zamknij"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Zarządzane przez klienta (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Aplikacja zarejestrowana dynamicznie",
+        "REGISTRATION_CLIENT_URI": "URI klienta rejestracji",
+        "RAT_LAST_ROTATED": "Ostatnia rotacja RAT",
+        "ROTATE_RAT_BUTTON": "Rotuj Registration Access Token",
+        "DEACTIVATE_LABEL": "Dezaktywuj",
+        "DELETE_LABEL": "Usuń",
+        "NO_WRITE_TOOLTIP": "Nie masz uprawnień do zarządzania tą aplikacją."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Nowy Registration Access Token",
+        "COPY_BUTTON": "Kopiuj",
+        "CONFIRM_BUTTON": "Zapisałem go",
+        "AUTO_MASK_NOTE": "Ten token zostanie zamaskowany za 60 sekund. Zapisz go teraz.",
+        "REMASK_BUTTON": "Zamaskuj teraz",
+        "WARNING": "Nie zobaczysz tego tokena ponownie."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Nie wystawiono jeszcze żadnych Initial Access Tokens.",
+        "ISSUE_BUTTON": "Wystaw Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Wystaw Initial Access Token",
+        "REVOKE_BUTTON": "Odwołaj",
+        "REVOKE_CONFIRM": "Odwołać ten Initial Access Token?",
+        "PROJECT_ID_LABEL": "Projekt",
+        "LIFETIME_LABEL": "Czas życia",
+        "MAX_USES_LABEL": "Maks. użyć",
+        "ALLOWED_GRANT_TYPES_LABEL": "Dozwolone Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Dozwolone wzorce Redirect URI",
+        "DESCRIPTION_LABEL": "Opis"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "Polityka DCR",
+        "ALLOWED_AUDIENCES_LABEL": "Dozwolone Audiences (jeden URI na linię)",
+        "ALLOWED_AUDIENCES_HINT": "Każdy wpis musi być absolutnym https URI akceptowanym przez domyślne ustawienie instancji.",
+        "LIFETIME_LABEL": "Czas życia Registration Access Token",
+        "LIFETIME_HINT": "Nie może przekraczać domyślnego ustawienia instancji. Użyj 0 dla „bez wygaśnięcia\" tylko gdy domyślne też wynosi 0.",
+        "SAVE_BUTTON": "Zapisz",
+        "RESET_BUTTON": "Przywróć domyślne ustawienie instancji",
+        "INHERITED_INDICATOR": "Odziedziczone z domyślnego ustawienia instancji",
+        "READ_ONLY_NOTE": "Nie masz uprawnień do edycji tej polityki."
       }
     }
   },

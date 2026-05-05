@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Token anzeigen oder verbergen",
         "DISMISS": "Schließen"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Vom Client verwaltet (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Dynamisch registrierte App",
+        "REGISTRATION_CLIENT_URI": "Registrierungs-Client-URI",
+        "RAT_LAST_ROTATED": "RAT zuletzt rotiert",
+        "ROTATE_RAT_BUTTON": "Registration Access Token rotieren",
+        "DEACTIVATE_LABEL": "Deaktivieren",
+        "DELETE_LABEL": "Löschen",
+        "NO_WRITE_TOOLTIP": "Sie haben keine Berechtigung, diese App zu verwalten."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Neuer Registration Access Token",
+        "COPY_BUTTON": "Kopieren",
+        "CONFIRM_BUTTON": "Ich habe ihn gespeichert",
+        "AUTO_MASK_NOTE": "Dieses Token wird in 60 Sekunden maskiert. Speichern Sie es jetzt.",
+        "REMASK_BUTTON": "Jetzt maskieren",
+        "WARNING": "Sie werden dieses Token nicht erneut sehen."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Noch keine Initial Access Tokens ausgestellt.",
+        "ISSUE_BUTTON": "Initial Access Token ausstellen",
+        "ISSUE_DIALOG_TITLE": "Initial Access Token ausstellen",
+        "REVOKE_BUTTON": "Widerrufen",
+        "REVOKE_CONFIRM": "Diesen Initial Access Token widerrufen?",
+        "PROJECT_ID_LABEL": "Projekt",
+        "LIFETIME_LABEL": "Lebensdauer",
+        "MAX_USES_LABEL": "Max. Verwendungen",
+        "ALLOWED_GRANT_TYPES_LABEL": "Erlaubte Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Erlaubte Redirect-URI-Muster",
+        "DESCRIPTION_LABEL": "Beschreibung"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR-Richtlinie",
+        "ALLOWED_AUDIENCES_LABEL": "Erlaubte Audiences (eine URI pro Zeile)",
+        "ALLOWED_AUDIENCES_HINT": "Jeder Eintrag muss eine absolute https-URI sein, die vom Instanzstandard akzeptiert wird.",
+        "LIFETIME_LABEL": "Lebensdauer des Registration Access Token",
+        "LIFETIME_HINT": "Darf den Instanzstandard nicht überschreiten. Verwenden Sie 0 für „kein Ablauf\" nur, wenn der Instanzstandard ebenfalls 0 ist.",
+        "SAVE_BUTTON": "Speichern",
+        "RESET_BUTTON": "Auf Instanzstandard zurücksetzen",
+        "INHERITED_INDICATOR": "Vom Instanzstandard übernommen",
+        "READ_ONLY_NOTE": "Sie haben keine Berechtigung, diese Richtlinie zu bearbeiten."
       }
     }
   },

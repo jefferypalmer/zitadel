@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Arată sau ascunde tokenul",
         "DISMISS": "Închide"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Gestionat de client (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Aplicație înregistrată dinamic",
+        "REGISTRATION_CLIENT_URI": "URI-ul clientului de înregistrare",
+        "RAT_LAST_ROTATED": "Ultima rotire a RAT",
+        "ROTATE_RAT_BUTTON": "Rotește Registration Access Token",
+        "DEACTIVATE_LABEL": "Dezactivează",
+        "DELETE_LABEL": "Șterge",
+        "NO_WRITE_TOOLTIP": "Nu ai permisiunea de a gestiona această aplicație."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Registration Access Token nou",
+        "COPY_BUTTON": "Copiază",
+        "CONFIRM_BUTTON": "L-am salvat",
+        "AUTO_MASK_NOTE": "Acest token va fi mascat în 60 de secunde. Salvează-l acum.",
+        "REMASK_BUTTON": "Maschează acum",
+        "WARNING": "Nu vei mai vedea acest token din nou."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Încă nu au fost emise Initial Access Tokens.",
+        "ISSUE_BUTTON": "Emite Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Emite Initial Access Token",
+        "REVOKE_BUTTON": "Revocă",
+        "REVOKE_CONFIRM": "Revoci acest Initial Access Token?",
+        "PROJECT_ID_LABEL": "Proiect",
+        "LIFETIME_LABEL": "Durată",
+        "MAX_USES_LABEL": "Utilizări max.",
+        "ALLOWED_GRANT_TYPES_LABEL": "Grant Types permise",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Modele Redirect URI permise",
+        "DESCRIPTION_LABEL": "Descriere"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "Politică DCR",
+        "ALLOWED_AUDIENCES_LABEL": "Audiences permise (un URI pe linie)",
+        "ALLOWED_AUDIENCES_HINT": "Fiecare intrare trebuie să fie un URI https absolut acceptat de setarea implicită a instanței.",
+        "LIFETIME_LABEL": "Durata Registration Access Token",
+        "LIFETIME_HINT": "Nu trebuie să depășească setarea implicită a instanței. Folosește 0 pentru „fără expirare\" doar când setarea implicită este și ea 0.",
+        "SAVE_BUTTON": "Salvează",
+        "RESET_BUTTON": "Resetează la setarea implicită a instanței",
+        "INHERITED_INDICATOR": "Moștenit din setarea implicită a instanței",
+        "READ_ONLY_NOTE": "Nu ai permisiunea de a edita această politică."
       }
     }
   },

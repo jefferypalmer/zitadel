@@ -378,48 +378,48 @@
         "REVEAL_TOGGLE": "إظهار أو إخفاء الرمز",
         "DISMISS": "إغلاق"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "يديرها العميل (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "تطبيق مسجَّل ديناميكيًا",
+        "REGISTRATION_CLIENT_URI": "URI لعميل التسجيل",
+        "RAT_LAST_ROTATED": "آخر تدوير لـ RAT",
+        "ROTATE_RAT_BUTTON": "تدوير Registration Access Token",
+        "DEACTIVATE_LABEL": "إلغاء التنشيط",
+        "DELETE_LABEL": "حذف",
+        "NO_WRITE_TOOLTIP": "ليست لديك صلاحية إدارة هذا التطبيق."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Registration Access Token جديد",
+        "COPY_BUTTON": "نسخ",
+        "CONFIRM_BUTTON": "لقد حفظته",
+        "AUTO_MASK_NOTE": "سيُخفى هذا الرمز خلال 60 ثانية. احفظه الآن.",
+        "REMASK_BUTTON": "إخفاء الآن",
+        "WARNING": "لن ترى هذا الرمز مرة أخرى."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "لم يُصدر بعد أي Initial Access Tokens.",
+        "ISSUE_BUTTON": "إصدار Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "إصدار Initial Access Token",
+        "REVOKE_BUTTON": "إلغاء",
+        "REVOKE_CONFIRM": "إلغاء Initial Access Token هذا؟",
+        "PROJECT_ID_LABEL": "المشروع",
+        "LIFETIME_LABEL": "مدة الصلاحية",
+        "MAX_USES_LABEL": "الحد الأقصى للاستخدامات",
+        "ALLOWED_GRANT_TYPES_LABEL": "أنواع Grant المسموح بها",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "أنماط Redirect URI المسموح بها",
+        "DESCRIPTION_LABEL": "الوصف"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "سياسة DCR",
+        "ALLOWED_AUDIENCES_LABEL": "الجماهير المسموح بها (URI واحد لكل سطر)",
+        "ALLOWED_AUDIENCES_HINT": "يجب أن يكون كل إدخال https URI مطلقًا يقبله إعداد المثيل الافتراضي.",
+        "LIFETIME_LABEL": "مدة صلاحية Registration Access Token",
+        "LIFETIME_HINT": "لا يجوز أن تتجاوز إعدادَ المثيل الافتراضي. استخدم 0 لـ \"بدون انتهاء\" فقط عندما يكون إعدادُ المثيل الافتراضي أيضًا 0.",
+        "SAVE_BUTTON": "حفظ",
+        "RESET_BUTTON": "إعادة الضبط لإعداد المثيل الافتراضي",
+        "INHERITED_INDICATOR": "موروث من إعداد المثيل الافتراضي",
+        "READ_ONLY_NOTE": "ليست لديك صلاحية تعديل هذه السياسة."
       }
     }
   },

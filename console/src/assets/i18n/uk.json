@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Показати або сховати токен",
         "DISMISS": "Закрити"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Керується клієнтом (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Динамічно зареєстрований застосунок",
+        "REGISTRATION_CLIENT_URI": "URI реєстраційного клієнта",
+        "RAT_LAST_ROTATED": "Остання ротація RAT",
+        "ROTATE_RAT_BUTTON": "Ротувати Registration Access Token",
+        "DEACTIVATE_LABEL": "Деактивувати",
+        "DELETE_LABEL": "Видалити",
+        "NO_WRITE_TOOLTIP": "У вас немає прав керувати цим застосунком."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Новий Registration Access Token",
+        "COPY_BUTTON": "Скопіювати",
+        "CONFIRM_BUTTON": "Я зберіг його",
+        "AUTO_MASK_NOTE": "Цей токен буде замаскований через 60 секунд. Збережіть його зараз.",
+        "REMASK_BUTTON": "Замаскувати зараз",
+        "WARNING": "Ви більше не побачите цей токен."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Initial Access Tokens ще не випущено.",
+        "ISSUE_BUTTON": "Видати Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Видати Initial Access Token",
+        "REVOKE_BUTTON": "Відкликати",
+        "REVOKE_CONFIRM": "Відкликати цей Initial Access Token?",
+        "PROJECT_ID_LABEL": "Проект",
+        "LIFETIME_LABEL": "Термін дії",
+        "MAX_USES_LABEL": "Макс. використань",
+        "ALLOWED_GRANT_TYPES_LABEL": "Дозволені Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Дозволені шаблони Redirect URI",
+        "DESCRIPTION_LABEL": "Опис"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "Політика DCR",
+        "ALLOWED_AUDIENCES_LABEL": "Дозволені Audiences (по одному URI на рядок)",
+        "ALLOWED_AUDIENCES_HINT": "Кожен запис має бути абсолютним https URI, що приймається стандартним налаштуванням інстансу.",
+        "LIFETIME_LABEL": "Термін дії Registration Access Token",
+        "LIFETIME_HINT": "Не може перевищувати стандартне налаштування інстансу. Використовуйте 0 для «без закінчення» лише коли стандартне також 0.",
+        "SAVE_BUTTON": "Зберегти",
+        "RESET_BUTTON": "Відновити до стандартного інстансу",
+        "INHERITED_INDICATOR": "Успадковано від стандартного налаштування інстансу",
+        "READ_ONLY_NOTE": "У вас немає прав редагувати цю політику."
       }
     }
   },

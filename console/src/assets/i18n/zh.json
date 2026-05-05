@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "显示或隐藏令牌",
         "DISMISS": "关闭"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "由客户端管理 (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "动态注册的应用",
+        "REGISTRATION_CLIENT_URI": "注册客户端 URI",
+        "RAT_LAST_ROTATED": "RAT 上次轮换",
+        "ROTATE_RAT_BUTTON": "轮换 Registration Access Token",
+        "DEACTIVATE_LABEL": "停用",
+        "DELETE_LABEL": "删除",
+        "NO_WRITE_TOOLTIP": "您没有权限管理此应用。"
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "新的 Registration Access Token",
+        "COPY_BUTTON": "复制",
+        "CONFIRM_BUTTON": "我已保存",
+        "AUTO_MASK_NOTE": "此令牌将在 60 秒后被掩码。请立即保存。",
+        "REMASK_BUTTON": "立即掩码",
+        "WARNING": "您将无法再次看到此令牌。"
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "尚未颁发 Initial Access Tokens。",
+        "ISSUE_BUTTON": "颁发 Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "颁发 Initial Access Token",
+        "REVOKE_BUTTON": "撤销",
+        "REVOKE_CONFIRM": "撤销此 Initial Access Token 吗？",
+        "PROJECT_ID_LABEL": "项目",
+        "LIFETIME_LABEL": "有效期",
+        "MAX_USES_LABEL": "最大使用次数",
+        "ALLOWED_GRANT_TYPES_LABEL": "允许的 Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "允许的 Redirect URI 模式",
+        "DESCRIPTION_LABEL": "描述"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR 策略",
+        "ALLOWED_AUDIENCES_LABEL": "允许的 Audiences（每行一个 URI）",
+        "ALLOWED_AUDIENCES_HINT": "每个条目必须是实例默认配置接受的绝对 https URI。",
+        "LIFETIME_LABEL": "Registration Access Token 有效期",
+        "LIFETIME_HINT": "不得超过实例默认配置。仅当实例默认配置也是 0 时，才使用 0 表示\"无过期\"。",
+        "SAVE_BUTTON": "保存",
+        "RESET_BUTTON": "重置为实例默认值",
+        "INHERITED_INDICATOR": "继承自实例默认配置",
+        "READ_ONLY_NOTE": "您没有权限编辑此策略。"
       }
     }
   },

@@ -374,48 +374,48 @@
         "REVEAL_TOGGLE": "Zobrazit nebo skrýt token",
         "DISMISS": "Zavřít"
       },
-      "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
+      "MANAGED_BY_CLIENT": "Spravováno klientem (RFC 7592)",
       "OPERATOR_PANEL": {
-        "TITLE": "Dynamically Registered App",
-        "REGISTRATION_CLIENT_URI": "Registration client URI",
-        "RAT_LAST_ROTATED": "RAT last rotated",
-        "ROTATE_RAT_BUTTON": "Rotate Registration Access Token",
-        "DEACTIVATE_LABEL": "Deactivate",
-        "DELETE_LABEL": "Delete",
-        "NO_WRITE_TOOLTIP": "You do not have permission to manage this app."
+        "TITLE": "Dynamicky registrovaná aplikace",
+        "REGISTRATION_CLIENT_URI": "URI registračního klienta",
+        "RAT_LAST_ROTATED": "RAT naposledy rotován",
+        "ROTATE_RAT_BUTTON": "Rotovat Registration Access Token",
+        "DEACTIVATE_LABEL": "Deaktivovat",
+        "DELETE_LABEL": "Smazat",
+        "NO_WRITE_TOOLTIP": "Nemáte oprávnění spravovat tuto aplikaci."
       },
       "RAT_DIALOG": {
-        "TITLE": "New Registration Access Token",
-        "COPY_BUTTON": "Copy",
-        "CONFIRM_BUTTON": "I have saved it",
-        "AUTO_MASK_NOTE": "This token will be masked in 60 seconds. Save it now.",
-        "REMASK_BUTTON": "Mask now",
-        "WARNING": "You will not see this token again."
+        "TITLE": "Nový Registration Access Token",
+        "COPY_BUTTON": "Kopírovat",
+        "CONFIRM_BUTTON": "Uložil jsem si jej",
+        "AUTO_MASK_NOTE": "Tento token bude maskován za 60 sekund. Uložte si jej nyní.",
+        "REMASK_BUTTON": "Maskovat nyní",
+        "WARNING": "Tento token již neuvidíte."
       },
       "ORG_IAT": {
         "TITLE": "Initial Access Tokens",
-        "EMPTY_STATE": "No initial access tokens issued yet.",
-        "ISSUE_BUTTON": "Issue Initial Access Token",
-        "ISSUE_DIALOG_TITLE": "Issue Initial Access Token",
-        "REVOKE_BUTTON": "Revoke",
-        "REVOKE_CONFIRM": "Revoke this initial access token?",
-        "PROJECT_ID_LABEL": "Project",
-        "LIFETIME_LABEL": "Lifetime",
-        "MAX_USES_LABEL": "Max uses",
-        "ALLOWED_GRANT_TYPES_LABEL": "Allowed grant types",
-        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Allowed redirect URI patterns",
-        "DESCRIPTION_LABEL": "Description"
+        "EMPTY_STATE": "Zatím nebyly vydány žádné Initial Access Tokens.",
+        "ISSUE_BUTTON": "Vydat Initial Access Token",
+        "ISSUE_DIALOG_TITLE": "Vydat Initial Access Token",
+        "REVOKE_BUTTON": "Odvolat",
+        "REVOKE_CONFIRM": "Odvolat tento Initial Access Token?",
+        "PROJECT_ID_LABEL": "Projekt",
+        "LIFETIME_LABEL": "Životnost",
+        "MAX_USES_LABEL": "Max. počet použití",
+        "ALLOWED_GRANT_TYPES_LABEL": "Povolené Grant Types",
+        "ALLOWED_REDIRECT_PATTERNS_LABEL": "Povolené Redirect URI vzory",
+        "DESCRIPTION_LABEL": "Popis"
       },
       "ORG_POLICY": {
-        "TITLE": "DCR Policy",
-        "ALLOWED_AUDIENCES_LABEL": "Allowed Audiences (one URI per line)",
-        "ALLOWED_AUDIENCES_HINT": "Each entry must be an absolute https URI accepted by the instance default.",
-        "LIFETIME_LABEL": "Registration Access Token Lifetime",
-        "LIFETIME_HINT": "Must not exceed the instance default. Use 0 for \"no expiry\" only when the instance default is also 0.",
-        "SAVE_BUTTON": "Save",
-        "RESET_BUTTON": "Reset to instance default",
-        "INHERITED_INDICATOR": "Inherited from instance default",
-        "READ_ONLY_NOTE": "You do not have permission to edit this policy."
+        "TITLE": "DCR politika",
+        "ALLOWED_AUDIENCES_LABEL": "Povolené Audiences (jedna URI na řádek)",
+        "ALLOWED_AUDIENCES_HINT": "Každý záznam musí být absolutní https URI, kterou přijímá výchozí nastavení instance.",
+        "LIFETIME_LABEL": "Životnost Registration Access Token",
+        "LIFETIME_HINT": "Nesmí překročit výchozí nastavení instance. Použijte 0 pro „bez expirace\" pouze když je výchozí instance také 0.",
+        "SAVE_BUTTON": "Uložit",
+        "RESET_BUTTON": "Obnovit výchozí instance",
+        "INHERITED_INDICATOR": "Zděděno z výchozího nastavení instance",
+        "READ_ONLY_NOTE": "Nemáte oprávnění upravovat tuto politiku."
       }
     }
   },
