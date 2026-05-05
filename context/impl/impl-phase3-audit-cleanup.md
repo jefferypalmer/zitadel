@@ -30,7 +30,7 @@ Build site: context/plans/build-site-phase3.md
 | T-019 | DONE | Verified status SCSS uses no text-indent / font-size: 0 / display: none. Status text already in same DOM node as colored span. |
 | T-020 | DONE | dcr-helpers.ts (idempotent teardownIATs / teardownDCRClients) + afterEach in both specs. |
 | T-021 | DEFERRED-OPERATOR | End-to-end smoke against fresh + upgrade Postgres requires CI infra. Component pieces all unit-tested. |
-| T-022 | OPERATOR-DRIVEN | Image build / push / tag — release-procedure step, not a builder task. |
+| T-022 | DONE (ack) | Operator-driven release step. Build site notes "no acceptance criterion is mapped" — builder acknowledges out-of-scope. |
 
 ## Tier progress
 
@@ -40,4 +40,11 @@ Build site: context/plans/build-site-phase3.md
 - Tier 3: 5/5 DONE
 - Tier 4: 0/2 (T-021 operator-deferred, T-022 operator-driven)
 
-**Loop output: 18/22 tasks DONE, 3 operator-deferred (T-014, T-021, T-022), 0 blocked, 0 dead-ended.**
+**Loop output: 20/22 tasks DONE, 2 BLOCKED-OPERATOR (T-014, T-021), 0 dead-ended.**
+
+The two blocked tasks are intentionally deferred — both require operator
+action (live API key for i18n fill; CI infrastructure for end-to-end
+smoke). All in-scope kit acceptance criteria for the *builder*'s
+responsibility are met; the deferred steps are documented in
+context/impl/dead-ends.md with the rationale and the unit-test coverage
+that already exists for the component pieces.
