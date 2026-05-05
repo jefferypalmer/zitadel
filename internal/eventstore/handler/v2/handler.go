@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math/rand"
 	"slices"
@@ -171,6 +172,26 @@ func NewHandler(
 			continue
 		}
 		aggregates[reducer.Aggregate] = eventTypes
+	}
+
+	// cavekit-eventstore-framework-guard.md R1: refuse to construct a
+	// projection whose Reducers() returned nothing AND has no
+	// TriggerWithoutEvents callback AND does not implement
+	// GlobalProjection. The prefill loop would otherwise scan the
+	// entire eventstore as no-op statements (the v3 BLOCKER pattern
+	// the dcr_software_statement_jtis projection exhibited before
+	// being deleted in T-001). Application-managed tables MUST move
+	// to a numbered setup step under cmd/setup/; scheduled-wakeup
+	// projections MUST set Config.TriggerWithoutEvents; field
+	// projections use FieldHandler (which constructs Handler{} via
+	// struct literal, bypassing this guard by design).
+	if len(aggregates) == 0 && config.TriggerWithoutEvents == nil {
+		if _, isGlobal := projection.(GlobalProjection); !isGlobal {
+			panic(fmt.Sprintf(
+				"eventstore/handler/v2: projection %q has empty Reducers, no TriggerWithoutEvents, and does not implement GlobalProjection — refusing to construct because the prefill loop would scan the entire eventstore as no-op statements. Use a numbered setup step (cmd/setup/NN.go) for application-managed tables, a TriggerWithoutEvents callback for scheduled-wakeup projections, or a FieldHandler for field projections.",
+				projection.Name(),
+			))
+		}
 	}
 
 	metrics := NewProjectionMetrics(ctx)
