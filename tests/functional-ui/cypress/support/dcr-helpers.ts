@@ -33,15 +33,25 @@ export function teardownIATs(api: API, projectId: string): void {
       .forEach(r => {
         const id = r.id ?? r.iatId;
         if (!id) return;
+        // cavekit-console-ui-docs-and-observability.md R10.1 (T-027 / F-005):
+        // admin proto registers POST /initial_access_tokens/{iat_id}/_revoke,
+        // NOT DELETE. The pre-fix DELETE returned 404 + the helper's
+        // 404-tolerance branch silently no-op'd, so iat.cy.ts state
+        // accumulated across runs.
         cy.request({
-          method: 'DELETE',
-          url: `${api.adminBaseURL}/initial_access_tokens/${encodeURIComponent(id)}`,
+          method: 'POST',
+          url: `${api.adminBaseURL}/initial_access_tokens/${encodeURIComponent(id)}/_revoke`,
           headers: requestHeaders(api),
           failOnStatusCode: false,
           body: { project_id: projectId },
         }).then(rev => {
-          if (rev.status >= 400 && rev.status !== 404) {
-            cy.log(`teardownIATs: revoke ${id} status=${rev.status} (tolerating; idempotent)`);
+          if (rev.status === 404) {
+            // True idempotent: already-revoked or never-existed. Log
+            // distinctly from a URL misconfiguration so a reviewer
+            // notices if EVERY revoke 404s (the F-005 failure mode).
+            cy.log(`teardownIATs: revoke ${id} got 404 — already gone (idempotent)`);
+          } else if (rev.status >= 400) {
+            cy.log(`teardownIATs: revoke ${id} status=${rev.status} (logged; not failing test)`);
           }
         });
       });
@@ -74,8 +84,10 @@ export function teardownDCRClients(api: API, projectId: string): void {
           headers: requestHeaders(api),
           failOnStatusCode: false,
         }).then(del => {
-          if (del.status >= 400 && del.status !== 404) {
-            cy.log(`teardownDCRClients: delete ${app.id} status=${del.status} (tolerating; idempotent)`);
+          if (del.status === 404) {
+            cy.log(`teardownDCRClients: delete ${app.id} got 404 — already gone (idempotent)`);
+          } else if (del.status >= 400) {
+            cy.log(`teardownDCRClients: delete ${app.id} status=${del.status} (logged; not failing test)`);
           }
         });
       });
