@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Duration } from 'google-protobuf/google/protobuf/duration_pb';
-import { BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject, from, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CreateInitialAccessTokenRequest, InitialAccessTokenView } from 'src/app/proto/generated/zitadel/admin_pb';
 import { ListQuery } from 'src/app/proto/generated/zitadel/object_pb';
@@ -38,7 +38,9 @@ export class IatAdminComponent implements OnInit, OnDestroy {
   // re-renders every row on each refresh because Angular default uses
   // object identity, and the listInitialAccessTokens response builds a
   // fresh array each call.
-  public readonly trackById = (_: number, row: { id: string }) => row.id;
+  // T-033 (F-011): defensive nullish-coalesce in case a malformed row
+  // arrives without an id — Angular's trackBy MUST not throw.
+  public readonly trackById = (_: number, row?: { id?: string }) => row?.id ?? '';
 
   constructor(
     private readonly admin: AdminService,
@@ -69,14 +71,23 @@ export class IatAdminComponent implements OnInit, OnDestroy {
     query.setLimit(pageSize);
     query.setOffset(pageIndex * pageSize);
     this.loading$.next(true);
-    this.admin
-      .listInitialAccessTokens(null, query)
-      .then((resp) => {
-        this.tokens$.next(resp.resultList ?? []);
-        this.totalResult$.next(resp.details?.totalResult ? Number(resp.details.totalResult) : 0);
-      })
-      .catch((err) => this.toast.showError(err))
-      .finally(() => this.loading$.next(false));
+    // T-032 (F-010): route the Promise through takeUntil(destroy$) so a
+    // navigate-away mid-fetch stops the .next() side-effects on
+    // tokens$/loading$/totalResult$. Without this the BehaviorSubjects
+    // continue accepting values after the component is disposed.
+    from(this.admin.listInitialAccessTokens(null, query))
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resp) => {
+          this.tokens$.next(resp.resultList ?? []);
+          this.totalResult$.next(resp.details?.totalResult ? Number(resp.details.totalResult) : 0);
+          this.loading$.next(false);
+        },
+        error: (err) => {
+          this.toast.showError(err);
+          this.loading$.next(false);
+        },
+      });
   }
 
   public onPaginatorChange(event: PageEvent): void {

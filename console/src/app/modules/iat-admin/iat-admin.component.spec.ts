@@ -53,4 +53,32 @@ describe('IatAdminComponent', () => {
     expect(aria.length).toBeGreaterThan(0);
     expect(aria).toContain('DCR.IAT.REVOKE_BUTTON');
   });
+
+  // cavekit-console-ui-docs-and-observability.md R9.2 (T-031). The
+  // status-text-accompanies-color rule says the translated label MUST
+  // be visible to sighted users — no `text-indent: -9999px`,
+  // `font-size: 0`, or `display: none` masking the colored span.
+  // Visual smoke verifies the SCSS but the kit explicitly requires a
+  // getComputedStyle assertion in a unit test as well.
+  it('status badge for a revoked row is visible (no text-indent/font-size:0/display:none)', () => {
+    fixture.componentInstance.tokens$.next([
+      { id: 'iat-1', projectId: 'p-1', revoked: true, maxUses: 0, usesConsumed: 0 } as never,
+    ]);
+    fixture.detectChanges();
+    // Mat-table rows render the status column inside a span with class
+    // 'iat-admin-status iat-admin-status--revoked'. We query directly.
+    const badge: HTMLElement | null = fixture.nativeElement.querySelector('.iat-admin-status');
+    expect(badge).toBeTruthy();
+    const cs = window.getComputedStyle(badge as HTMLElement);
+    // text-indent should not be a large negative (the off-screen trick).
+    const ti = parseFloat(cs.textIndent || '0');
+    expect(ti).toBeGreaterThanOrEqual(-1);
+    // font-size must be non-zero.
+    const fs = parseFloat(cs.fontSize || '0');
+    expect(fs).toBeGreaterThan(0);
+    // display must not be 'none'.
+    expect(cs.display).not.toBe('none');
+    // Translated label text must be present in the badge.
+    expect((badge?.textContent ?? '').trim().length).toBeGreaterThan(0);
+  });
 });

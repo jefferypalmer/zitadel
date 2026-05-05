@@ -25,7 +25,8 @@ export class DynamicClientsComponent implements OnChanges {
   public readonly loading$ = new BehaviorSubject<boolean>(false);
 
   // T-017 trackBy mirror — dynamic-clients table.
-  public readonly trackById = (_: number, row: { id: string }) => row.id;
+  // T-033 (F-011): defensive nullish-coalesce.
+  public readonly trackById = (_: number, row?: { id?: string }) => row?.id ?? '';
 
   constructor(
     private readonly mgmt: ManagementService,
