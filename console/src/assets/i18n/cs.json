@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Dynamičtí klienti",
+        "DESCRIPTION": "Klienti, kteří se sami zaregistrovali přes endpoint Dynamic Client Registration. Pouze ke čtení — klienti spravují svá metadata sami přes RFC 7592.",
+        "EMPTY": "Zatím žádní dynamicky registrovaní klienti. Klienti registrovaní přes /oidc/v1/register se zobrazí zde.",
+        "REGISTRATION_METHOD": "Metoda registrace",
+        "METHOD_ANONYMOUS": "Anonymní",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID klienta",
+        "COL_CLIENT_NAME": "Jméno klienta",
+        "COL_CREATED_AT": "Registrováno",
+        "COL_AUDIT": "Audit",
+        "VIEW_AUDIT": "Zobrazit auditní události"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) autorizují Dynamic Client Registration pro konkrétní projekty. Vydejte jednou, použijte až Nkrát, poté odvolejte.",
+        "EMPTY": "Žádné Initial Access Tokens. Vydejte jeden pro autorizaci registrace DCR klienta.",
+        "ISSUE_BUTTON": "Vydat token",
+        "DIALOG_TITLE": "Vydat Initial Access Token",
+        "PROJECT_ID_LABEL": "ID projektu",
+        "LIFETIME_LABEL": "Životnost (hodiny)",
+        "LIFETIME_HINT": "0 použije výchozí životnost serveru.",
+        "MAX_USES_LABEL": "Max. počet použití",
+        "MAX_USES_HINT": "0 znamená neomezeně.",
+        "GRANT_TYPES_LABEL": "Povolené Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "Povolené Redirect URI vzory",
+        "REDIRECT_URI_PATTERNS_HINT": "Jeden vzor na řádek. Prázdné povoluje libovolný vzor z globálního DCR allow-listu.",
+        "DESCRIPTION_LABEL": "Popis",
+        "REVOKE_BUTTON": "Odvolat",
+        "REVOKE_CONFIRM": "Odvolat tento Initial Access Token? Budoucí pokusy o registraci s ním selžou. Tuto akci nelze vrátit.",
+        "REVOKED": "Initial Access Token byl odvolán.",
+        "PLAINTEXT_TITLE": "Token vydán",
+        "PLAINTEXT_WARNING": "Zkopírujte tento token nyní. Zobrazí se PRÁVĚ JEDNOU. Po zavření tohoto dialogu jej již neobnovíte — vydejte nový, pokud o něj přijdete.",
+        "PLAINTEXT_REVEAL": "Zobrazit token",
+        "PLAINTEXT_DONE": "Uložil jsem si jej",
+        "COPIED": "Token zkopírován do schránky.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Projekt",
+        "COL_EXPIRES_AT": "Vyprší",
+        "COL_MAX_USES": "Max. počet použití",
+        "COL_USES_CONSUMED": "Použito",
+        "COL_STATUS": "Stav",
+        "STATUS_ACTIVE": "Aktivní",
+        "STATUS_REVOKED": "Odvolaný",
+        "COL_CREATED_AT": "Vytvořeno",
+        "PLAINTEXT_REMASK": "Skrýt token",
+        "PLAINTEXT_AUTOMASK_HINT": "Token se automaticky skryje za 60 sekund.",
+        "REVOKE_PROJECT_REQUIRED": "Nelze odvolat Initial Access Token bez ID projektu.",
+        "REFRESH": "Obnovit seznam",
+        "COPY": "Zkopírovat token",
+        "REVEAL_TOGGLE": "Zobrazit nebo skrýt token",
+        "DISMISS": "Zavřít"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Jste administrátor instance. Vezměte prosím na vědomí, že máte rozšířená oprávnění.",
     "SHOWORGS": "Zobrazit všechny organizace",
     "GRANTS": "Přiřazení rolí",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Akce",
+    "TARGETS": "Targets",
     "PRIVACY": "Soukromí",
     "TOS": "Podmínky služby",
     "OPENSHORTCUTSTOOLTIP": "Pro zobrazení klávesových zkratek stiskněte ?",
@@ -741,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "Filtr",
+    "ORGNAME": "Název organizace",
+    "ORGID": "ID organizace",
     "STATE": "Stav",
+    "PRIMARYDOMAIN": "Doména organizace",
     "DISPLAYNAME": "Zobrazované jméno uživatele",
     "EMAIL": "Email",
     "USERNAME": "Uživatelské jméno",
-    "ORGNAME": "Název organizace",
-    "ORGID": "ID organizace",
-    "PRIMARYDOMAIN": "Doména organizace",
     "PROJECTNAME": "Název projektu",
     "RESOURCEOWNER": "Vlastník zdroje",
     "METHODS": {
+      "1": "rovná se",
       "5": "obsahuje",
-      "7": "končí s",
-      "1": "rovná se"
+      "7": "končí s"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "<strong>G</strong>o to <strong>D</strong>omains - Domény"
     }
   },
+  "INSTANCEID": "ID instance",
   "RESOURCEID": "ID zdroje",
   "NAME": "Název",
   "VERSION": "Verze",
@@ -1556,6 +1612,9 @@
       "EVENTS": "Události",
       "FAILEDEVENTS": "Selhané události",
       "VIEWS": "Pohledy",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1568,6 +1627,7 @@
       "APPEARANCE": "Vzhled",
       "OTHER": "Ostatní",
       "STORAGE": "Data",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BETA"
@@ -1949,7 +2009,6 @@
       "USERLOGINMUSTBEDOMAIN_DESCRIPTION": "Pokud povolíte toto nastavení, všechna přihlašovací jména budou doplněna o doménu organizace. Pokud je toto nastavení zakázáno, musíte zajistit, aby byla uživatelská jména jedinečná napříč všemi organizacemi.",
       "VALIDATEORGDOMAINS": "Požadováno ověření domény organizace (DNS nebo HTTP výzva)",
       "SMTPSENDERADDRESSMATCHESINSTANCEDOMAIN": "Adresa odesílatele SMTP odpovídá doméně instance",
-      "ALLOWREGISTER": "Registrace povolena",
       "ALLOWUSERNAMEPASSWORD_DESC": "Je povoleno klasické přihlášení s uživatelským jménem a heslem.",
       "ALLOWEXTERNALIDP_DESC": "Přihlášení je povoleno pro níže uvedené poskytovatele identity.",
       "ALLOWREGISTER_DESC": "Pokud je možnost vybrána, objeví se při přihlášení další krok pro registraci uživatele.",
@@ -1965,7 +2024,8 @@
       "DEFAULTREDIRECTURI_DESC": "Definuje, kam bude uživatel přesměrován, pokud bylo přihlášení zahájeno bez kontextu aplikace (např. z e-mailu)",
       "ERRORMSGPOPUP": "Zobrazit chybu v dialogovém okně",
       "DISABLEWATERMARK": "Skrýt vodoznak",
-      "DISABLEWATERMARK_DESC": "Skrýt vodoznak Powered by Zitadel v přihlašovacím rozhraní"
+      "DISABLEWATERMARK_DESC": "Skrýt vodoznak Powered by Zitadel v přihlašovacím rozhraní",
+      "ALLOWREGISTER": "Registrace povolena"
     },
     "RESET": "Resetovat na výchozí hodnoty instance",
     "CREATECUSTOM": "Vytvořit vlastní pravidlo",
@@ -2011,6 +2071,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "ID projektu",
       "TITLE": "Projekt",
       "DESCRIPTION": "Zde můžete definovat aplikace, spravovat role a umožnit jiným organizacím používat váš projekt.",
       "DELETE": "Odstranit projekt",
@@ -2026,7 +2087,6 @@
         "GRANTED_SINGULAR": "Projekt přidělený {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Nastavení brandingu",
         "0": {
           "TITLE": "Nespecifikováno",
           "DESC": "Jakmile je uživatel identifikován, zobrazí se branding organizace identifikovaného uživatele, předtím než se zobrazí výchozí systém."
@@ -2039,6 +2099,7 @@
           "TITLE": "Použít nastavení organizace uživatele",
           "DESC": "Bude zobrazen branding organizace projektu, ale jakmile je uživatel identifikován, zobrazí se nastavení organizace identifikovaného uživatele."
         },
+        "TITLE": "Nastavení brandingu",
         "DIALOG": {
           "TITLE": "Nastavení brandingu",
           "DESCRIPTION": "Vyberte chování přihlašování při používání projektu."
@@ -2063,24 +2124,23 @@
           "DESCRIPTION": "Opravdu chcete odstranit váš projekt?",
           "TYPENAME": "Pro trvalé odstranění napište název projektu."
         }
-      },
-      "ID": "ID projektu"
+      }
     },
     "SETTINGS": {
       "TITLE": "Nastavení",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Stav",
       "0": "Nedefinován",
       "1": "Aktivní",
-      "2": "Neaktivní"
+      "2": "Neaktivní",
+      "TITLE": "Stav"
     },
     "TYPE": {
-      "TITLE": "Typ",
       "0": "Neznámý typ",
       "1": "Vlastní",
-      "2": "Přidělený"
+      "2": "Přidělený",
+      "TITLE": "Typ"
     },
     "NAME": "Název",
     "NAMEDIALOG": {
@@ -2292,6 +2352,10 @@
       "APPLE": {
         "TITLE": "Přihlásit se pomocí Apple",
         "DESCRIPTION": "Zadejte přihlašovací údaje pro vašeho poskytovatele identity Apple"
+      },
+      "SAML": {
+        "TITLE": "Sign in with SAML",
+        "DESCRIPTION": "Enter the credentials for your SAML Provider"
       }
     },
     "DETAIL": {
@@ -2326,10 +2390,10 @@
       "2": "neaktivní"
     },
     "AZUREADTENANTTYPES": {
-      "3": "ID tenantu",
       "0": "Společný",
       "1": "Organizace",
-      "2": "Spotřebitelé"
+      "2": "Spotřebitelé",
+      "3": "ID tenantu"
     },
     "AZUREADTENANTTYPE": "Typ tenantu",
     "AZUREADTENANTID": "ID tenantu",
@@ -2421,6 +2485,16 @@
       "UPLOADPRIVATEKEY": "Nahrát soukromý klíč",
       "KEYMAXSIZEEXCEEDED": "Maximální velikost 5kB překročena."
     },
+    "SAML": {
+      "METADATAXML": "Metadata Xml",
+      "METADATAURL": "Metadata URL",
+      "BINDING": "Binding",
+      "SIGNEDREQUEST": "Signed Request",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
+      "NAMEIDFORMAT": "NameID Format",
+      "TRANSIENTMAPPINGATTRIBUTENAME": "Custom Mapping Attribute Name",
+      "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternative attribute name to map the user in case the `nameid-format` returned is `transient`, e.g. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
+    },
     "TOAST": {
       "SAVED": "Úspěšně uloženo.",
       "REACTIVATED": "IDP reaktivován.",
@@ -2508,7 +2582,11 @@
         "DELETE_TITLE": "Smazat konfiguraci SMTP",
         "DELETE_DESCRIPTION": "Chystáte se smazat konfiguraci. Potvrďte tuto akci zadáním jména odesílatele",
         "DELETED": "Konfigurace SMTP byla smazána",
-        "SENDER": "Chcete-li smazat tuto konfiguraci SMTP, zadejte {{ value }}."
+        "SENDER": "Chcete-li smazat tuto konfiguraci SMTP, zadejte {{ value }}.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2584,7 +2662,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Další kroky",
         "0": {
           "TITLE": "Přidat role",
           "DESC": "Zadejte role vašeho projektu"
@@ -2596,7 +2673,8 @@
         "2": {
           "TITLE": "Pomoc & Podpora",
           "DESC": "Přečtěte si naši dokumentaci o vytváření aplikací nebo kontaktujte naši podporu"
-        }
+        },
+        "TITLE": "Další kroky"
       }
     },
     "NAMEDIALOG": {
@@ -2827,10 +2905,10 @@
     "ADD": "Přidat správce",
     "CREATIONTYPE": "Typ vytvoření",
     "CREATIONTYPES": {
-      "3": "Instance",
-      "2": "Organizace",
       "0": "Vlastní projekt",
       "1": "Přidělený projekt",
+      "2": "Organizace",
+      "3": "Instance",
       "4": "Projekt"
     },
     "EDITROLE": "Upravit role",
@@ -2897,6 +2975,5 @@
       "TITLE": "Aktivita",
       "DESCRIPTION": "Zde můžete vidět nejnovější události, které generovaly změnu u uživatele."
     }
-  },
-  "INSTANCEID": "ID instance"
+  }
 }

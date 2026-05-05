@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Dynamische clients",
+        "DESCRIPTION": "Clients die zichzelf registreerden via het Dynamic Client Registration eindpunt. Alleen-lezen — clients beheren hun eigen metadata via RFC 7592.",
+        "EMPTY": "Nog geen dynamisch geregistreerde clients. Clients die zich registreren via /oidc/v1/register verschijnen hier.",
+        "REGISTRATION_METHOD": "Registratiemethode",
+        "METHOD_ANONYMOUS": "Anoniem",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "Client-ID",
+        "COL_CLIENT_NAME": "Clientnaam",
+        "COL_CREATED_AT": "Geregistreerd op",
+        "COL_AUDIT": "Audit",
+        "VIEW_AUDIT": "Auditgebeurtenissen weergeven"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) autoriseren Dynamic Client Registration voor specifieke projecten. Geef één keer uit, gebruik tot N keer, en intrekken daarna.",
+        "EMPTY": "Geen Initial Access Tokens. Geef er één uit om de registratie van een DCR-client te autoriseren.",
+        "ISSUE_BUTTON": "Token uitgeven",
+        "DIALOG_TITLE": "Initial Access Token uitgeven",
+        "PROJECT_ID_LABEL": "Project-ID",
+        "LIFETIME_LABEL": "Levensduur (uren)",
+        "LIFETIME_HINT": "0 gebruikt de standaardlevensduur van de server.",
+        "MAX_USES_LABEL": "Max. gebruik",
+        "MAX_USES_HINT": "0 betekent onbeperkt.",
+        "GRANT_TYPES_LABEL": "Toegestane Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "Toegestane Redirect URI-patronen",
+        "REDIRECT_URI_PATTERNS_HINT": "Eén patroon per regel. Leeg laat elk patroon uit de globale DCR allow-list toe.",
+        "DESCRIPTION_LABEL": "Beschrijving",
+        "REVOKE_BUTTON": "Intrekken",
+        "REVOKE_CONFIRM": "Dit Initial Access Token intrekken? Toekomstige registratiepogingen mislukken. Niet ongedaan te maken.",
+        "REVOKED": "Initial Access Token ingetrokken.",
+        "PLAINTEXT_TITLE": "Token uitgegeven",
+        "PLAINTEXT_WARNING": "Kopieer dit token nu. Het wordt EXACT EEN KEER getoond. Na sluiten van dit dialoog kunt u het niet meer ophalen — geef een nieuw token uit als u het verliest.",
+        "PLAINTEXT_REVEAL": "Token tonen",
+        "PLAINTEXT_DONE": "Ik heb het opgeslagen",
+        "COPIED": "Token gekopieerd naar klembord.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Project",
+        "COL_EXPIRES_AT": "Verloopt",
+        "COL_MAX_USES": "Max. gebruik",
+        "COL_USES_CONSUMED": "Gebruikt",
+        "COL_STATUS": "Status",
+        "STATUS_ACTIVE": "Actief",
+        "STATUS_REVOKED": "Ingetrokken",
+        "COL_CREATED_AT": "Aangemaakt op",
+        "PLAINTEXT_REMASK": "Token verbergen",
+        "PLAINTEXT_AUTOMASK_HINT": "Het token wordt automatisch verborgen na 60 seconden.",
+        "REVOKE_PROJECT_REQUIRED": "Kan een Initial Access Token niet intrekken zonder een project-ID.",
+        "REFRESH": "Lijst vernieuwen",
+        "COPY": "Token kopiëren",
+        "REVEAL_TOGGLE": "Token tonen of verbergen",
+        "DISMISS": "Sluiten"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "U bent een instantie-beheerder. Let op: u heeft uitgebreide rechten.",
     "SHOWORGS": "Toon alle organisaties",
     "GRANTS": "Roltoewijzingen",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Acties",
+    "TARGETS": "Targets",
     "PRIVACY": "Privacy",
     "TOS": "Algemene voorwaarden",
     "OPENSHORTCUTSTOOLTIP": "Typ ? om toetsenbordsnelkoppelingen te tonen",
@@ -741,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "Filter",
+    "ORGNAME": "Organisatienaam",
+    "ORGID": "Organisatie ID",
     "STATE": "Status",
+    "PRIMARYDOMAIN": "Organisatie Domein",
     "DISPLAYNAME": "Weergavenaam van de gebruiker",
     "EMAIL": "E-mail",
     "USERNAME": "Gebruikersnaam",
-    "ORGNAME": "Organisatienaam",
-    "ORGID": "Organisatie ID",
-    "PRIMARYDOMAIN": "Organisatie Domein",
     "PROJECTNAME": "Projectnaam",
     "RESOURCEOWNER": "Eigenaar van de bron",
     "METHODS": {
+      "1": "gelijk aan",
       "5": "bevat",
-      "7": "eindigt met",
-      "1": "gelijk aan"
+      "7": "eindigt met"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "<strong>G</strong>a naar <strong>D</strong>omeinen"
     }
   },
+  "INSTANCEID": "Instance-ID",
   "RESOURCEID": "Resource ID",
   "NAME": "Naam",
   "VERSION": "Versie",
@@ -1556,6 +1612,9 @@
       "EVENTS": "Evenementen",
       "FAILEDEVENTS": "Mislukte evenementen",
       "VIEWS": "Weergaves",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1568,6 +1627,7 @@
       "APPEARANCE": "Verschijning",
       "OTHER": "Andere",
       "STORAGE": "opslag",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BÈTA"
@@ -2010,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "Project-ID",
       "TITLE": "Project",
       "DESCRIPTION": "Hier kunt u toepassingen definiëren, rollen beheren en andere organisaties toestaan uw project te gebruiken.",
       "DELETE": "Verwijder Project",
@@ -2025,7 +2086,6 @@
         "GRANTED_SINGULAR": "Project toegewezen {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Branding Instelling",
         "0": {
           "TITLE": "Niet gespecificeerd",
           "DESC": "Zodra de gebruiker is geïdentificeerd, wordt de branding van de organisatie van de geïdentificeerde gebruiker getoond, voordat de systeemstandaard wordt getoond."
@@ -2038,6 +2098,7 @@
           "TITLE": "Gebruik instelling van gebruikersorganisatie",
           "DESC": "De branding van de organisatie van het project wordt getoond, maar zodra de gebruiker is geïdentificeerd, wordt de instelling van de organisatie van de geïdentificeerde gebruiker getoond."
         },
+        "TITLE": "Branding Instelling",
         "DIALOG": {
           "TITLE": "Branding instelling",
           "DESCRIPTION": "Selecteer het gedrag van de login, bij gebruik van het project."
@@ -2062,24 +2123,23 @@
           "DESCRIPTION": "Weet u zeker dat u uw project wilt verwijderen?",
           "TYPENAME": "Typ de naam van het project om het permanent te verwijderen."
         }
-      },
-      "ID": "Project-ID"
+      }
     },
     "SETTINGS": {
       "TITLE": "Instellingen",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Status",
       "0": "Niet gedefinieerd",
       "1": "Actief",
-      "2": "Inactief"
+      "2": "Inactief",
+      "TITLE": "Status"
     },
     "TYPE": {
-      "TITLE": "Type",
       "0": "Onbekend type",
       "1": "Eigen",
-      "2": "Verleend"
+      "2": "Verleend",
+      "TITLE": "Type"
     },
     "NAME": "Naam",
     "NAMEDIALOG": {
@@ -2329,10 +2389,10 @@
       "2": "inactief"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Tenant ID",
       "0": "Algemeen",
       "1": "Organisaties",
-      "2": "Consumenten"
+      "2": "Consumenten",
+      "3": "Tenant ID"
     },
     "AZUREADTENANTTYPE": "Tenant Type",
     "AZUREADTENANTID": "Tenant ID",
@@ -2387,7 +2447,7 @@
     "PREFERREDLANGUAGEATTRIBUTE": "Voorkeurstaal attribuut",
     "PREFERREDUSERNAMEATTRIBUTE": "Voorkeursgebruikersnaam attribuut",
     "PROFILEATTRIBUTE": "Profiel attribuut",
-    "IDPDISPLAYNAMEMAPPING": "IDP Weergavenaam Mapping",
+    "IDPDISPLAYNAMMAPPING": "IdP Display Name Mapping",
     "USERNAMEMAPPING": "Gebruikersnaam Mapping",
     "DATES": "Data",
     "CREATIONDATE": "Aangemaakt Op",
@@ -2429,7 +2489,10 @@
       "METADATAURL": "Metadata URL",
       "BINDING": "Binding",
       "SIGNEDREQUEST": "Ondertekend Verzoek",
-      "SIGNATUREALGORITHM": "Handtekeningalgoritme"
+      "SIGNATUREALGORITHM": "Handtekeningalgoritme",
+      "NAMEIDFORMAT": "NameID Format",
+      "TRANSIENTMAPPINGATTRIBUTENAME": "Custom Mapping Attribute Name",
+      "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternative attribute name to map the user in case the `nameid-format` returned is `transient`, e.g. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
     },
     "TOAST": {
       "SAVED": "Succesvol opgeslagen.",
@@ -2445,7 +2508,8 @@
     "ISIDTOKENMAPPING": "Kaart van de ID token",
     "ISIDTOKENMAPPING_DESC": "Als geselecteerd, wordt provider informatie in kaart gebracht van de ID token, niet van de userinfo eindpunt.",
     "USEPKCE": "Gebruik PKCE",
-    "USEPKCE_DESC": "Bepaalt of de parameters code_challenge en code_challenge_method zijn opgenomen in het verificatieverzoek"
+    "USEPKCE_DESC": "Bepaalt of de parameters code_challenge en code_challenge_method zijn opgenomen in het verificatieverzoek",
+    "IDPDISPLAYNAMEMAPPING": "IDP Weergavenaam Mapping"
   },
   "MFA": {
     "LIST": {
@@ -2518,7 +2582,11 @@
         "DELETE_TITLE": "SMTP-configuratie verwijderen",
         "DELETE_DESCRIPTION": "U staat op het punt een configuratie te verwijderen. Bevestig deze actie door de naam van de afzender te typen",
         "DELETED": "SMTP-configuratie is verwijderd",
-        "SENDER": "Typ {{ value }} om deze SMTP-configuratie te verwijderen."
+        "SENDER": "Typ {{ value }} om deze SMTP-configuratie te verwijderen.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2594,7 +2662,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Volgende stappen",
         "0": {
           "TITLE": "Voeg rollen toe",
           "DESC": "Voer uw projectrollen in"
@@ -2606,7 +2673,8 @@
         "2": {
           "TITLE": "Hulp & Ondersteuning",
           "DESC": "Lees onze documentatie over het creëren van toepassingen of neem contact op met onze ondersteuning"
-        }
+        },
+        "TITLE": "Volgende stappen"
       }
     },
     "NAMEDIALOG": {
@@ -2837,10 +2905,10 @@
     "ADD": "Voeg een Beheerder toe",
     "CREATIONTYPE": "Creatietype",
     "CREATIONTYPES": {
-      "3": "Instantie",
-      "2": "Organisatie",
       "0": "Eigendom Project",
       "1": "Verleend Project",
+      "2": "Organisatie",
+      "3": "Instantie",
       "4": "Project"
     },
     "EDITROLE": "Bewerk rollen",
@@ -2907,6 +2975,5 @@
       "TITLE": "Activiteit",
       "DESCRIPTION": "Hier kunt u de laatste gebeurtenissen zien die een gebruikersverandering hebben gegenereerd."
     }
-  },
-  "INSTANCEID": "Instance-ID"
+  }
 }

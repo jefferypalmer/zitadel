@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Dynamiska klienter",
+        "DESCRIPTION": "Klienter som registrerade sig själva via Dynamic Client Registration-slutpunkten. Skrivskyddat — klienter hanterar sina egna metadata via RFC 7592.",
+        "EMPTY": "Inga dynamiskt registrerade klienter ännu. Klienter som registrerar sig via /oidc/v1/register visas här.",
+        "REGISTRATION_METHOD": "Registreringsmetod",
+        "METHOD_ANONYMOUS": "Anonym",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "Klient-ID",
+        "COL_CLIENT_NAME": "Klientnamn",
+        "COL_CREATED_AT": "Registrerad",
+        "COL_AUDIT": "Granskning",
+        "VIEW_AUDIT": "Visa granskningshändelser"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) auktoriserar Dynamic Client Registration för specifika projekt. Utfärda en gång, använd upp till N gånger, återkalla sedan.",
+        "EMPTY": "Inga Initial Access Tokens. Utfärda en för att auktorisera en DCR-klientregistrering.",
+        "ISSUE_BUTTON": "Utfärda token",
+        "DIALOG_TITLE": "Utfärda Initial Access Token",
+        "PROJECT_ID_LABEL": "Projekt-ID",
+        "LIFETIME_LABEL": "Livstid (timmar)",
+        "LIFETIME_HINT": "0 använder serverns standardlivstid.",
+        "MAX_USES_LABEL": "Max antal användningar",
+        "MAX_USES_HINT": "0 betyder obegränsat.",
+        "GRANT_TYPES_LABEL": "Tillåtna Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "Tillåtna Redirect URI-mönster",
+        "REDIRECT_URI_PATTERNS_HINT": "Ett mönster per rad. Tomt tillåter alla mönster i den globala DCR-tillåtelselistan.",
+        "DESCRIPTION_LABEL": "Beskrivning",
+        "REVOKE_BUTTON": "Återkalla",
+        "REVOKE_CONFIRM": "Återkalla denna Initial Access Token? Framtida registreringsförsök kommer att misslyckas. Detta kan inte ångras.",
+        "REVOKED": "Initial Access Token återkallad.",
+        "PLAINTEXT_TITLE": "Token utfärdad",
+        "PLAINTEXT_WARNING": "Kopiera denna token nu. Den visas EXAKT EN GÅNG. När denna dialog stängs kan du inte hämta den igen — utfärda en ny om du förlorar den.",
+        "PLAINTEXT_REVEAL": "Visa token",
+        "PLAINTEXT_DONE": "Jag har sparat den",
+        "COPIED": "Token kopierad till urklipp.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Projekt",
+        "COL_EXPIRES_AT": "Upphör",
+        "COL_MAX_USES": "Max antal användningar",
+        "COL_USES_CONSUMED": "Använd",
+        "COL_STATUS": "Status",
+        "STATUS_ACTIVE": "Aktiv",
+        "STATUS_REVOKED": "Återkallad",
+        "COL_CREATED_AT": "Skapad",
+        "PLAINTEXT_REMASK": "Dölj token",
+        "PLAINTEXT_AUTOMASK_HINT": "Tokenen döljs automatiskt efter 60 sekunder.",
+        "REVOKE_PROJECT_REQUIRED": "Det går inte att återkalla en Initial Access Token utan ett projekt-ID.",
+        "REFRESH": "Uppdatera lista",
+        "COPY": "Kopiera token",
+        "REVEAL_TOGGLE": "Visa eller dölj token",
+        "DISMISS": "Stäng"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Du är en instans-administratör. Observera att du har utökade behörigheter.",
     "SHOWORGS": "Visa Alla Organisationer",
     "GRANTS": "Rolltilldelningar",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Åtgärder",
+    "TARGETS": "Targets",
     "PRIVACY": "Integritet",
     "TOS": "Användarvillkor",
     "OPENSHORTCUTSTOOLTIP": "Skriv ? för att visa tangentbordsgenvägar",
@@ -741,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "Filter",
+    "ORGNAME": "Organisationsnamn",
+    "ORGID": "Organisations ID",
     "STATE": "Status",
+    "PRIMARYDOMAIN": "Organisationsdomän",
     "DISPLAYNAME": "Användarens visningsnamn",
     "EMAIL": "E-post",
     "USERNAME": "Användarnamn",
-    "ORGNAME": "Organisationsnamn",
-    "ORGID": "Organisations ID",
-    "PRIMARYDOMAIN": "Organisationsdomän",
     "PROJECTNAME": "Projektnamn",
     "RESOURCEOWNER": "Resursägare",
     "METHODS": {
+      "1": "är lika med",
       "5": "innehåller",
-      "7": "slutar med",
-      "1": "är lika med"
+      "7": "slutar med"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "<strong>G</strong>å till <strong>D</strong>omäner"
     }
   },
+  "INSTANCEID": "Instans-ID",
   "RESOURCEID": "Resurs-ID",
   "NAME": "Namn",
   "VERSION": "Version",
@@ -1530,10 +1586,6 @@
     }
   },
   "SETTINGS": {
-    "INSTANCE": {
-      "TITLE": "Instansinställningar",
-      "DESCRIPTION": "Dessa inställningar kommer att gälla för alla dina organisationer om de inte har åsidosatts."
-    },
     "LIST": {
       "ORGS": "Organisationer",
       "FEATURESETTINGS": "Funktioner",
@@ -1560,6 +1612,9 @@
       "EVENTS": "Händelser",
       "FAILEDEVENTS": "Misslyckade händelser",
       "VIEWS": "Vy",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1572,9 +1627,14 @@
       "APPEARANCE": "Utseende",
       "OTHER": "Övrigt",
       "STORAGE": "Lagring",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
-    "BETA": "BETA"
+    "BETA": "BETA",
+    "INSTANCE": {
+      "TITLE": "Instansinställningar",
+      "DESCRIPTION": "Dessa inställningar kommer att gälla för alla dina organisationer om de inte har åsidosatts."
+    }
   },
   "SETTING": {
     "LANGUAGES": {
@@ -2014,6 +2074,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "Projekt-ID",
       "TITLE": "Projekt",
       "DESCRIPTION": "Här kan du definiera applikationer, hantera roller och ge andra organisationer tillgång till ditt projekt.",
       "DELETE": "Radera Projekt",
@@ -2029,7 +2090,6 @@
         "GRANTED_SINGULAR": "Projekt tilldelat {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Varumärkesinställning",
         "0": {
           "TITLE": "Ospecificerad",
           "DESC": "Så snart användaren identifieras kommer varumärket för den identifierade användarens organisation att visas, innan systemets standard visas."
@@ -2042,6 +2102,7 @@
           "TITLE": "Använd användarorganisationens inställning",
           "DESC": "Varumärket för projektets organisation kommer att visas, men så snart användaren identifieras kommer inställningen för den identifierade användarens organisation att visas."
         },
+        "TITLE": "Varumärkesinställning",
         "DIALOG": {
           "TITLE": "Varumärkesinställning",
           "DESCRIPTION": "Välj beteendet för inloggningen när du använder projektet."
@@ -2066,24 +2127,23 @@
           "DESCRIPTION": "Vill du verkligen radera ditt projekt?",
           "TYPENAME": "Skriv namnet på projektet för att radera det permanent."
         }
-      },
-      "ID": "Projekt-ID"
+      }
     },
     "SETTINGS": {
       "TITLE": "Inställningar",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Status",
       "0": "Ej definierad",
       "1": "Aktiv",
-      "2": "Inaktiv"
+      "2": "Inaktiv",
+      "TITLE": "Status"
     },
     "TYPE": {
-      "TITLE": "Typ",
       "0": "Okänd typ",
       "1": "Ägd",
-      "2": "Beviljad"
+      "2": "Beviljad",
+      "TITLE": "Typ"
     },
     "NAME": "Namn",
     "NAMEDIALOG": {
@@ -2333,10 +2393,10 @@
       "2": "inaktiv"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Hyresgäst-ID",
       "0": "Allmän",
       "1": "Organisationer",
-      "2": "Konsumenter"
+      "2": "Konsumenter",
+      "3": "Hyresgäst-ID"
     },
     "AZUREADTENANTTYPE": "Hyresgästtyp",
     "AZUREADTENANTID": "Hyresgäst-ID",
@@ -2433,6 +2493,7 @@
       "METADATAURL": "Metadata-URL",
       "BINDING": "Bindning",
       "SIGNEDREQUEST": "Signerad begäran",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
       "NAMEIDFORMAT": "NameID-format",
       "TRANSIENTMAPPINGATTRIBUTENAME": "Anpassat mappningsattributnamn",
       "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternativt attributnamn för att mappa användaren om `nameid-format` som returneras är `transient`, t.ex. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
@@ -2604,7 +2665,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Nästa steg",
         "0": {
           "TITLE": "Lägg till roller",
           "DESC": "Ange dina projektroller"
@@ -2616,7 +2676,8 @@
         "2": {
           "TITLE": "Hjälp & Support",
           "DESC": "Läs vår dokumentation om att skapa applikationer eller kontakta vår support"
-        }
+        },
+        "TITLE": "Nästa steg"
       }
     },
     "NAMEDIALOG": {
@@ -2847,10 +2908,10 @@
     "ADD": "Lägg till en administratör",
     "CREATIONTYPE": "Skapandetyp",
     "CREATIONTYPES": {
-      "3": "Instans",
-      "2": "Organisation",
       "0": "Eget Projekt",
       "1": "Beviljat Projekt",
+      "2": "Organisation",
+      "3": "Instans",
       "4": "Projekt"
     },
     "EDITROLE": "Redigera roller",
@@ -2917,6 +2978,5 @@
       "TITLE": "Aktivitet",
       "DESCRIPTION": "Här kan du se de senaste händelserna som har genererat en användarförändring."
     }
-  },
-  "INSTANCEID": "Instans-ID"
+  }
 }

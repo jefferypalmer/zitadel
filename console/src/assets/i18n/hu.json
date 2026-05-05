@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Dinamikus kliensek",
+        "DESCRIPTION": "Olyan kliensek, amelyek a Dynamic Client Registration végponton keresztül regisztrálták magukat. Csak olvasható — a kliensek saját metaadataikat RFC 7592 szerint kezelik.",
+        "EMPTY": "Még nincs dinamikusan regisztrált kliens. A /oidc/v1/register-en regisztráló kliensek itt jelennek meg.",
+        "REGISTRATION_METHOD": "Regisztrációs módszer",
+        "METHOD_ANONYMOUS": "Névtelen",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "Kliens ID",
+        "COL_CLIENT_NAME": "Kliens név",
+        "COL_CREATED_AT": "Regisztrálva",
+        "COL_AUDIT": "Audit",
+        "VIEW_AUDIT": "Audit események megtekintése"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Az Initial Access Tokenek (IAT-k) konkrét projektekhez engedélyezik a Dynamic Client Registration műveletet. Add ki egyszer, használd N alkalommal, majd vond vissza.",
+        "EMPTY": "Nincsenek Initial Access Tokens. Adj ki egyet egy DCR kliens regisztrációjának engedélyezéséhez.",
+        "ISSUE_BUTTON": "Token kiadása",
+        "DIALOG_TITLE": "Initial Access Token kiadása",
+        "PROJECT_ID_LABEL": "Projekt ID",
+        "LIFETIME_LABEL": "Élettartam (óra)",
+        "LIFETIME_HINT": "A 0 a szerver alapértelmezett élettartamát használja.",
+        "MAX_USES_LABEL": "Max. felhasználás",
+        "MAX_USES_HINT": "A 0 korlátlant jelent.",
+        "GRANT_TYPES_LABEL": "Engedélyezett Grant Type-ok",
+        "REDIRECT_URI_PATTERNS_LABEL": "Engedélyezett Redirect URI minták",
+        "REDIRECT_URI_PATTERNS_HINT": "Soronként egy minta. Üresen hagyva bármely globális DCR allow-listán szereplő mintát engedélyez.",
+        "DESCRIPTION_LABEL": "Leírás",
+        "REVOKE_BUTTON": "Visszavonás",
+        "REVOKE_CONFIRM": "Visszavonod ezt az Initial Access Tokent? A jövőbeli regisztrációs kísérletek sikertelenek lesznek. Ez nem visszavonható.",
+        "REVOKED": "Initial Access Token visszavonva.",
+        "PLAINTEXT_TITLE": "Token kiadva",
+        "PLAINTEXT_WARNING": "Másold ki ezt a tokent most. PONTOSAN EGYSZER jelenik meg. A párbeszéd bezárása után nem tudod visszaszerezni — adj ki újat, ha elvész.",
+        "PLAINTEXT_REVEAL": "Token megjelenítése",
+        "PLAINTEXT_DONE": "Elmentettem",
+        "COPIED": "Token a vágólapra másolva.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Projekt",
+        "COL_EXPIRES_AT": "Lejár",
+        "COL_MAX_USES": "Max. felhasználás",
+        "COL_USES_CONSUMED": "Felhasznált",
+        "COL_STATUS": "Állapot",
+        "STATUS_ACTIVE": "Aktív",
+        "STATUS_REVOKED": "Visszavont",
+        "COL_CREATED_AT": "Létrehozva",
+        "PLAINTEXT_REMASK": "Token elrejtése",
+        "PLAINTEXT_AUTOMASK_HINT": "A token 60 másodperc múlva automatikusan elrejtődik.",
+        "REVOKE_PROJECT_REQUIRED": "Nem lehet Initial Access Tokent visszavonni projekt ID nélkül.",
+        "REFRESH": "Lista frissítése",
+        "COPY": "Token másolása",
+        "REVEAL_TOGGLE": "Token megjelenítése vagy elrejtése",
+        "DISMISS": "Bezárás"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Te egy példány Adminisztrátor vagy. Ne felejtsd el, hogy kibővített jogosultságokkal rendelkezel.",
     "SHOWORGS": "Show All Organizations",
     "GRANTS": "Szerepkör hozzárendelések",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Műveletek",
+    "TARGETS": "Targets",
     "PRIVACY": "Adatvédelem",
     "TOS": "Szolgáltatási feltételek",
     "OPENSHORTCUTSTOOLTIP": "Írd be a ? jelet a billentyűparancsok megjelenítéséhez",
@@ -741,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "Szűrő",
+    "ORGNAME": "Szervezet Neve",
+    "ORGID": "Szervezet ID",
     "STATE": "Állapot",
+    "PRIMARYDOMAIN": "Szervezet domainje",
     "DISPLAYNAME": "Felhasználó Megjelenítési Név",
     "EMAIL": "E-mail",
     "USERNAME": "Felhasználói Név",
-    "ORGNAME": "Szervezet Neve",
-    "ORGID": "Szervezet ID",
-    "PRIMARYDOMAIN": "Szervezet domainje",
     "PROJECTNAME": "Projekt Neve",
     "RESOURCEOWNER": "Erőforrás Tulajdonos",
     "METHODS": {
+      "1": "egyenlő",
       "5": "tartalmaz",
-      "7": "azzal végződik",
-      "1": "egyenlő"
+      "7": "azzal végződik"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "<strong>M</strong>enj a <strong>D</strong>oménekhez"
     }
   },
+  "INSTANCEID": "Példányazonosító",
   "RESOURCEID": "Erőforrás azonosító",
   "NAME": "Név",
   "VERSION": "Verzió",
@@ -1556,6 +1612,9 @@
       "EVENTS": "Események",
       "FAILEDEVENTS": "Sikertelen események",
       "VIEWS": "Nézetek",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1568,6 +1627,7 @@
       "APPEARANCE": "Megjelenés",
       "OTHER": "Egyéb",
       "STORAGE": "Tárolás",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BÉTA"
@@ -1641,6 +1701,8 @@
         "SID": "Sid",
         "TOKEN": "Token",
         "SENDERNUMBER": "Küldő száma",
+        "VERIFYSERVICESID": "Verification Service Sid",
+        "VERIFYSERVICESID_DESCRIPTION": "Setting a Verification Service Sid, allows using the Twilio Verify Service instead of the Messages Service for verification of phone numbers and OTP SMS",
         "ADDED": "Twilio sikeresen hozzáadva.",
         "UPDATED": "Twilio sikeresen frissítve.",
         "REMOVED": "Twilio eltávolítva",
@@ -2008,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "Projektazonosító",
       "TITLE": "Projekt",
       "DESCRIPTION": "Itt meghatározhatod az alkalmazásokat, kezelheted a szerepköröket és engedélyezheted más szervezetek számára a projekted használatát.",
       "DELETE": "Projekt törlése",
@@ -2023,7 +2086,6 @@
         "GRANTED_SINGULAR": "{{name}} által Biztosított Projekt"
       },
       "PRIVATELABEL": {
-        "TITLE": "Márkabeállítás",
         "0": {
           "TITLE": "Nem meghatározott",
           "DESC": "Amint a felhasználó azonosításra kerül, az azonosított felhasználó szervezetének márkajelzése lesz látható, mielőtt a rendszer alapértelmezése megjelenne."
@@ -2036,6 +2098,7 @@
           "TITLE": "Felhasználói Szervezeti beállítás használata",
           "DESC": "A projekt szervezetének márkajelzése lesz látható, de amint a felhasználót azonosítják, az azonosított felhasználó szervezetének beállítása lesz látható."
         },
+        "TITLE": "Márkabeállítás",
         "DIALOG": {
           "TITLE": "Márka beállítás",
           "DESCRIPTION": "Válaszd ki a bejelentkezés viselkedését, amikor a projektet használod."
@@ -2060,24 +2123,23 @@
           "DESCRIPTION": "Tényleg törölni szeretnéd a projekted?",
           "TYPENAME": "Írd be a projekt nevét a végleges törléshez."
         }
-      },
-      "ID": "Projektazonosító"
+      }
     },
     "SETTINGS": {
       "TITLE": "Beállítások",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Állapot",
       "0": "Nincs meghatározva",
       "1": "Aktív",
-      "2": "Inaktív"
+      "2": "Inaktív",
+      "TITLE": "Állapot"
     },
     "TYPE": {
-      "TITLE": "Típus",
       "0": "Ismeretlen típus",
       "1": "Tulajdonolt",
-      "2": "Megadva"
+      "2": "Megadva",
+      "TITLE": "Típus"
     },
     "NAME": "Név",
     "NAMEDIALOG": {
@@ -2327,10 +2389,10 @@
       "2": "inaktív"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Bérlő azonosító",
       "0": "Gyakori",
       "1": "Szervezetek",
-      "2": "Fogyasztók"
+      "2": "Fogyasztók",
+      "3": "Bérlő azonosító"
     },
     "AZUREADTENANTTYPE": "Bérlő típusa",
     "AZUREADTENANTID": "Bérlő azonosító",
@@ -2599,7 +2661,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Következő lépések",
         "0": {
           "TITLE": "Szerepkörök hozzáadása",
           "DESC": "Add meg a projekt szerepköreit"
@@ -2611,7 +2672,8 @@
         "2": {
           "TITLE": "Segítség & Támogatás",
           "DESC": "Olvasd el a dokumentációnkat az alkalmazások létrehozásáról, vagy vedd fel a kapcsolatot a támogatásunkkal"
-        }
+        },
+        "TITLE": "Következő lépések"
       }
     },
     "NAMEDIALOG": {
@@ -2842,10 +2904,10 @@
     "ADD": "Hozzáadás egy adminisztrátort",
     "CREATIONTYPE": "Létrehozás típusa",
     "CREATIONTYPES": {
-      "3": "Példány",
-      "2": "Szervezet",
       "0": "Saját projekt",
       "1": "Engedélyezett Projekt",
+      "2": "Szervezet",
+      "3": "Példány",
       "4": "Projekt"
     },
     "EDITROLE": "Szerepkörök szerkesztése",
@@ -2912,6 +2974,5 @@
       "TITLE": "Tevékenység",
       "DESCRIPTION": "Itt láthatod a legújabb eseményeket, amelyek felhasználói változást hoztak létre."
     }
-  },
-  "INSTANCEID": "Példányazonosító"
+  }
 }

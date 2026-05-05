@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Dinamik istemciler",
+        "DESCRIPTION": "Dynamic Client Registration uç noktası üzerinden kendilerini kaydeden istemciler. Salt okunur — istemciler kendi meta verilerini RFC 7592 ile yönetir.",
+        "EMPTY": "Henüz dinamik olarak kaydedilmiş istemci yok. /oidc/v1/register üzerinden kaydolan istemciler burada görünecektir.",
+        "REGISTRATION_METHOD": "Kayıt yöntemi",
+        "METHOD_ANONYMOUS": "Anonim",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "İstemci ID",
+        "COL_CLIENT_NAME": "İstemci adı",
+        "COL_CREATED_AT": "Kayıt tarihi",
+        "COL_AUDIT": "Denetim",
+        "VIEW_AUDIT": "Denetim olaylarını gör"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs), belirli projeler için Dynamic Client Registration'ı yetkilendirir. Bir kez ver, en fazla N kez kullan, sonra iptal et.",
+        "EMPTY": "Initial Access Tokens yok. DCR istemci kaydını yetkilendirmek için bir tane ver.",
+        "ISSUE_BUTTON": "Token ver",
+        "DIALOG_TITLE": "Initial Access Token ver",
+        "PROJECT_ID_LABEL": "Proje ID",
+        "LIFETIME_LABEL": "Süre (saat)",
+        "LIFETIME_HINT": "0 sunucunun varsayılan süresini kullanır.",
+        "MAX_USES_LABEL": "Maks. kullanım",
+        "MAX_USES_HINT": "0 sınırsız anlamına gelir.",
+        "GRANT_TYPES_LABEL": "İzin verilen Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "İzin verilen Redirect URI desenleri",
+        "REDIRECT_URI_PATTERNS_HINT": "Her satırda bir desen. Boş bırakılırsa global DCR izin listesindeki herhangi bir deseni kabul eder.",
+        "DESCRIPTION_LABEL": "Açıklama",
+        "REVOKE_BUTTON": "İptal",
+        "REVOKE_CONFIRM": "Bu Initial Access Token iptal edilsin mi? Sonraki kayıt denemeleri başarısız olacak. Geri alınamaz.",
+        "REVOKED": "Initial Access Token iptal edildi.",
+        "PLAINTEXT_TITLE": "Token verildi",
+        "PLAINTEXT_WARNING": "Bu tokeni şimdi kopyala. TAM OLARAK BİR KEZ gösterilir. Bu iletişim kutusu kapatıldığında yeniden alamazsın — kaybedersen yeni bir tane ver.",
+        "PLAINTEXT_REVEAL": "Tokeni göster",
+        "PLAINTEXT_DONE": "Kaydettim",
+        "COPIED": "Token panoya kopyalandı.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Proje",
+        "COL_EXPIRES_AT": "Sona erer",
+        "COL_MAX_USES": "Maks. kullanım",
+        "COL_USES_CONSUMED": "Kullanılan",
+        "COL_STATUS": "Durum",
+        "STATUS_ACTIVE": "Aktif",
+        "STATUS_REVOKED": "İptal",
+        "COL_CREATED_AT": "Oluşturma tarihi",
+        "PLAINTEXT_REMASK": "Tokeni gizle",
+        "PLAINTEXT_AUTOMASK_HINT": "Token 60 saniye sonra otomatik olarak gizlenecek.",
+        "REVOKE_PROJECT_REQUIRED": "Proje ID olmadan bir Initial Access Token iptal edilemez.",
+        "REFRESH": "Listeyi yenile",
+        "COPY": "Tokeni kopyala",
+        "REVEAL_TOGGLE": "Tokeni göster veya gizle",
+        "DISMISS": "Kapat"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "instans Yöneticisisiniz. Genişletilmiş izinleriniz olduğunu unutmayın.",
     "SHOWORGS": "Tüm Organizasyonları Göster",
     "GRANTS": "Rol Atamaları",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Eylemler",
+    "TARGETS": "Targets",
     "PRIVACY": "Gizlilik",
     "TOS": "Hizmet Şartları",
     "OPENSHORTCUTSTOOLTIP": "Klavye kısayollarını göstermek için ? yazın",
@@ -751,9 +806,9 @@
     "PROJECTNAME": "Proje Adı",
     "RESOURCEOWNER": "Kaynak Sahibi",
     "METHODS": {
+      "1": "eşittir",
       "5": "içerir",
-      "7": "ile biter",
-      "1": "eşittir"
+      "7": "ile biter"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "<strong>A</strong>lan <strong>A</strong>dlarına git"
     }
   },
+  "INSTANCEID": "Instans Kimliği",
   "RESOURCEID": "Kaynak ID",
   "NAME": "Ad",
   "VERSION": "Sürüm",
@@ -1558,6 +1614,7 @@
       "VIEWS": "Görünümler",
       "ACTIONS": "Eylemler",
       "TARGETS": "Hedefler",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -2013,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "Proje Kimliği",
       "TITLE": "Proje",
       "DESCRIPTION": "Burada uygulamaları tanımlayabilir, rolleri yönetebilir ve diğer organizasyonlara projenizi kullanma yetkisi verebilirsiniz.",
       "DELETE": "Projeyi Sil",
@@ -2028,7 +2086,6 @@
         "GRANTED_SINGULAR": "{{name}} tarafından Yetkilendirilmiş Proje"
       },
       "PRIVATELABEL": {
-        "TITLE": "Marka Ayarı",
         "0": {
           "TITLE": "Belirtilmemiş",
           "DESC": "Kullanıcı tanımlandığında, sistem varsayılanı gösterilmeden önce tanımlanan kullanıcının organizasyonunun markası gösterilecektir."
@@ -2041,6 +2098,7 @@
           "TITLE": "Kullanıcı Organizasyonu ayarını kullan",
           "DESC": "Projenin organizasyonunun markası gösterilecektir, ancak kullanıcı tanımlandığında, tanımlanan kullanıcının organizasyonunun ayarı gösterilecektir."
         },
+        "TITLE": "Marka Ayarı",
         "DIALOG": {
           "TITLE": "Marka Ayarı",
           "DESCRIPTION": "Projeyi kullanırken giriş davranışını seçin."
@@ -2065,24 +2123,23 @@
           "DESCRIPTION": "Projenizi gerçekten silmek istiyor musunuz?",
           "TYPENAME": "Kalıcı olarak silmek için projenin adını yazın."
         }
-      },
-      "ID": "Proje Kimliği"
+      }
     },
     "SETTINGS": {
       "TITLE": "Ayarlar",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Durum",
       "0": "Tanımlı değil",
       "1": "Aktif",
-      "2": "Pasif"
+      "2": "Pasif",
+      "TITLE": "Durum"
     },
     "TYPE": {
-      "TITLE": "Tür",
       "0": "Bilinmeyen tür",
       "1": "Sahip olunan",
-      "2": "Yetkilendirilmiş"
+      "2": "Yetkilendirilmiş",
+      "TITLE": "Tür"
     },
     "NAME": "Ad",
     "NAMEDIALOG": {
@@ -2332,10 +2389,10 @@
       "2": "pasif"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Kiracı ID",
       "0": "Ortak",
       "1": "Organizasyonlar",
-      "2": "Tüketiciler"
+      "2": "Tüketiciler",
+      "3": "Kiracı ID"
     },
     "AZUREADTENANTTYPE": "Kiracı Türü",
     "AZUREADTENANTID": "Kiracı ID",
@@ -2604,7 +2661,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Sonraki Adımlar",
         "0": {
           "TITLE": "Roller ekle",
           "DESC": "Proje rollerinizi girin"
@@ -2616,7 +2672,8 @@
         "2": {
           "TITLE": "Yardım ve Destek",
           "DESC": "Uygulama oluşturma hakkındaki belgelerimizi okuyun veya desteğimizle iletişime geçin"
-        }
+        },
+        "TITLE": "Sonraki Adımlar"
       }
     },
     "NAMEDIALOG": {
@@ -2847,10 +2904,10 @@
     "ADD": "Yönetici Ekle",
     "CREATIONTYPE": "Oluşturma Türü",
     "CREATIONTYPES": {
-      "3": "İnstans",
-      "2": "Organizasyon",
       "0": "Sahip Olunan Proje",
       "1": "Verilen Proje",
+      "2": "Organizasyon",
+      "3": "İnstans",
       "4": "Proje"
     },
     "EDITROLE": "Rolleri düzenle",
@@ -2917,6 +2974,5 @@
       "TITLE": "Aktivite",
       "DESCRIPTION": "Burada kullanıcı değişikliği oluşturan en son olayları görebilirsiniz."
     }
-  },
-  "INSTANCEID": "Instans Kimliği"
+  }
 }

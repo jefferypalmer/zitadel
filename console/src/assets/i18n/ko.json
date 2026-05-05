@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "동적 클라이언트",
+        "DESCRIPTION": "Dynamic Client Registration 엔드포인트를 통해 자체 등록한 클라이언트입니다. 읽기 전용 — 클라이언트는 RFC 7592를 통해 자체 메타데이터를 관리합니다.",
+        "EMPTY": "아직 동적으로 등록된 클라이언트가 없습니다. /oidc/v1/register를 통해 등록하는 클라이언트가 여기에 표시됩니다.",
+        "REGISTRATION_METHOD": "등록 방법",
+        "METHOD_ANONYMOUS": "익명",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "클라이언트 ID",
+        "COL_CLIENT_NAME": "클라이언트 이름",
+        "COL_CREATED_AT": "등록 일시",
+        "COL_AUDIT": "감사",
+        "VIEW_AUDIT": "감사 이벤트 보기"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs)는 특정 프로젝트에 대한 Dynamic Client Registration을 승인합니다. 한 번 발급하고 최대 N회 사용 후 폐기하세요.",
+        "EMPTY": "Initial Access Tokens가 없습니다. DCR 클라이언트 등록을 승인하려면 하나 발급하세요.",
+        "ISSUE_BUTTON": "토큰 발급",
+        "DIALOG_TITLE": "Initial Access Token 발급",
+        "PROJECT_ID_LABEL": "프로젝트 ID",
+        "LIFETIME_LABEL": "유효 기간 (시간)",
+        "LIFETIME_HINT": "0은 서버 기본 유효 기간을 사용합니다.",
+        "MAX_USES_LABEL": "최대 사용 횟수",
+        "MAX_USES_HINT": "0은 무제한을 의미합니다.",
+        "GRANT_TYPES_LABEL": "허용된 Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "허용된 Redirect URI 패턴",
+        "REDIRECT_URI_PATTERNS_HINT": "한 줄에 하나의 패턴. 비어 있으면 글로벌 DCR 허용 목록의 모든 패턴을 허용합니다.",
+        "DESCRIPTION_LABEL": "설명",
+        "REVOKE_BUTTON": "폐기",
+        "REVOKE_CONFIRM": "이 Initial Access Token을 폐기하시겠습니까? 이후 등록 시도는 실패합니다. 되돌릴 수 없습니다.",
+        "REVOKED": "Initial Access Token이 폐기되었습니다.",
+        "PLAINTEXT_TITLE": "토큰이 발급되었습니다",
+        "PLAINTEXT_WARNING": "지금 이 토큰을 복사하세요. 정확히 한 번만 표시됩니다. 이 대화상자를 닫으면 다시 가져올 수 없습니다 — 잃어버리면 새로 발급하세요.",
+        "PLAINTEXT_REVEAL": "토큰 표시",
+        "PLAINTEXT_DONE": "저장했습니다",
+        "COPIED": "토큰이 클립보드에 복사되었습니다.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "프로젝트",
+        "COL_EXPIRES_AT": "만료일",
+        "COL_MAX_USES": "최대 사용 횟수",
+        "COL_USES_CONSUMED": "사용됨",
+        "COL_STATUS": "상태",
+        "STATUS_ACTIVE": "활성",
+        "STATUS_REVOKED": "폐기됨",
+        "COL_CREATED_AT": "생성 일시",
+        "PLAINTEXT_REMASK": "토큰 숨기기",
+        "PLAINTEXT_AUTOMASK_HINT": "토큰은 60초 후 자동으로 숨겨집니다.",
+        "REVOKE_PROJECT_REQUIRED": "프로젝트 ID 없이 Initial Access Token을 폐기할 수 없습니다.",
+        "REFRESH": "목록 새로 고침",
+        "COPY": "토큰 복사",
+        "REVEAL_TOGGLE": "토큰 표시 또는 숨기기",
+        "DISMISS": "닫기"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "인스턴스 관리자입니다. 확장된 권한이 부여되었습니다.",
     "SHOWORGS": "모든 조직 보기",
     "GRANTS": "역할 할당",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "작업",
+    "TARGETS": "Targets",
     "PRIVACY": "개인정보처리방침",
     "TOS": "이용 약관",
     "OPENSHORTCUTSTOOLTIP": "키보드 단축키 표시하려면 ? 입력",
@@ -741,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "필터",
+    "ORGNAME": "조직 이름",
+    "ORGID": "조직 ID",
     "STATE": "상태",
+    "PRIMARYDOMAIN": "조직 도메인",
     "DISPLAYNAME": "사용자 표시 이름",
     "EMAIL": "이메일",
     "USERNAME": "사용자 이름",
-    "ORGNAME": "조직 이름",
-    "ORGID": "조직 ID",
-    "PRIMARYDOMAIN": "조직 도메인",
     "PROJECTNAME": "프로젝트 이름",
     "RESOURCEOWNER": "리소스 소유자",
     "METHODS": {
+      "1": "와 일치",
       "5": "포함",
-      "7": "로 끝남",
-      "1": "와 일치"
+      "7": "로 끝남"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "도메인으로 이동 (<strong>GD</strong>)"
     }
   },
+  "INSTANCEID": "인스턴스 ID",
   "RESOURCEID": "리소스 ID",
   "NAME": "Name",
   "VERSION": "버전",
@@ -1556,6 +1612,9 @@
       "EVENTS": "이벤트",
       "FAILEDEVENTS": "실패한 이벤트",
       "VIEWS": "뷰",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1568,6 +1627,7 @@
       "APPEARANCE": "외형",
       "OTHER": "기타",
       "STORAGE": "저장소",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "베타"
@@ -2010,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "프로젝트 ID",
       "TITLE": "프로젝트",
       "DESCRIPTION": "여기에서 애플리케이션을 정의하고, 역할을 관리하며 다른 조직이 프로젝트를 사용할 수 있도록 권한을 부여할 수 있습니다.",
       "DELETE": "프로젝트 삭제",
@@ -2025,7 +2086,6 @@
         "GRANTED_SINGULAR": "{{name}}의 허가된 프로젝트"
       },
       "PRIVATELABEL": {
-        "TITLE": "브랜딩 설정",
         "0": {
           "TITLE": "정의되지 않음",
           "DESC": "사용자가 식별되면 식별된 사용자의 조직 브랜딩이 표시되며, 그렇지 않으면 시스템 기본값이 표시됩니다."
@@ -2038,6 +2098,7 @@
           "TITLE": "사용자 조직 설정 사용",
           "DESC": "프로젝트의 조직 브랜딩이 표시되지만 사용자가 식별되면 식별된 사용자의 조직 설정이 표시됩니다."
         },
+        "TITLE": "브랜딩 설정",
         "DIALOG": {
           "TITLE": "브랜딩 설정",
           "DESCRIPTION": "프로젝트 사용 시 로그인 동작을 선택하세요."
@@ -2062,24 +2123,23 @@
           "DESCRIPTION": "프로젝트를 정말로 삭제하시겠습니까?",
           "TYPENAME": "영구적으로 삭제하려면 프로젝트 이름을 입력하세요."
         }
-      },
-      "ID": "프로젝트 ID"
+      }
     },
     "SETTINGS": {
       "TITLE": "설정",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "상태",
       "0": "정의되지 않음",
       "1": "활성화",
-      "2": "비활성화"
+      "2": "비활성화",
+      "TITLE": "상태"
     },
     "TYPE": {
-      "TITLE": "유형",
       "0": "알 수 없는 유형",
       "1": "소유한 프로젝트",
-      "2": "허가된 프로젝트"
+      "2": "허가된 프로젝트",
+      "TITLE": "유형"
     },
     "NAME": "이름",
     "NAMEDIALOG": {
@@ -2329,10 +2389,10 @@
       "2": "비활성화"
     },
     "AZUREADTENANTTYPES": {
-      "3": "테넌트 ID",
       "0": "공통",
       "1": "조직",
-      "2": "소비자"
+      "2": "소비자",
+      "3": "테넌트 ID"
     },
     "AZUREADTENANTTYPE": "테넌트 유형",
     "AZUREADTENANTID": "테넌트 ID",
@@ -2601,7 +2661,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "다음 단계",
         "0": {
           "TITLE": "역할 추가",
           "DESC": "프로젝트 역할을 입력하세요"
@@ -2613,7 +2672,8 @@
         "2": {
           "TITLE": "도움말 및 지원",
           "DESC": "애플리케이션 생성에 대한 문서를 읽거나 지원팀에 문의하세요"
-        }
+        },
+        "TITLE": "다음 단계"
       }
     },
     "NAMEDIALOG": {
@@ -2804,6 +2864,10 @@
       "CLIENTSECRETREGENERATED": "클라이언트 시크릿이 생성되었습니다.",
       "DELETED": "애플리케이션이 삭제되었습니다.",
       "CONFIGCHANGED": "변경 사항이 감지되었습니다!"
+    },
+    "LOGINV2": {
+      "USEV2": "Use new Login UI",
+      "BASEURL": "Custom base URL for the new Login UI"
     }
   },
   "GENDERS": {
@@ -2840,10 +2904,10 @@
     "ADD": "관리자 추가",
     "CREATIONTYPE": "생성 유형",
     "CREATIONTYPES": {
-      "3": "인스턴스",
-      "2": "조직",
       "0": "소유 프로젝트",
       "1": "부여된 프로젝트",
+      "2": "조직",
+      "3": "인스턴스",
       "4": "프로젝트"
     },
     "EDITROLE": "역할 편집",
@@ -2910,6 +2974,5 @@
       "TITLE": "활동",
       "DESCRIPTION": "사용자 변경을 유발한 최신 이벤트를 볼 수 있습니다."
     }
-  },
-  "INSTANCEID": "인스턴스 ID"
+  }
 }

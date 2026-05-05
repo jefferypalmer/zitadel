@@ -368,7 +368,11 @@
         "COL_CREATED_AT": "Erstellt am",
         "PLAINTEXT_REMASK": "Token verbergen",
         "PLAINTEXT_AUTOMASK_HINT": "Der Token wird nach 60 Sekunden automatisch ausgeblendet.",
-        "REVOKE_PROJECT_REQUIRED": "Initial Access Token kann ohne Projekt-ID nicht widerrufen werden."
+        "REVOKE_PROJECT_REQUIRED": "Initial Access Token kann ohne Projekt-ID nicht widerrufen werden.",
+        "REFRESH": "Liste aktualisieren",
+        "COPY": "Token kopieren",
+        "REVEAL_TOGGLE": "Token anzeigen oder verbergen",
+        "DISMISS": "Schließen"
       },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
@@ -524,16 +528,17 @@
     "IAMADMIN": "Du bist ein Instanz-Administrator. Beachte, dass Du erhöhte Rechte besitzt.",
     "SHOWORGS": "Alle Organisationen anzeigen",
     "GRANTS": "Rollen-Zuweisungen",
+    "DYNAMICCLIENTS": "Dynamische Clients",
     "ACTIONS": "Aktionen",
+    "TARGETS": "Targets",
     "PRIVACY": "Datenschutz",
     "TOS": "AGB",
     "OPENSHORTCUTSTOOLTIP": "Tippe ? um die Tastaturkürzel anzuzeigen",
     "SETTINGS": "Einstellungen",
-    "CUSTOMERPORTAL": "Kundenportal",
-    "DYNAMICCLIENTS": "Dynamische Clients"
+    "CUSTOMERPORTAL": "Kundenportal"
   },
   "QUICKSTART": {
-    "TITEL": "Integriere Zitadel in deine Anwendung",
+    "TITLE": "Integrate Zitadel into your application",
     "DESCRIPTION": "Integriere Zitadel in deine Anwendung oder verwende eines unserer Beispiele, um in wenigen Minuten loszulegen.",
     "BTN_START": "Anwendung erstellen",
     "BTN_LEARNMORE": "Mehr erfahren",
@@ -554,7 +559,8 @@
         "TITLE": "Framework ändern",
         "DESCRIPTION": "Wähle eines der verfügbaren Frameworks für die schnelle Einrichtung deiner Anwendung."
       }
-    }
+    },
+    "TITEL": "Integriere Zitadel in deine Anwendung"
   },
   "ACTIONS": {
     "ACTIONS": "Aktionen",
@@ -791,19 +797,19 @@
   },
   "FILTER": {
     "TITLE": "Filter",
+    "ORGNAME": "Organisationsname",
+    "ORGID": "Organisations ID",
     "STATE": "Status",
+    "PRIMARYDOMAIN": "Organisationsdomäne",
     "DISPLAYNAME": "Benutzer Display Name",
     "EMAIL": "Email",
     "USERNAME": "Nutzername",
-    "ORGNAME": "Organisationsname",
-    "ORGID": "Organisations ID",
-    "PRIMARYDOMAIN": "Organisationsdomäne",
     "PROJECTNAME": "Projektname",
     "RESOURCEOWNER": "Ressourcenbesitzer",
     "METHODS": {
+      "1": "ist gleich",
       "5": "beinhaltet",
-      "7": "endet mit",
-      "1": "ist gleich"
+      "7": "endet mit"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -824,6 +830,7 @@
       "DOMAINS": "Zu den <strong>D</strong>omains"
     }
   },
+  "INSTANCEID": "Instanz-ID",
   "RESOURCEID": "Ressourcen-ID",
   "NAME": "Name",
   "VERSION": "Version",
@@ -1606,6 +1613,8 @@
       "EVENTS": "Events",
       "FAILEDEVENTS": "Fehlerhafte Events",
       "VIEWS": "Views",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
       "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
@@ -1619,6 +1628,7 @@
       "APPEARANCE": "Erscheinungsbild",
       "OTHER": "Anderes",
       "STORAGE": "Speicher",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BETA"
@@ -2061,6 +2071,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "Projekt-ID",
       "TITLE": "Projekt",
       "DESCRIPTION": "Hier kannst Du wichtige Einstellungen prüfen und die Daten einsehen, mit denen das Projekt konfiguriert worden ist.",
       "DELETE": "Projekt löschen",
@@ -2076,7 +2087,6 @@
         "GRANTED_SINGULAR": "Berechtigtes Projekt von {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Branding Verhalten",
         "0": {
           "TITLE": "Unspezifiziert",
           "DESC": "Sobald der Nutzer identifiziert ist, wird das Branding der von ihm gewählten Organisation angezeigt, davor wird der Default des Systems angezeigt."
@@ -2089,6 +2099,7 @@
           "TITLE": "Einstellung des Benutzereigentümers",
           "DESC": "Das Branding der Organisation des Projekts wird angezeigt, sobald der Benutzer identifiziert ist, wird jedoch auf die Einstellung der Organisation des identifizierten Benutzers, gewechselt."
         },
+        "TITLE": "Branding Verhalten",
         "DIALOG": {
           "TITLE": "Branding Verhalten",
           "DESCRIPTION": "Bestimmen Sie das Verhalten des Projektes im Bezug auf das Branding."
@@ -2113,24 +2124,23 @@
           "DESCRIPTION": "Willst Du das Projekt wirklich löschen?",
           "TYPENAME": "Wiederholen Sie den Namen des Projektes um es zu löschen."
         }
-      },
-      "ID": "Projekt-ID"
+      }
     },
     "SETTINGS": {
       "TITLE": "Einstellungen",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Status",
       "0": "Nicht definiert",
       "1": "Aktiv",
-      "2": "Inaktiv"
+      "2": "Inaktiv",
+      "TITLE": "Status"
     },
     "TYPE": {
-      "TITLE": "Typ",
       "0": "Unbekannter Typ",
       "1": "In Besitz",
-      "2": "Berechtigt"
+      "2": "Berechtigt",
+      "TITLE": "Typ"
     },
     "NAME": "Name",
     "NAMEDIALOG": {
@@ -2157,8 +2167,8 @@
       "CREATE": {
         "TITLE": "Projektberechtigung erstellen",
         "SEL_USERS": "Selektiere die gewünschten Benutzer für das Erstellen der Rollen-Zuweisung.",
-        "SEL_ROLES": "Selektiere die gewünschten Rollen für das Erstellen der Rollen-Zuweisung.",
         "SEL_PROJECT": "Suchen nach Projekt",
+        "SEL_ROLES": "Selektiere die gewünschten Rollen für das Erstellen der Rollen-Zuweisung.",
         "SEL_USER": "Benutzer auswählen",
         "SEL_ORG": "Durchsuchen Sie eine Organisation",
         "SEL_ORG_DESC": "Suchen Sie nach der zu gewährenden Organisation.",
@@ -2303,6 +2313,10 @@
         "TITLE": "OIDC Provider",
         "DESCRIPTION": "Geben Sie die erforderlichen Daten für Ihren OIDC-Provider ein."
       },
+      "OAUTH": {
+        "TITLE": "OAuth Provider",
+        "DESCRIPTION": "Enter the required data for your OAuth provider."
+      },
       "JWT": {
         "TITLE": "JWT Provider",
         "DESCRIPTION": "Geben Sie die erforderlichen Daten für Ihren JWT-Provider ein."
@@ -2334,6 +2348,14 @@
       "LDAP": {
         "TITLE": "Active Directory / LDAP",
         "DESCRIPTION": "Geben Sie die erforderlichen Daten für Ihren LDAP Provider ein."
+      },
+      "APPLE": {
+        "TITLE": "Sign in with Apple",
+        "DESCRIPTION": "Enter the credentials for your Apple Provider"
+      },
+      "SAML": {
+        "TITLE": "Sign in with SAML",
+        "DESCRIPTION": "Enter the credentials for your SAML Provider"
       }
     },
     "DETAIL": {
@@ -2363,22 +2385,16 @@
       "1": "Instanz",
       "2": "Organisation"
     },
-    "TYPES": {
-      "0": "unknown",
-      "1": "OIDC",
-      "3": "JWT"
-    },
     "STATES": {
       "1": "aktiv",
       "2": "inaktiv"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Tenant ID",
       "0": "Common",
       "1": "Organizations",
-      "2": "Consumers"
+      "2": "Consumers",
+      "3": "Tenant ID"
     },
-    "ADD": "Identitätsanbieter hinzufügen",
     "AZUREADTENANTTYPE": "Tenant Typ",
     "AZUREADTENANTID": "Tenant ID",
     "EMAILVERIFIED": "Email verifiziert",
@@ -2387,19 +2403,20 @@
     "LDAPATTRIBUTES": "LDAP Attribute",
     "UPDATEBINDPASSWORD": "Bind Password updaten",
     "UPDATECLIENTSECRET": "Client Secret updaten",
+    "ADD": "Identitätsanbieter hinzufügen",
     "TYPE": "Typ",
     "OWNER": "Besitzer",
     "ID": "Identitätsanbieter-ID",
-    "AVAILABILITY": "Verfügbarkeit",
-    "AVAILABLE": "verfügbar",
-    "AVAILABLEBUTINACTIVE": "verfügbar aber inaktiv",
-    "SETAVAILABLE": "verfügbar setzen",
-    "SETUNAVAILABLE": "auf nicht verfügbar setzen",
     "NAME": "Name",
     "AUTHORIZATIONENDPOINT": "Authorization Endpoint",
     "TOKENENDPOINT": "Token Endpoint",
     "USERENDPOINT": "User Endpoint",
     "IDATTRIBUTE": "ID Attribut",
+    "AVAILABILITY": "Verfügbarkeit",
+    "AVAILABLE": "verfügbar",
+    "AVAILABLEBUTINACTIVE": "verfügbar aber inaktiv",
+    "SETAVAILABLE": "verfügbar setzen",
+    "SETUNAVAILABLE": "auf nicht verfügbar setzen",
     "CONFIG": "Konfiguration",
     "STATE": "Status",
     "ISSUER": "Issuer",
@@ -2449,12 +2466,9 @@
     "FEDERATEDLOGOUTENABLED_DESC": "Wenn aktiviert, wird der Benutzer auch vom IdP abgemeldet, wenn der Benutzer die Sitzung in Zitadel beendet.",
     "EMPTY": "Kein IDP vorhanden",
     "OIDC": {
+      "GENERAL": "General Information",
       "TITLE": "OIDC Einstellungen",
       "DESCRIPTION": "Geben Sie die Daten OIDC Identitätsanbieter ein."
-    },
-    "OAUTH": {
-      "TITLE": "OAuth Konfiguration",
-      "DESCRIPTION": "Geben Sie die Daten OAuth Identity Providers ein."
     },
     "JWT": {
       "TITLE": "JWT Einstellungen",
@@ -2462,6 +2476,24 @@
       "HEADERNAME": "Header Name",
       "JWTENDPOINT": "JWT Endpoint",
       "JWTKEYSENDPOINT": "JWT Keys Endpoint"
+    },
+    "APPLE": {
+      "TEAMID": "Team ID",
+      "KEYID": "Key ID",
+      "PRIVATEKEY": "Private Key",
+      "UPDATEPRIVATEKEY": "Update Private Key",
+      "UPLOADPRIVATEKEY": "Upload Private Key",
+      "KEYMAXSIZEEXCEEDED": "Maximum size of 5kB exceeded."
+    },
+    "SAML": {
+      "METADATAXML": "Metadata Xml",
+      "METADATAURL": "Metadata URL",
+      "BINDING": "Binding",
+      "SIGNEDREQUEST": "Signed Request",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
+      "NAMEIDFORMAT": "NameID Format",
+      "TRANSIENTMAPPINGATTRIBUTENAME": "Custom Mapping Attribute Name",
+      "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternative attribute name to map the user in case the `nameid-format` returned is `transient`, e.g. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
     },
     "TOAST": {
       "SAVED": "Erfolgreich gespeichert.",
@@ -2477,7 +2509,16 @@
     "ISIDTOKENMAPPING": "Zuordnung vom ID-Token",
     "ISIDTOKENMAPPING_DESC": "Legt fest, ob für das Mapping der Provider Informationen das ID-Token verwendet werden soll, anstatt des Userinfo-Endpoints.",
     "USEPKCE": "Verwenden Sie PKCE",
-    "USEPKCE_DESC": "Bestimmt, ob die Parameter code_challenge und code_challenge_method in der Authentifizierungsanforderung enthalten sind"
+    "USEPKCE_DESC": "Bestimmt, ob die Parameter code_challenge und code_challenge_method in der Authentifizierungsanforderung enthalten sind",
+    "TYPES": {
+      "0": "unknown",
+      "1": "OIDC",
+      "3": "JWT"
+    },
+    "OAUTH": {
+      "TITLE": "OAuth Konfiguration",
+      "DESCRIPTION": "Geben Sie die Daten OAuth Identity Providers ein."
+    }
   },
   "MFA": {
     "LIST": {
@@ -2550,7 +2591,11 @@
         "DELETE_TITLE": "SMTP-Konfiguration löschen",
         "DELETE_DESCRIPTION": "Sie sind dabei, eine Konfiguration zu löschen. Bestätigen Sie diese Aktion, indem Sie den Absendernamen eingeben",
         "DELETED": "SMTP-Konfiguration wurde gelöscht",
-        "SENDER": "Geben Sie {{ value }} ein, um diese SMTP-Konfiguration zu löschen."
+        "SENDER": "Geben Sie {{ value }} ein, um diese SMTP-Konfiguration zu löschen.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2626,7 +2671,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Nächste Schritte",
         "0": {
           "TITLE": "Rollen festlegen",
           "DESC": "Erfassen Sie Rollen für ihr Projekt"
@@ -2638,7 +2682,8 @@
         "2": {
           "TITLE": "Hilfe & Support",
           "DESC": "Lesen Sie unsere Dokumentation zum Erstellen von Applikation oder kontaktieren Sie unseren Support"
-        }
+        },
+        "TITLE": "Nächste Schritte"
       }
     },
     "NAMEDIALOG": {
@@ -2669,11 +2714,11 @@
       "TOKENSECTIONTITLE": "AuthToken Optionen",
       "REDIRECTSECTIONTITLE": "Weiterleitungseinstellungen",
       "REDIRECTTITLE": "Wohin soll nach dem Log-in weitergeleitet werden?",
+      "POSTREDIRECTTITLE": "Das ist die Weiterleitung nach einem Log-out.",
       "REDIRECTDESCRIPTIONWEB": "Die Weiterleitung muss mit https:// beginnen. http:// ist nur im Entwicklermodus zulässig.",
       "REDIRECTDESCRIPTIONNATIVE": "Die Weiterleitung muss mit einem eigenen Protokoll, http://127.0.0.1, http://[::1] oder http://localhost beginnen.",
       "REDIRECTNOTVALID": "Diese Weiterleitung ist nicht zulässig.",
       "COMMAORENTERSEPERATION": "mit ↵ trennen",
-      "POSTREDIRECTTITLE": "Das ist die Weiterleitung nach einem Log-out.",
       "TYPEREQUIRED": "Der Typ ist notwendig.",
       "TITLE": "OIDC-Einstellungen",
       "CLIENTID": "Client ID",
@@ -2869,10 +2914,10 @@
     "ADD": "Administrator hinzufügen",
     "CREATIONTYPE": "Erstelltyp",
     "CREATIONTYPES": {
-      "3": "Instanz",
-      "2": "Organisation",
       "0": "Eigenes Projekt",
       "1": "Berechtigtes Projekt",
+      "2": "Organisation",
+      "3": "Instanz",
       "4": "Projekt"
     },
     "EDITROLE": "Rollen bearbeiten",
@@ -2939,6 +2984,5 @@
       "TITLE": "Aktivität",
       "DESCRIPTION": "Hier siehst Du die letzten Vorkommnisse, die den Benutzer betreffen."
     }
-  },
-  "INSTANCEID": "Instanz-ID"
+  }
 }

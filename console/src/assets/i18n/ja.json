@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "動的クライアント",
+        "DESCRIPTION": "Dynamic Client Registration エンドポイント経由で自己登録したクライアント。読み取り専用 — クライアントは RFC 7592 に従って自身のメタデータを管理します。",
+        "EMPTY": "動的に登録されたクライアントはまだありません。/oidc/v1/register 経由で登録するクライアントがここに表示されます。",
+        "REGISTRATION_METHOD": "登録方法",
+        "METHOD_ANONYMOUS": "匿名",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "クライアント ID",
+        "COL_CLIENT_NAME": "クライアント名",
+        "COL_CREATED_AT": "登録日時",
+        "COL_AUDIT": "監査",
+        "VIEW_AUDIT": "監査イベントを表示"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) は特定のプロジェクトに対する Dynamic Client Registration を承認します。一度発行し、最大 N 回まで使用、その後失効させます。",
+        "EMPTY": "Initial Access Tokens はありません。DCR クライアント登録を承認するために 1 つ発行してください。",
+        "ISSUE_BUTTON": "トークンを発行",
+        "DIALOG_TITLE": "Initial Access Token を発行",
+        "PROJECT_ID_LABEL": "プロジェクト ID",
+        "LIFETIME_LABEL": "有効期間（時間）",
+        "LIFETIME_HINT": "0 はサーバーのデフォルト有効期間を使用します。",
+        "MAX_USES_LABEL": "最大使用回数",
+        "MAX_USES_HINT": "0 は無制限を意味します。",
+        "GRANT_TYPES_LABEL": "許可された Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "許可された Redirect URI パターン",
+        "REDIRECT_URI_PATTERNS_HINT": "1 行に 1 つのパターン。空欄ならグローバル DCR 許可リストの任意のパターンを許可します。",
+        "DESCRIPTION_LABEL": "説明",
+        "REVOKE_BUTTON": "失効",
+        "REVOKE_CONFIRM": "この Initial Access Token を失効しますか？以降の登録試行は失敗します。元に戻せません。",
+        "REVOKED": "Initial Access Token を失効しました。",
+        "PLAINTEXT_TITLE": "トークンを発行しました",
+        "PLAINTEXT_WARNING": "今すぐこのトークンをコピーしてください。表示は厳密に 1 回のみです。このダイアログを閉じると再取得できません — 紛失した場合は新しいトークンを発行してください。",
+        "PLAINTEXT_REVEAL": "トークンを表示",
+        "PLAINTEXT_DONE": "保存しました",
+        "COPIED": "トークンをクリップボードにコピーしました。",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "プロジェクト",
+        "COL_EXPIRES_AT": "有効期限",
+        "COL_MAX_USES": "最大使用回数",
+        "COL_USES_CONSUMED": "使用済み",
+        "COL_STATUS": "ステータス",
+        "STATUS_ACTIVE": "アクティブ",
+        "STATUS_REVOKED": "失効",
+        "COL_CREATED_AT": "作成日時",
+        "PLAINTEXT_REMASK": "トークンを隠す",
+        "PLAINTEXT_AUTOMASK_HINT": "トークンは 60 秒後に自動的に隠されます。",
+        "REVOKE_PROJECT_REQUIRED": "プロジェクト ID なしでは Initial Access Token を失効できません。",
+        "REFRESH": "リストを更新",
+        "COPY": "トークンをコピー",
+        "REVEAL_TOGGLE": "トークンの表示・非表示",
+        "DISMISS": "閉じる"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "あなたはインスタンス管理者です。広範囲の権限があることに注意してください。",
     "SHOWORGS": "すべての組織を表示する",
     "GRANTS": "ロール割り当て",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "アクション",
+    "TARGETS": "Targets",
     "PRIVACY": "プライバシー",
     "TOS": "利用規約",
     "OPENSHORTCUTSTOOLTIP": "「?」と入力し、キーボードショートカットを表示する",
@@ -741,13 +796,13 @@
   },
   "FILTER": {
     "TITLE": "絞り込み",
+    "ORGNAME": "組織名",
+    "ORGID": "組織ID",
     "STATE": "ステータス",
+    "PRIMARYDOMAIN": "組織ドメイン",
     "DISPLAYNAME": "表示用ユーザー名",
     "EMAIL": "Eメール",
     "USERNAME": "ユーザー名",
-    "ORGNAME": "組織名",
-    "ORGID": "組織ID",
-    "PRIMARYDOMAIN": "組織ドメイン",
     "PROJECTNAME": "プロジェクト名",
     "RESOURCEOWNER": "リソース所有者",
     "METHODS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "<strong>G</strong>o to <strong>D</strong>omains"
     }
   },
+  "INSTANCEID": "インスタンスID",
   "RESOURCEID": "リソースID",
   "NAME": "名前",
   "VERSION": "バージョン",
@@ -1556,6 +1612,9 @@
       "EVENTS": "イベント",
       "FAILEDEVENTS": "失敗したイベント",
       "VIEWS": "ビュー",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1568,6 +1627,7 @@
       "APPEARANCE": "設定",
       "OTHER": "その他",
       "STORAGE": "ストレージ",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "ベータ"
@@ -2010,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "プロジェクトID",
       "TITLE": "プロジェクト",
       "DESCRIPTION": "ここでは、アプリケーションの定義や、ロールの管理、他の組織にプロジェクトのグラントができます。",
       "DELETE": "プロジェクトを削除する",
@@ -2025,7 +2086,6 @@
         "GRANTED_SINGULAR": "{{name}}に付与されたプロジェクト"
       },
       "PRIVATELABEL": {
-        "TITLE": "ブランディング設定",
         "0": {
           "TITLE": "未定義",
           "DESC": "ユーザーが特定されると同時に、システムデフォルトが表示される前に、特定されたユーザーの所属する組織のブランディングが表示されます。"
@@ -2038,6 +2098,7 @@
           "TITLE": "ユーザー組織設定の使用",
           "DESC": "プロジェクトの組織のブランディングが表示されますが、ユーザーが特定されると同時に、特定されたユーザーの組織の設定が表示されます。"
         },
+        "TITLE": "ブランディング設定",
         "DIALOG": {
           "TITLE": "ブランディング設定",
           "DESCRIPTION": "プロジェクト利用時のログイン時の動作を選択します。"
@@ -2062,24 +2123,23 @@
           "DESCRIPTION": "本当にプロジェクトを完全に削除してよろしいですか？",
           "TYPENAME": "プロジェクトの名前を入力して、完全に削除する。"
         }
-      },
-      "ID": "プロジェクトID"
+      }
     },
     "SETTINGS": {
       "TITLE": "設定",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "ステータス",
       "0": "未定義",
       "1": "アクティブ",
-      "2": "非アクティブ"
+      "2": "非アクティブ",
+      "TITLE": "ステータス"
     },
     "TYPE": {
-      "TITLE": "タイプ",
       "0": "不明",
       "1": "所有",
-      "2": "グラント"
+      "2": "グラント",
+      "TITLE": "タイプ"
     },
     "NAME": "名前",
     "NAMEDIALOG": {
@@ -2329,10 +2389,10 @@
       "2": "非アクティブ"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Tenant ID",
       "0": "Common",
       "1": "Organizations",
-      "2": "Consumers"
+      "2": "Consumers",
+      "3": "Tenant ID"
     },
     "AZUREADTENANTTYPE": "テナントタイプ",
     "AZUREADTENANTID": "テナントID",
@@ -2601,7 +2661,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "次のステップ",
         "0": {
           "TITLE": "ロールの追加",
           "DESC": "プロジェクトのロールを入力してください"
@@ -2613,7 +2672,8 @@
         "2": {
           "TITLE": "ヘルプサポート",
           "DESC": "アプリケーションの作成に関するドキュメントを読むか、サポートにお問い合わせください"
-        }
+        },
+        "TITLE": "次のステップ"
       }
     },
     "NAMEDIALOG": {
@@ -2914,6 +2974,5 @@
       "TITLE": "アクティビティ",
       "DESCRIPTION": "ここでは、ユーザーの変更が発生した最新のイベントを見ることができます。"
     }
-  },
-  "INSTANCEID": "インスタンスID"
+  }
 }

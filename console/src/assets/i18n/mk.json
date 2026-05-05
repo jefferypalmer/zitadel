@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Динамички клиенти",
+        "DESCRIPTION": "Клиенти кои сами се регистрирале преку Dynamic Client Registration крајната точка. Само за читање — клиентите управуваат со своите метаподатоци преку RFC 7592.",
+        "EMPTY": "Сè уште нема динамички регистрирани клиенти. Клиентите што ќе се регистрираат преку /oidc/v1/register ќе се појават овде.",
+        "REGISTRATION_METHOD": "Метод на регистрација",
+        "METHOD_ANONYMOUS": "Анонимно",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID на клиентот",
+        "COL_CLIENT_NAME": "Име на клиентот",
+        "COL_CREATED_AT": "Регистриран на",
+        "COL_AUDIT": "Ревизија",
+        "VIEW_AUDIT": "Прикажи ревизорски настани"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) одобруваат Dynamic Client Registration за конкретни проекти. Издади еднаш, употреби до N пати, потоа повлечи.",
+        "EMPTY": "Нема Initial Access Tokens. Издади еден за да одобриш регистрација на DCR клиент.",
+        "ISSUE_BUTTON": "Издади токен",
+        "DIALOG_TITLE": "Издади Initial Access Token",
+        "PROJECT_ID_LABEL": "ID на проектот",
+        "LIFETIME_LABEL": "Траење (часови)",
+        "LIFETIME_HINT": "0 го користи стандардното траење на серверот.",
+        "MAX_USES_LABEL": "Макс. употреби",
+        "MAX_USES_HINT": "0 значи неограничено.",
+        "GRANT_TYPES_LABEL": "Дозволени Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "Дозволени Redirect URI шеми",
+        "REDIRECT_URI_PATTERNS_HINT": "Една шема по линија. Празно дозволува секоја шема од глобалната DCR allow-листа.",
+        "DESCRIPTION_LABEL": "Опис",
+        "REVOKE_BUTTON": "Повлечи",
+        "REVOKE_CONFIRM": "Повлекување на овој Initial Access Token? Идните обиди за регистрација ќе пропаднат. Не може да се врати.",
+        "REVOKED": "Initial Access Token е повлечен.",
+        "PLAINTEXT_TITLE": "Токенот е издаден",
+        "PLAINTEXT_WARNING": "Копирај го токенот сега. Се прикажува ТОЧНО ЕДНАШ. Откако ќе се затвори овој дијалог, не можеш да го вратиш — издади нов ако го изгубиш.",
+        "PLAINTEXT_REVEAL": "Прикажи токен",
+        "PLAINTEXT_DONE": "Го зачував",
+        "COPIED": "Токенот е копиран на клипборд.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Проект",
+        "COL_EXPIRES_AT": "Истекува",
+        "COL_MAX_USES": "Макс. употреби",
+        "COL_USES_CONSUMED": "Употребени",
+        "COL_STATUS": "Статус",
+        "STATUS_ACTIVE": "Активен",
+        "STATUS_REVOKED": "Повлечен",
+        "COL_CREATED_AT": "Создаден на",
+        "PLAINTEXT_REMASK": "Скриј токен",
+        "PLAINTEXT_AUTOMASK_HINT": "Токенот ќе се скрие автоматски по 60 секунди.",
+        "REVOKE_PROJECT_REQUIRED": "Не може да се повлече Initial Access Token без ID на проект.",
+        "REFRESH": "Освежи листа",
+        "COPY": "Копирај токен",
+        "REVEAL_TOGGLE": "Прикажи или скриј токен",
+        "DISMISS": "Затвори"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Вие сте администратор на инстанс. Имате проширени овластувања.",
     "SHOWORGS": "Прикажи ги сите организации",
     "GRANTS": "Доделување улоги",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Акции",
+    "TARGETS": "Targets",
     "PRIVACY": "Приватност",
     "TOS": "Услови на користење",
     "OPENSHORTCUTSTOOLTIP": "Внесете ? за прикажување на кратенки за тастатура",
@@ -741,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "Филтер",
+    "ORGNAME": "Име на организацијата",
+    "ORGID": "Идентификатор на организацијата",
     "STATE": "Статус",
+    "PRIMARYDOMAIN": "Домен на организација",
     "DISPLAYNAME": "Име за приказ на корисникот",
     "EMAIL": "Е-пошта",
     "USERNAME": "Корисничко име",
-    "ORGNAME": "Име на организацијата",
-    "ORGID": "Идентификатор на организацијата",
-    "PRIMARYDOMAIN": "Домен на организација",
     "PROJECTNAME": "Име на проектот",
     "RESOURCEOWNER": "Сопственик на ресурсот",
     "METHODS": {
+      "1": "е еднакво на",
       "5": "содржи",
-      "7": "завршува со",
-      "1": "е еднакво на"
+      "7": "завршува со"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "<strong>G</strong>o to <strong>D</strong>omains"
     }
   },
+  "INSTANCEID": "ID на инстанца",
   "RESOURCEID": "ID на ресурсот",
   "NAME": "Име",
   "VERSION": "Верзија",
@@ -1557,6 +1613,9 @@
       "EVENTS": "Настани",
       "FAILEDEVENTS": "Неуспешни настани",
       "VIEWS": "Прегледи",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1569,6 +1628,7 @@
       "APPEARANCE": "Изглед",
       "OTHER": "Друго",
       "STORAGE": "складирање",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "БЕТА"
@@ -2011,6 +2071,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "ID на проект",
       "TITLE": "Проект",
       "DESCRIPTION": "Овде можете да дефинирате апликации, да управувате со улоги и да дозволите на други организации да го користат вашиот проект.",
       "DELETE": "Избриши проект",
@@ -2026,7 +2087,6 @@
         "GRANTED_SINGULAR": "Проект доделен на {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Подесувања за брендирање",
         "0": {
           "TITLE": "Неспецифицирано",
           "DESC": "Откако корисникот ќе биде идентификуван, ќе се прикаже брендирањето на организацијата на идентификуваниот корисник, пред да се прикаже стандардното системско брендирање."
@@ -2039,6 +2099,7 @@
           "TITLE": "Користи ги подесувањата на организацијата на корисникот",
           "DESC": "Ќе се прикаже брендирањето на организацијата на проектот, но откако корисникот ќе биде идентификуван, ќе се прикаже подесувањето на организацијата на идентификуваниот корисник."
         },
+        "TITLE": "Подесувања за брендирање",
         "DIALOG": {
           "TITLE": "Подесувања за брендирање",
           "DESCRIPTION": "Изберете го однесувањето на најавата при користење на проектот."
@@ -2063,24 +2124,23 @@
           "DESCRIPTION": "Дали навистина сакате да го избришете вашиот проект?",
           "TYPENAME": "Напишете го името на проектот за да го избришете перманентно."
         }
-      },
-      "ID": "ID на проект"
+      }
     },
     "SETTINGS": {
       "TITLE": "Подесувања",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Статус",
       "0": "Не е дефинирано",
       "1": "Активно",
-      "2": "Неактивно"
+      "2": "Неактивно",
+      "TITLE": "Статус"
     },
     "TYPE": {
-      "TITLE": "Тип",
       "0": "Непознат тип",
       "1": "Сопствен",
-      "2": "Доделен"
+      "2": "Доделен",
+      "TITLE": "Тип"
     },
     "NAME": "Име",
     "NAMEDIALOG": {
@@ -2112,12 +2172,12 @@
         "SEL_USER": "Изберете корисници",
         "SEL_ORG": "Подесете го доменот",
         "SEL_ORG_DESC": "Внесете го комплетниот домен за да ја специфицирате организацијата на која сакате да и дозволите пристап.",
-        "ORG_TITLE": "Организација",
         "ORG_DESCRIPTION": "Сакате да дозволите пристап на корисник за организацијата {{name}}.",
         "ORG_DESCRIPTION_DESC": "Променете го контекстот во header-от погоре за да дозволите пристап на корисник за друга организација.",
         "SEL_ORG_FORMFIELD": "Комплетен домен",
-        "SEL_ORG_BUTTON": "Пребарај организација",
-        "FOR_ORG": "Дозволата за проектот ќе биде создадена за:"
+        "FOR_ORG": "Дозволата за проектот ќе биде создадена за:",
+        "ORG_TITLE": "Организација",
+        "SEL_ORG_BUTTON": "Пребарај организација"
       },
       "DETAIL": {
         "TITLE": "Доделување на проект",
@@ -2290,6 +2350,14 @@
       "LDAP": {
         "TITLE": "Active Directory / LDAP",
         "DESCRIPTION": "Внесете ги податоците за вашиот LDAP провајдер"
+      },
+      "APPLE": {
+        "TITLE": "Sign in with Apple",
+        "DESCRIPTION": "Enter the credentials for your Apple Provider"
+      },
+      "SAML": {
+        "TITLE": "Sign in with SAML",
+        "DESCRIPTION": "Enter the credentials for your SAML Provider"
       }
     },
     "DETAIL": {
@@ -2324,10 +2392,10 @@
       "2": "неактивно"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Tenant ID",
       "0": "Заедничко",
       "1": "Организации",
-      "2": "Корисници"
+      "2": "Корисници",
+      "3": "Tenant ID"
     },
     "AZUREADTENANTTYPE": "Tenant Type",
     "AZUREADTENANTID": "Tenant ID",
@@ -2392,6 +2460,8 @@
     "DELETE": "Избриши",
     "DELETE_TITLE": "Избриши IDP",
     "DELETE_DESCRIPTION": "Дали сте сигурни дека сакате да го избришете IDP? Промените се неповратни.",
+    "REMOVE_WARN_TITLE": "Remove IdP",
+    "REMOVE_WARN_DESCRIPTION": "You are about to remove an identity provider. This will remove the selection of the available IdP for your users and already registered users won't be able to login again. Are you sure to continue?",
     "DELETE_SELECTION_TITLE": "Избриши IDP",
     "DELETE_SELECTION_DESCRIPTION": "Дали сте сигурни дека сакате да го избришете IDP? Промените се неповратни.",
     "FEDERATEDLOGOUTENABLED": "Овозможено федеративно одјавување",
@@ -2408,6 +2478,24 @@
       "HEADERNAME": "Име на хедер",
       "JWTENDPOINT": "JWT Крајна точка",
       "JWTKEYSENDPOINT": "JWT Крајна точка за клучеви"
+    },
+    "APPLE": {
+      "TEAMID": "Team ID",
+      "KEYID": "Key ID",
+      "PRIVATEKEY": "Private Key",
+      "UPDATEPRIVATEKEY": "Update Private Key",
+      "UPLOADPRIVATEKEY": "Upload Private Key",
+      "KEYMAXSIZEEXCEEDED": "Maximum size of 5kB exceeded."
+    },
+    "SAML": {
+      "METADATAXML": "Metadata Xml",
+      "METADATAURL": "Metadata URL",
+      "BINDING": "Binding",
+      "SIGNEDREQUEST": "Signed Request",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
+      "NAMEIDFORMAT": "NameID Format",
+      "TRANSIENTMAPPINGATTRIBUTENAME": "Custom Mapping Attribute Name",
+      "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternative attribute name to map the user in case the `nameid-format` returned is `transient`, e.g. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
     },
     "TOAST": {
       "SAVED": "Успешно зачувано.",
@@ -2496,7 +2584,11 @@
         "DELETE_TITLE": "Избришете ја конфигурацијата SMTP",
         "DELETE_DESCRIPTION": "Ќе избришете конфигурација. Потврдете го ова дејство со внесување на името на испраќачот",
         "DELETED": "SMTP конфигурацијата е избришана",
-        "SENDER": "Внесете {{ value }}, за да ја избришете оваа SMTP конфигурација."
+        "SENDER": "Внесете {{ value }}, за да ја избришете оваа SMTP конфигурација.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2572,7 +2664,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Следни Чекори",
         "0": {
           "TITLE": "Додади улоги",
           "DESC": "Внесете ги улогите за вашиот проект"
@@ -2584,7 +2675,8 @@
         "2": {
           "TITLE": "Помош и Поддршка",
           "DESC": "Прочитајте ја нашата документација за креирање на апликации или контактирајте ја нашата поддршка"
-        }
+        },
+        "TITLE": "Следни Чекори"
       }
     },
     "NAMEDIALOG": {
@@ -2815,10 +2907,10 @@
     "ADD": "Додај администратор",
     "CREATIONTYPE": "Тип на креирање",
     "CREATIONTYPES": {
-      "3": "Инстанс",
-      "2": "Организација",
       "0": "Сопствен Проект",
       "1": "Доделен Проект",
+      "2": "Организација",
+      "3": "Инстанс",
       "4": "Проект"
     },
     "EDITROLE": "Уреди улоги",
@@ -2885,6 +2977,5 @@
       "TITLE": "Активност",
       "DESCRIPTION": "Овде можете да ги видите најновите настани кои предизвикале промена во корисникот."
     }
-  },
-  "INSTANCEID": "ID на инстанца"
+  }
 }

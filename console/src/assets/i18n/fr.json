@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Clients dynamiques",
+        "DESCRIPTION": "Clients qui se sont enregistrés eux-mêmes via le point de terminaison Dynamic Client Registration. En lecture seule — les clients gèrent leurs propres métadonnées via RFC 7592.",
+        "EMPTY": "Aucun client enregistré dynamiquement pour le moment. Les clients qui s'enregistrent via /oidc/v1/register apparaîtront ici.",
+        "REGISTRATION_METHOD": "Méthode d'enregistrement",
+        "METHOD_ANONYMOUS": "Anonyme",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID du client",
+        "COL_CLIENT_NAME": "Nom du client",
+        "COL_CREATED_AT": "Enregistré le",
+        "COL_AUDIT": "Audit",
+        "VIEW_AUDIT": "Voir les événements d'audit"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Les Initial Access Tokens (IATs) autorisent Dynamic Client Registration pour des projets spécifiques. Émettez une fois, utilisez jusqu'à N fois, puis révoquez.",
+        "EMPTY": "Aucun Initial Access Token. Émettez-en un pour autoriser l'enregistrement d'un client DCR.",
+        "ISSUE_BUTTON": "Émettre un token",
+        "DIALOG_TITLE": "Émettre un Initial Access Token",
+        "PROJECT_ID_LABEL": "ID du projet",
+        "LIFETIME_LABEL": "Durée de vie (heures)",
+        "LIFETIME_HINT": "0 utilise la durée par défaut du serveur.",
+        "MAX_USES_LABEL": "Utilisations max.",
+        "MAX_USES_HINT": "0 signifie illimité.",
+        "GRANT_TYPES_LABEL": "Grant Types autorisés",
+        "REDIRECT_URI_PATTERNS_LABEL": "Modèles de Redirect URI autorisés",
+        "REDIRECT_URI_PATTERNS_HINT": "Un modèle par ligne. Vide autorise tout modèle de la liste globale DCR.",
+        "DESCRIPTION_LABEL": "Description",
+        "REVOKE_BUTTON": "Révoquer",
+        "REVOKE_CONFIRM": "Révoquer cet Initial Access Token ? Les futures tentatives d'enregistrement échoueront. Cette action est irréversible.",
+        "REVOKED": "Initial Access Token révoqué.",
+        "PLAINTEXT_TITLE": "Token émis",
+        "PLAINTEXT_WARNING": "Copiez ce token maintenant. Il est affiché EXACTEMENT UNE FOIS. Après fermeture de ce dialogue, vous ne pourrez plus le récupérer — émettez-en un nouveau si vous le perdez.",
+        "PLAINTEXT_REVEAL": "Afficher le token",
+        "PLAINTEXT_DONE": "Je l'ai sauvegardé",
+        "COPIED": "Token copié dans le presse-papier.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Projet",
+        "COL_EXPIRES_AT": "Expire le",
+        "COL_MAX_USES": "Utilisations max.",
+        "COL_USES_CONSUMED": "Utilisé",
+        "COL_STATUS": "État",
+        "STATUS_ACTIVE": "Actif",
+        "STATUS_REVOKED": "Révoqué",
+        "COL_CREATED_AT": "Créé le",
+        "PLAINTEXT_REMASK": "Masquer le token",
+        "PLAINTEXT_AUTOMASK_HINT": "Le token sera masqué automatiquement après 60 secondes.",
+        "REVOKE_PROJECT_REQUIRED": "Impossible de révoquer un Initial Access Token sans ID de projet.",
+        "REFRESH": "Actualiser la liste",
+        "COPY": "Copier le token",
+        "REVEAL_TOGGLE": "Afficher ou masquer le token",
+        "DISMISS": "Fermer"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Vous êtes un administrateur d'instance. Notez que vous disposez de permissions étendues.",
     "SHOWORGS": "Afficher toutes les organisations",
     "GRANTS": "Attributions de rôles",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Actions",
+    "TARGETS": "Targets",
     "PRIVACY": "Vie privée",
     "TOS": "Conditions de service",
     "OPENSHORTCUTSTOOLTIP": "Tapez ? pour afficher les raccourcis clavier",
@@ -741,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "Filtre",
+    "ORGNAME": "Nom de l'organisation",
+    "ORGID": "ID de l'organisation",
     "STATE": "Statut",
+    "PRIMARYDOMAIN": "Domaine de l'organisation",
     "DISPLAYNAME": "Nom d'affichage de l'utilisateur",
     "EMAIL": "E-mail",
     "USERNAME": "Nom de l'utilisateur",
-    "ORGNAME": "Nom de l'organisation",
-    "ORGID": "ID de l'organisation",
-    "PRIMARYDOMAIN": "Domaine de l'organisation",
     "PROJECTNAME": "Nom du projet",
     "RESOURCEOWNER": "Propriétaire des ressources",
     "METHODS": {
+      "1": "est égal à",
       "5": "contient",
-      "7": "se termine par",
-      "1": "est égal à"
+      "7": "se termine par"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "Aller à Domaines"
     }
   },
+  "INSTANCEID": "ID de l'instance",
   "RESOURCEID": "Id de la ressource",
   "NAME": "Name",
   "VERSION": "Version",
@@ -1556,6 +1612,9 @@
       "EVENTS": "Événements",
       "FAILEDEVENTS": "Événements échoués",
       "VIEWS": "Vues",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1568,6 +1627,7 @@
       "APPEARANCE": "Apparence",
       "OTHER": "Autres",
       "STORAGE": "Stockage",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BÊTA"
@@ -2010,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "ID du projet",
       "TITLE": "Projet",
       "DESCRIPTION": "Ici, vous pouvez définir des applications, gérer les rôles et autoriser d'autres organisations à utiliser votre projet.",
       "DELETE": "Supprimer le projet",
@@ -2025,7 +2086,6 @@
         "GRANTED_SINGULAR": "Projet attribué à {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Image de marque",
         "0": {
           "TITLE": "Non spécifié",
           "DESC": "Dès que l'utilisateur est identifié, la marque de l'organisation de l'utilisateur identifié sera affichée, avant que le système par défaut ne soit affiché."
@@ -2038,6 +2098,7 @@
           "TITLE": "Utiliser le paramètre de l'organisation de l'utilisateur",
           "DESC": "La marque de l'organisation du projet sera affichée, mais dès que l'utilisateur est identifié, le paramètre de l'organisation de l'utilisateur identifié, sera affiché."
         },
+        "TITLE": "Image de marque",
         "DIALOG": {
           "TITLE": "Réglage de l'image de marque",
           "DESCRIPTION": "Sélectionnez le comportement de la connexion, lors de l'utilisation du projet."
@@ -2062,24 +2123,23 @@
           "DESCRIPTION": "Voulez-vous vraiment supprimer votre projet ?",
           "TYPENAME": "Tapez le nom du projet pour le supprimer définitivement."
         }
-      },
-      "ID": "ID du projet"
+      }
     },
     "SETTINGS": {
       "TITLE": "Paramètres",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Statut",
       "0": "Non défini",
       "1": "Actif",
-      "2": "Inactif"
+      "2": "Inactif",
+      "TITLE": "Statut"
     },
     "TYPE": {
-      "TITLE": "Type",
       "0": "Type inconnu",
       "1": "Propriété",
-      "2": "Octroyé"
+      "2": "Octroyé",
+      "TITLE": "Type"
     },
     "NAME": "Nom",
     "NAMEDIALOG": {
@@ -2252,9 +2312,9 @@
         "TITLE": "Fournisseur OIDC",
         "DESCRIPTION": "Entrez les données requises pour votre fournisseur OIDC."
       },
-      "OAuth": {
-        "TITLE": "Fournisseur OAuth",
-        "DESCRIPTION": "Entrez les données requises pour votre fournisseur OAuth."
+      "OAUTH": {
+        "TITLE": "OAuth Provider",
+        "DESCRIPTION": "Enter the required data for your OAuth provider."
       },
       "JWT": {
         "TITLE": "Fournisseur JWT",
@@ -2287,6 +2347,18 @@
       "LDAP": {
         "TITLE": "Active Directory / LDAP",
         "DESCRIPTION": "Saisissez les informations d'identification de votre fournisseur d'identité LDAP"
+      },
+      "APPLE": {
+        "TITLE": "Sign in with Apple",
+        "DESCRIPTION": "Enter the credentials for your Apple Provider"
+      },
+      "SAML": {
+        "TITLE": "Sign in with SAML",
+        "DESCRIPTION": "Enter the credentials for your SAML Provider"
+      },
+      "OAuth": {
+        "TITLE": "Fournisseur OAuth",
+        "DESCRIPTION": "Entrez les données requises pour votre fournisseur OAuth."
       }
     },
     "DETAIL": {
@@ -2316,20 +2388,15 @@
       "1": "Instance",
       "2": "Organisation"
     },
-    "TYPES": {
-      "0": "inconnu",
-      "1": "OIDC",
-      "3": "JWT"
-    },
     "STATES": {
       "1": "actif",
       "2": "inactif"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Tenant ID",
       "0": "Common",
       "1": "Organizations",
-      "2": "Consumers"
+      "2": "Consumers",
+      "3": "Tenant ID"
     },
     "AZUREADTENANTTYPE": "Type de locataire",
     "AZUREADTENANTID": "ID du locataire",
@@ -2413,6 +2480,24 @@
       "JWTENDPOINT": "Point de terminaison JWT",
       "JWTKEYSENDPOINT": "Point de terminaison des clés JWT"
     },
+    "APPLE": {
+      "TEAMID": "Team ID",
+      "KEYID": "Key ID",
+      "PRIVATEKEY": "Private Key",
+      "UPDATEPRIVATEKEY": "Update Private Key",
+      "UPLOADPRIVATEKEY": "Upload Private Key",
+      "KEYMAXSIZEEXCEEDED": "Maximum size of 5kB exceeded."
+    },
+    "SAML": {
+      "METADATAXML": "Metadata Xml",
+      "METADATAURL": "Metadata URL",
+      "BINDING": "Binding",
+      "SIGNEDREQUEST": "Signed Request",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
+      "NAMEIDFORMAT": "NameID Format",
+      "TRANSIENTMAPPINGATTRIBUTENAME": "Custom Mapping Attribute Name",
+      "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternative attribute name to map the user in case the `nameid-format` returned is `transient`, e.g. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
+    },
     "TOAST": {
       "SAVED": "Enregistré avec succès.",
       "REACTIVATED": "Idp réactivé.",
@@ -2427,7 +2512,12 @@
     "ISIDTOKENMAPPING": "Mappage depuis le jeton ID",
     "ISIDTOKENMAPPING_DESC": "Si sélectionné, les informations du fournisseur sont mappées à partir du jeton ID, et non à partir du point d'extrémité userinfo.",
     "USEPKCE": "Utiliser PKCE",
-    "USEPKCE_DESC": "Détermine si les paramètres code_challenge et code_challenge_method sont inclus dans la demande d'authentification"
+    "USEPKCE_DESC": "Détermine si les paramètres code_challenge et code_challenge_method sont inclus dans la demande d'authentification",
+    "TYPES": {
+      "0": "inconnu",
+      "1": "OIDC",
+      "3": "JWT"
+    }
   },
   "MFA": {
     "LIST": {
@@ -2500,7 +2590,11 @@
         "DELETE_TITLE": "Supprimer la configuration SMTP",
         "DELETE_DESCRIPTION": "Vous êtes sur le point de supprimer une configuration. Confirmez cette action en tapant le nom de l'expéditeur",
         "DELETED": "La configuration SMTP a été supprimée",
-        "SENDER": "Tapez {{ value }} pour supprimer cette configuration SMTP."
+        "SENDER": "Tapez {{ value }} pour supprimer cette configuration SMTP.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2576,7 +2670,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Etapes suivantes",
         "0": {
           "TITLE": "Ajouter des rôles",
           "DESC": "Entrez les rôles de votre projet"
@@ -2588,7 +2681,8 @@
         "2": {
           "TITLE": "Aide et support",
           "DESC": "Lisez notre documentation sur la création d'applications ou contactez notre assistance"
-        }
+        },
+        "TITLE": "Etapes suivantes"
       }
     },
     "NAMEDIALOG": {
@@ -2605,6 +2699,10 @@
     "ADDITIONALORIGINSDESC": "Si vous voulez ajouter des origines supplémentaires à votre application qui n'est pas utilisée comme une redirection, vous pouvez le faire ici.",
     "ORIGINS": "Origines",
     "NOTANORIGIN": "La valeur saisie n'est pas une origine",
+    "PROSWITCH": "I'm a pro. Skip this wizard.",
+    "NAMEANDTYPESECTION": "Name and Type",
+    "TITLEFIRST": "Name of the application",
+    "TYPETITLE": "Type of application",
     "OIDC": {
       "WELLKNOWN": "Pour plus d'informations, consultez le <a href='{{url}}' title='Discovery endpoint' target='_blank'>discovery endpoint</a>.",
       "INFO": {
@@ -2614,10 +2712,6 @@
       "CURRENT": "Configuration actuelle",
       "TOKENSECTIONTITLE": "Options AuthToken",
       "REDIRECTSECTIONTITLE": "Paramètres de redirection",
-      "PROSWITCH": "Je suis un pro. Sautez cet assistant.",
-      "NAMEANDTYPESECTION": "Nom et type",
-      "TITLEFIRST": "Commencez par insérer un nom.",
-      "TYPETITLE": "Quel type d'application voulez-vous créer ?",
       "REDIRECTTITLE": "Indiquez les URIs vers lesquels le login sera redirigé.",
       "POSTREDIRECTTITLE": "Il s'agit de l'URI de redirection après la déconnexion.",
       "REDIRECTDESCRIPTIONWEB": "Les URIs de redirection doivent commencer par https.",
@@ -2700,7 +2794,11 @@
           }
         }
       },
-      "BACKCHANNELLOOGOUTURI": "Back-Channel Logout URI"
+      "BACKCHANNELLOOGOUTURI": "Back-Channel Logout URI",
+      "PROSWITCH": "Je suis un pro. Sautez cet assistant.",
+      "NAMEANDTYPESECTION": "Nom et type",
+      "TITLEFIRST": "Commencez par insérer un nom.",
+      "TYPETITLE": "Quel type d'application voulez-vous créer ?"
     },
     "API": {
       "INFO": {
@@ -2819,10 +2917,10 @@
     "ADD": "Ajouter un administrateur",
     "CREATIONTYPE": "Type de création",
     "CREATIONTYPES": {
-      "3": "Instance",
-      "2": "Organisation",
       "0": "Projet Détenu",
       "1": "Projet Octroyé",
+      "2": "Organisation",
+      "3": "Instance",
       "4": "Projet"
     },
     "EDITROLE": "Modifier les rôles",
@@ -2889,6 +2987,5 @@
       "TITLE": "Activité",
       "DESCRIPTION": "Vous pouvez voir ici les derniers événements qui ont généré un changement d'utilisateur."
     }
-  },
-  "INSTANCEID": "ID de l'instance"
+  }
 }

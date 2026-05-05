@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Динамични клиенти",
+        "DESCRIPTION": "Клиенти, които сами се регистрираха през Dynamic Client Registration крайната точка. Само за четене — клиентите управляват собствените си метаданни през RFC 7592.",
+        "EMPTY": "Все още няма динамично регистрирани клиенти. Тук ще се появят клиентите, регистрирани през /oidc/v1/register.",
+        "REGISTRATION_METHOD": "Метод на регистрация",
+        "METHOD_ANONYMOUS": "Анонимен",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID на клиента",
+        "COL_CLIENT_NAME": "Име на клиента",
+        "COL_CREATED_AT": "Регистриран на",
+        "COL_AUDIT": "Одит",
+        "VIEW_AUDIT": "Виж одитни събития"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) разрешават Dynamic Client Registration за определени проекти. Издайте веднъж, използвайте до N пъти, после отзовете.",
+        "EMPTY": "Няма Initial Access Tokens. Издайте един, за да разрешите регистрация на DCR клиент.",
+        "ISSUE_BUTTON": "Издай токен",
+        "DIALOG_TITLE": "Издай Initial Access Token",
+        "PROJECT_ID_LABEL": "ID на проекта",
+        "LIFETIME_LABEL": "Време на живот (часове)",
+        "LIFETIME_HINT": "0 използва стойността по подразбиране на сървъра.",
+        "MAX_USES_LABEL": "Максимален брой употреби",
+        "MAX_USES_HINT": "0 означава неограничено.",
+        "GRANT_TYPES_LABEL": "Разрешени Grant типове",
+        "REDIRECT_URI_PATTERNS_LABEL": "Разрешени модели за Redirect URI",
+        "REDIRECT_URI_PATTERNS_HINT": "Един модел на ред. Празно разрешава всеки модел от глобалния DCR allow-list.",
+        "DESCRIPTION_LABEL": "Описание",
+        "REVOKE_BUTTON": "Отзови",
+        "REVOKE_CONFIRM": "Да отзовем ли този Initial Access Token? Бъдещи опити за регистрация с него ще се провалят. Това не може да се отмени.",
+        "REVOKED": "Initial Access Token е отзован.",
+        "PLAINTEXT_TITLE": "Токенът е издаден",
+        "PLAINTEXT_WARNING": "Копирайте този токен сега. Показва се ТОЧНО ВЕДНЪЖ. След като този диалог се затвори, не можете да го извлечете повторно — издайте нов токен, ако го изгубите.",
+        "PLAINTEXT_REVEAL": "Покажи токена",
+        "PLAINTEXT_DONE": "Запазих го",
+        "COPIED": "Токенът е копиран в клипборда.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Проект",
+        "COL_EXPIRES_AT": "Изтича на",
+        "COL_MAX_USES": "Максимален брой употреби",
+        "COL_USES_CONSUMED": "Използвани",
+        "COL_STATUS": "Състояние",
+        "STATUS_ACTIVE": "Активен",
+        "STATUS_REVOKED": "Отзован",
+        "COL_CREATED_AT": "Създаден на",
+        "PLAINTEXT_REMASK": "Скрий токена",
+        "PLAINTEXT_AUTOMASK_HINT": "Токенът ще се скрие автоматично след 60 секунди.",
+        "REVOKE_PROJECT_REQUIRED": "Не може да се отзове Initial Access Token без ID на проект.",
+        "REFRESH": "Опресни списъка",
+        "COPY": "Копирай токена",
+        "REVEAL_TOGGLE": "Покажи или скрий токена",
+        "DISMISS": "Затвори"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Вие сте инстанс администратор. ",
     "SHOWORGS": "Показване на всички организации",
     "GRANTS": "Ролеви назначения",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Действия",
+    "TARGETS": "Targets",
     "PRIVACY": "Поверителност",
     "TOS": "Условия за ползване",
     "OPENSHORTCUTSTOOLTIP": "Тип ? ",
@@ -558,6 +613,7 @@
     "NEXT": "Следващ",
     "MORE": "Повече ▼",
     "STEP": "стъпка",
+    "SETUP": "Setup",
     "TEST": "Тест",
     "UNSAVEDCHANGES": "Незапазени промени",
     "UNSAVED": {
@@ -740,13 +796,13 @@
   },
   "FILTER": {
     "TITLE": "Филтър",
+    "ORGNAME": "Наименование на организацията",
+    "ORGID": "Идентификатор на организацията",
     "STATE": "Статус",
+    "PRIMARYDOMAIN": "Домейн на организацията",
     "DISPLAYNAME": "Екранно име на потребителя",
     "EMAIL": "електронна поща",
     "USERNAME": "Потребителско име",
-    "ORGNAME": "Наименование на организацията",
-    "ORGID": "Идентификатор на организацията",
-    "PRIMARYDOMAIN": "Домейн на организацията",
     "PROJECTNAME": "Име на проекта",
     "RESOURCEOWNER": "Собственик на ресурс",
     "METHODS": {
@@ -773,6 +829,7 @@
       "DOMAINS": "<strong>Ж</strong>o към <strong>д</strong>omains"
     }
   },
+  "INSTANCEID": "Идентификатор на инстанция",
   "RESOURCEID": "Идент. № на ресурса",
   "NAME": "Име",
   "VERSION": "Версия",
@@ -1557,6 +1614,7 @@
       "VIEWS": "Изгледи",
       "ACTIONS": "Действия",
       "TARGETS": "Цели",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1974,10 +2032,10 @@
       "SET": "Политиката е зададена успешно!",
       "RESETSUCCESS": "Успешно нулиране на правилата!",
       "UPLOADSUCCESS": "Качен успешно!",
-      "DEACTIVATE": "Деактивиран!",
-      "ACTIVATE": "Активиран!",
       "DELETESUCCESS": "Изтрито успешно!",
-      "UPLOADFAILED": "Качването не бе успешно!"
+      "UPLOADFAILED": "Качването не бе успешно!",
+      "DEACTIVATE": "Деактивиран!",
+      "ACTIVATE": "Активиран!"
     }
   },
   "ORG_DETAIL": {
@@ -2014,6 +2072,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "Идентификатор на проект",
       "TITLE": "Проект",
       "DESCRIPTION": "Тук можете да дефинирате приложения, да управлявате роли и да предоставите на други организации да използват вашия проект.",
       "DELETE": "Изтриване на проекта",
@@ -2066,8 +2125,7 @@
           "DESCRIPTION": "Наистина ли искате да изтриете проекта си?",
           "TYPENAME": "Въведете името на проекта, за да го изтриете за постоянно."
         }
-      },
-      "ID": "Идентификатор на проект"
+      }
     },
     "SETTINGS": {
       "TITLE": "Настройки",
@@ -2118,8 +2176,8 @@
         "ORG_DESCRIPTION": "На път сте да предоставите потребител за организацията {{name}}.",
         "ORG_DESCRIPTION_DESC": "Превключете контекста в заглавката по-горе, за да предоставите потребител за друга организация.",
         "SEL_ORG_FORMFIELD": "Организация",
-        "SEL_ORG_BUTTON": "Организация на търсенето",
-        "FOR_ORG": "Разрешението за проекта ще бъде създадено за:"
+        "FOR_ORG": "Разрешението за проекта ще бъде създадено за:",
+        "SEL_ORG_BUTTON": "Организация на търсенето"
       },
       "DETAIL": {
         "TITLE": "Грант за проекта",
@@ -2526,7 +2584,11 @@
         "DELETE_TITLE": "Изтриване на SMTP конфигурация",
         "DELETE_DESCRIPTION": "На път сте да изтриете конфигурация. Потвърдете това действие, като въведете името на подателя",
         "DELETED": "SMTP конфигурацията е изтрита",
-        "SENDER": "Въведете {{ value }}, за да изтриете тази SMTP конфигурация."
+        "SENDER": "Въведете {{ value }}, за да изтриете тази SMTP конфигурация.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2915,6 +2977,5 @@
       "TITLE": "Дейност",
       "DESCRIPTION": "Тук можете да видите последните събития, които са генерирали потребителска промяна."
     }
-  },
-  "INSTANCEID": "Идентификатор на инстанция"
+  }
 }

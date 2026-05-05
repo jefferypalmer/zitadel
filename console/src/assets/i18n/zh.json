@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "动态客户端",
+        "DESCRIPTION": "通过 Dynamic Client Registration 端点自行注册的客户端。只读 — 客户端通过 RFC 7592 管理自己的元数据。",
+        "EMPTY": "尚无动态注册的客户端。通过 /oidc/v1/register 注册的客户端将显示在此处。",
+        "REGISTRATION_METHOD": "注册方式",
+        "METHOD_ANONYMOUS": "匿名",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "客户端 ID",
+        "COL_CLIENT_NAME": "客户端名称",
+        "COL_CREATED_AT": "注册时间",
+        "COL_AUDIT": "审计",
+        "VIEW_AUDIT": "查看审计事件"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) 为特定项目授权 Dynamic Client Registration。颁发一次，使用最多 N 次，然后撤销。",
+        "EMPTY": "没有 Initial Access Tokens。颁发一个以授权 DCR 客户端注册。",
+        "ISSUE_BUTTON": "颁发令牌",
+        "DIALOG_TITLE": "颁发 Initial Access Token",
+        "PROJECT_ID_LABEL": "项目 ID",
+        "LIFETIME_LABEL": "有效期（小时）",
+        "LIFETIME_HINT": "0 使用服务器默认有效期。",
+        "MAX_USES_LABEL": "最大使用次数",
+        "MAX_USES_HINT": "0 表示无限制。",
+        "GRANT_TYPES_LABEL": "允许的 Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "允许的 Redirect URI 模式",
+        "REDIRECT_URI_PATTERNS_HINT": "每行一个模式。留空允许全局 DCR 允许列表中的任何模式。",
+        "DESCRIPTION_LABEL": "描述",
+        "REVOKE_BUTTON": "撤销",
+        "REVOKE_CONFIRM": "撤销此 Initial Access Token 吗？后续使用它的注册尝试将失败。此操作不可撤销。",
+        "REVOKED": "Initial Access Token 已撤销。",
+        "PLAINTEXT_TITLE": "令牌已颁发",
+        "PLAINTEXT_WARNING": "现在复制此令牌。仅显示一次。关闭此对话框后将无法再次获取 — 如果丢失，请颁发新的令牌。",
+        "PLAINTEXT_REVEAL": "显示令牌",
+        "PLAINTEXT_DONE": "我已保存",
+        "COPIED": "令牌已复制到剪贴板。",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "项目",
+        "COL_EXPIRES_AT": "过期时间",
+        "COL_MAX_USES": "最大使用次数",
+        "COL_USES_CONSUMED": "已使用",
+        "COL_STATUS": "状态",
+        "STATUS_ACTIVE": "活动",
+        "STATUS_REVOKED": "已撤销",
+        "COL_CREATED_AT": "创建时间",
+        "PLAINTEXT_REMASK": "隐藏令牌",
+        "PLAINTEXT_AUTOMASK_HINT": "令牌将在 60 秒后自动隐藏。",
+        "REVOKE_PROJECT_REQUIRED": "没有项目 ID 无法撤销 Initial Access Token。",
+        "REFRESH": "刷新列表",
+        "COPY": "复制令牌",
+        "REVEAL_TOGGLE": "显示或隐藏令牌",
+        "DISMISS": "关闭"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "您是实例管理员。请注意您具有扩展权限。",
     "SHOWORGS": "查看所有组织",
     "GRANTS": "角色分配",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "认证流程",
+    "TARGETS": "Targets",
     "PRIVACY": "隐私",
     "TOS": "服务条款",
     "OPENSHORTCUTSTOOLTIP": "按下 ？键查看快捷键",
@@ -741,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "过滤",
+    "ORGNAME": "组织名称",
+    "ORGID": "组织ID",
     "STATE": "状态",
+    "PRIMARYDOMAIN": "组织域名",
     "DISPLAYNAME": "展示名称",
     "EMAIL": "邮箱",
     "USERNAME": "用户名",
-    "ORGNAME": "组织名称",
-    "ORGID": "组织ID",
-    "PRIMARYDOMAIN": "组织域名",
     "PROJECTNAME": "项目名称",
     "RESOURCEOWNER": "资源所有者",
     "METHODS": {
+      "1": "等于",
       "5": "包含",
-      "7": "结尾是",
-      "1": "等于"
+      "7": "结尾是"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "前往域名"
     }
   },
+  "INSTANCEID": "实例ID",
   "RESOURCEID": "资源ID",
   "NAME": "名称",
   "VERSION": "版本",
@@ -1558,6 +1614,7 @@
       "VIEWS": "数据表",
       "ACTIONS": "Actions",
       "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -2013,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "项目ID",
       "TITLE": "项目",
       "DESCRIPTION": "在这里，您可以定义应用程序、管理角色并授权其他组织使用您的项目。",
       "DELETE": "删除项目",
@@ -2028,7 +2086,6 @@
         "GRANTED_SINGULAR": "授予{{name}}的项目"
       },
       "PRIVATELABEL": {
-        "TITLE": "品牌标识设置",
         "0": {
           "TITLE": "未指定",
           "DESC": "识别用户后，将显示已识别用户的组织品牌，然后显示系统默认值。"
@@ -2041,6 +2098,7 @@
           "TITLE": "使用用户组织设置",
           "DESC": "将显示项目组织的品牌，但一旦识别用户，将显示已识别用户的组织设置。"
         },
+        "TITLE": "品牌标识设置",
         "DIALOG": {
           "TITLE": "品牌标识设置",
           "DESCRIPTION": "选择项目登录时使用的行为。"
@@ -2065,24 +2123,23 @@
           "DESCRIPTION": "您真的要删除您的项目吗？",
           "TYPENAME": "键入项目的名称以将其永久删除。"
         }
-      },
-      "ID": "项目ID"
+      }
     },
     "SETTINGS": {
       "TITLE": "设置",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "状态",
       "0": "未定义",
       "1": "启用",
-      "2": "停用"
+      "2": "停用",
+      "TITLE": "状态"
     },
     "TYPE": {
-      "TITLE": "类型",
       "0": "未知类型",
       "1": "拥有的",
-      "2": "被授权的"
+      "2": "被授权的",
+      "TITLE": "类型"
     },
     "NAME": "名称",
     "NAMEDIALOG": {
@@ -2327,20 +2384,15 @@
       "1": "实例",
       "2": "组织"
     },
-    "TYPES": {
-      "0": "未知",
-      "1": "OIDC",
-      "3": "JWT"
-    },
     "STATES": {
       "1": "启用",
       "2": "停用"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Tenant ID",
       "0": "Common",
       "1": "Organizations",
-      "2": "Consumers"
+      "2": "Consumers",
+      "3": "Tenant ID"
     },
     "AZUREADTENANTTYPE": "租户类型",
     "AZUREADTENANTID": "租户编号",
@@ -2437,6 +2489,7 @@
       "METADATAURL": "元数据 URL",
       "BINDING": "绑定",
       "SIGNEDREQUEST": "登录请求",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
       "NAMEIDFORMAT": "名字 ID 格式",
       "TRANSIENTMAPPINGATTRIBUTENAME": "自定义映射属性名称",
       "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "如果返回的 `nameid-format` 是 `transient` ，则映射用户的备用属性名称，参考 `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
@@ -2455,7 +2508,12 @@
     "ISIDTOKENMAPPING": "从ID令牌映射",
     "ISIDTOKENMAPPING_DESC": "如果选中，提供商信息将从ID令牌映射，而不是从userinfo端点。",
     "USEPKCE": "使用PKCE",
-    "USEPKCE_DESC": "确定 auth 请求中是否包含 code_challenge 和 code_challenge_method 参数"
+    "USEPKCE_DESC": "确定 auth 请求中是否包含 code_challenge 和 code_challenge_method 参数",
+    "TYPES": {
+      "0": "未知",
+      "1": "OIDC",
+      "3": "JWT"
+    }
   },
   "MFA": {
     "LIST": {
@@ -2608,7 +2666,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "下一步",
         "0": {
           "TITLE": "添加角色",
           "DESC": "输入您的项目角色"
@@ -2620,7 +2677,8 @@
         "2": {
           "TITLE": "帮助支持",
           "DESC": "阅读我们关于创建应用程序的文档或联系我们的支持"
-        }
+        },
+        "TITLE": "下一步"
       }
     },
     "NAMEDIALOG": {
@@ -2637,6 +2695,10 @@
     "ADDITIONALORIGINSDESC": "如果您想向您的应用程序添加不用作重定向的其他来源，您可以在此处执行此操作。",
     "ORIGINS": "其他来源",
     "NOTANORIGIN": "输入的值不是有效来源",
+    "PROSWITCH": "I'm a pro. Skip this wizard.",
+    "NAMEANDTYPESECTION": "Name and Type",
+    "TITLEFIRST": "Name of the application",
+    "TYPETITLE": "Type of application",
     "OIDC": {
       "WELLKNOWN": "欲了解更多信息，请看<a href='{url}}' title='发现端点' target='_blank'>发现端点</a>。",
       "INFO": {
@@ -2646,10 +2708,6 @@
       "CURRENT": "当前配置",
       "TOKENSECTIONTITLE": "AuthToken 选项",
       "REDIRECTSECTIONTITLE": "重定向设置",
-      "PROSWITCH": "我是专业人士。跳过此向导。",
-      "NAMEANDTYPESECTION": "名称和类型",
-      "TITLEFIRST": "先录入一个名字。",
-      "TYPETITLE": "您要创建什么类型的应用程序？",
       "REDIRECTTITLE": "指定登录将重定向到的 URL。",
       "POSTREDIRECTTITLE": "这是退出登录后的重定向 URL。",
       "REDIRECTDESCRIPTIONWEB": "重定向 URI 必须以 https:// 开头。 http:// 仅对启用的开发模式有效。",
@@ -2732,7 +2790,11 @@
           }
         }
       },
-      "BACKCHANNELLOOGOUTURI": "反向通道注销URI"
+      "BACKCHANNELLOOGOUTURI": "反向通道注销URI",
+      "PROSWITCH": "我是专业人士。跳过此向导。",
+      "NAMEANDTYPESECTION": "名称和类型",
+      "TITLEFIRST": "先录入一个名字。",
+      "TYPETITLE": "您要创建什么类型的应用程序？"
     },
     "API": {
       "INFO": {
@@ -2851,10 +2913,10 @@
     "ADD": "添加管理员",
     "CREATIONTYPE": "创建类型",
     "CREATIONTYPES": {
-      "3": "实例",
-      "2": "Organization",
       "0": "Owned Project",
       "1": "Granted Project",
+      "2": "Organization",
+      "3": "实例",
       "4": "Project"
     },
     "EDITROLE": "编辑角色",
@@ -2921,6 +2983,5 @@
       "TITLE": "当前用户事件",
       "DESCRIPTION": "在这里您可以看到用户变更的最新事件。"
     }
-  },
-  "INSTANCEID": "实例ID"
+  }
 }

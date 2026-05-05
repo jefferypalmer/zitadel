@@ -281,9 +281,9 @@
         "FORM": {
           "TITLE": "نموذج تسجيل الدخول",
           "DESCRIPTION": "تخصيص نموذج تسجيل الدخول.",
-          "USERNAME_PASSWORD_ALLOWED": {
-            "TITLE": "مسموح باسم المستخدم وكلمة المرور",
-            "DESCRIPTION": "السماح للمستخدمين بتسجيل الدخول باستخدام اسم المستخدم وكلمة المرور. إذا تم تعطيل هذا، يمكن للمستخدمين تسجيل الدخول فقط باستخدام المصادقة بدون كلمة مرور أو باستخدام مزود هوية خارجي."
+          "LOCAL_AUTHENTICATION_ALLOWED": {
+            "TITLE": "Local authentication allowed",
+            "DESCRIPTION": "Allow your users to log in with their username and password or passkey authentication. If this is deactivated, your users can only log in using an external identity provider."
           },
           "USER_REGISTRATION_ALLOWED": {
             "TITLE": "مسموح بتسجيل المستخدم",
@@ -316,11 +316,68 @@
           "DISABLE_PHONE_LOGIN": {
             "TITLE": "تعطيل تسجيل الدخول بالهاتف",
             "DESCRIPTION": "إذا تم تفعيل هذا، لا يمكن للمستخدمين استخدام أرقام هواتفهم لتسجيل الدخول. احذر أنه إذا قمت بتعطيل هذا، يجب أن تكون أرقام هواتف المستخدمين فريدة عبر جميع المنظمات لتسجيل الدخول."
+          },
+          "USERNAME_PASSWORD_ALLOWED": {
+            "TITLE": "مسموح باسم المستخدم وكلمة المرور",
+            "DESCRIPTION": "السماح للمستخدمين بتسجيل الدخول باستخدام اسم المستخدم وكلمة المرور. إذا تم تعطيل هذا، يمكن للمستخدمين تسجيل الدخول فقط باستخدام المصادقة بدون كلمة مرور أو باستخدام مزود هوية خارجي."
           }
         }
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "العملاء الديناميكيون",
+        "DESCRIPTION": "العملاء الذين سجّلوا أنفسهم عبر نقطة طرف Dynamic Client Registration. للقراءة فقط — العملاء يديرون بياناتهم الوصفية عبر RFC 7592.",
+        "EMPTY": "لا توجد عملاء مسجّلون ديناميكيًا بعد. سيظهر هنا العملاء الذين يسجّلون عبر /oidc/v1/register.",
+        "REGISTRATION_METHOD": "طريقة التسجيل",
+        "METHOD_ANONYMOUS": "مجهول",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "معرّف العميل (ID)",
+        "COL_CLIENT_NAME": "اسم العميل",
+        "COL_CREATED_AT": "تاريخ التسجيل",
+        "COL_AUDIT": "التدقيق",
+        "VIEW_AUDIT": "عرض أحداث التدقيق"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "تُخوِّل رموز Initial Access Tokens (IATs) عمليات Dynamic Client Registration لمشاريع محددة. أصدرها مرة واحدة، استخدمها حتى N مرات، ثم اسحبها.",
+        "EMPTY": "لا توجد Initial Access Tokens. أصدر واحدًا للتخويل بتسجيل عميل DCR.",
+        "ISSUE_BUTTON": "إصدار رمز",
+        "DIALOG_TITLE": "إصدار Initial Access Token",
+        "PROJECT_ID_LABEL": "معرّف المشروع (ID)",
+        "LIFETIME_LABEL": "مدة الصلاحية (ساعات)",
+        "LIFETIME_HINT": "0 يستخدم المدة الافتراضية للخادم.",
+        "MAX_USES_LABEL": "الحد الأقصى للاستخدامات",
+        "MAX_USES_HINT": "0 يعني غير محدود.",
+        "GRANT_TYPES_LABEL": "أنواع الترخيص المسموح بها",
+        "REDIRECT_URI_PATTERNS_LABEL": "أنماط URI لإعادة التوجيه المسموح بها",
+        "REDIRECT_URI_PATTERNS_HINT": "نمط واحد لكل سطر. سطر فارغ يسمح بأي نمط ضمن قائمة DCR العامة.",
+        "DESCRIPTION_LABEL": "الوصف",
+        "REVOKE_BUTTON": "إلغاء",
+        "REVOKE_CONFIRM": "هل تريد إلغاء هذا Initial Access Token؟ ستفشل أي محاولات تسجيل مستقبلية باستخدامه. لا يمكن التراجع.",
+        "REVOKED": "تم إلغاء Initial Access Token.",
+        "PLAINTEXT_TITLE": "تم إصدار الرمز",
+        "PLAINTEXT_WARNING": "انسخ هذا الرمز الآن. يُعرض مرّة واحدة فقط. بعد إغلاق هذا المربّع لن تتمكن من استرجاعه — أصدر رمزًا جديدًا إذا فقدته.",
+        "PLAINTEXT_REVEAL": "إظهار الرمز",
+        "PLAINTEXT_DONE": "لقد حفظته",
+        "COPIED": "تم نسخ الرمز إلى الحافظة.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "المشروع",
+        "COL_EXPIRES_AT": "ينتهي في",
+        "COL_MAX_USES": "الحد الأقصى للاستخدامات",
+        "COL_USES_CONSUMED": "مستخدم",
+        "COL_STATUS": "الحالة",
+        "STATUS_ACTIVE": "نشط",
+        "STATUS_REVOKED": "ملغى",
+        "COL_CREATED_AT": "تم الإنشاء في",
+        "PLAINTEXT_REMASK": "إخفاء الرمز",
+        "PLAINTEXT_AUTOMASK_HINT": "سيخفى الرمز تلقائيًا بعد 60 ثانية.",
+        "REVOKE_PROJECT_REQUIRED": "لا يمكن إلغاء Initial Access Token دون معرّف مشروع (ID).",
+        "REFRESH": "تحديث القائمة",
+        "COPY": "نسخ الرمز",
+        "REVEAL_TOGGLE": "إظهار أو إخفاء الرمز",
+        "DISMISS": "إغلاق"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,6 +532,7 @@
     "IAMADMIN": "أنت مسؤول instance. لاحظ أن لديك أذونات موسعة.",
     "SHOWORGS": "إظهار جميع المنظمات",
     "GRANTS": "تعيينات الأدوار",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "الإجراءات",
     "TARGETS": "الأهداف",
     "PRIVACY": "الخصوصية",
@@ -669,6 +727,14 @@
           "restAsync": "REST غير متزامن"
         },
         "TYPES_DESCRIPTION": "Webhook: يتعامل الاتصال مع رمز الحالة ولكن الاستجابة غير ذات صلة\nCall: يتعامل الاتصال مع رمز الحالة والاستجابة\nAsync: لا يتعامل الاتصال مع رمز الحالة ولا الاستجابة، ولكن يمكن استدعاؤه بالتوازي مع أهداف أخرى",
+        "PAYLOAD_TYPE": "Payload Type",
+        "PAYLOAD_TYPES": {
+          "UNSPECIFIED": "Unspecified",
+          "JSON": "JSON",
+          "JWT": "JSON Web Token (JWT)",
+          "JWE": "Encrypted JSON Web Token (JWE)"
+        },
+        "PAYLOAD_TYPE_DESCRIPTION": "JSON: Standard JSON payload with an signature header for verification.\nJWT: Payload is sent as signed JWT. Verification is self-contained using the JWT signature.\nJWE: The JWT is additionally encrypted to prevent unauthorized access to payload information.",
         "ENDPOINT": "نقطة النهاية (Endpoint)",
         "ENDPOINT_DESCRIPTION": "أدخل نقطة النهاية حيث تتم استضافة الكود الخاص بك. تأكد من إمكانية الوصول إليها من قبلنا!",
         "TIMEOUT": "المهلة",
@@ -744,9 +810,9 @@
     "PROJECTNAME": "اسم المشروع",
     "RESOURCEOWNER": "مالك المورد",
     "METHODS": {
+      "1": "يساوي",
       "5": "يحتوي على",
-      "7": "ينتهي بـ",
-      "1": "يساوي"
+      "7": "ينتهي بـ"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -767,6 +833,7 @@
       "DOMAINS": "<strong>الذهاب</strong> إلى <strong>النطاقات</strong>"
     }
   },
+  "INSTANCEID": "معرف المثيل",
   "RESOURCEID": "معرف المورد",
   "NAME": "الاسم",
   "VERSION": "الإصدار",
@@ -1551,6 +1618,7 @@
       "VIEWS": "المشاهدات",
       "ACTIONS": "الإجراءات",
       "TARGETS": "الأهداف",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1599,6 +1667,7 @@
         "ko": "한국어",
         "ro": "Română",
         "tr": "Türkçe",
+        "uk": "Українська",
         "ar": "العربية"
       }
     },
@@ -1846,6 +1915,7 @@
         "ko": "한국어",
         "ro": "Română",
         "tr": "Türkçe",
+        "uk": "Українська",
         "ar": "العربية"
       },
       "KEYS": {
@@ -2004,6 +2074,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "معرف المشروع",
       "TITLE": "المشروع",
       "DESCRIPTION": "هنا يمكنك تحديد التطبيقات، وإدارة الأدوار، ومنح المنظمات الأخرى حق استخدام مشروعك.",
       "DELETE": "حذف المشروع",
@@ -2019,7 +2090,6 @@
         "GRANTED_SINGULAR": "مشروع ممنوح لـ {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "إعداد العلامة التجارية",
         "0": {
           "TITLE": "غير محدد",
           "DESC": "بمجرد التعرف على المستخدم، سيتم عرض العلامة التجارية لمنظمة المستخدم الذي تم التعرف عليه، قبل عرض النظام الافتراضي."
@@ -2032,6 +2102,7 @@
           "TITLE": "استخدام إعداد منظمة المستخدم",
           "DESC": "سيتم عرض العلامة التجارية لمنظمة المشروع، ولكن بمجرد التعرف على المستخدم، سيتم عرض إعداد منظمة المستخدم الذي تم التعرف عليه."
         },
+        "TITLE": "إعداد العلامة التجارية",
         "DIALOG": {
           "TITLE": "إعداد العلامة التجارية",
           "DESCRIPTION": "حدد سلوك تسجيل الدخول عند استخدام المشروع."
@@ -2056,24 +2127,23 @@
           "DESCRIPTION": "هل تريد حقاً حذف مشروعك؟",
           "TYPENAME": "اكتب اسم المشروع لحذفه بشكل دائم."
         }
-      },
-      "ID": "معرف المشروع"
+      }
     },
     "SETTINGS": {
       "TITLE": "الإعدادات",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "الحالة",
       "0": "غير محدد",
       "1": "نشط",
-      "2": "غير نشط"
+      "2": "غير نشط",
+      "TITLE": "الحالة"
     },
     "TYPE": {
-      "TITLE": "النوع",
       "0": "نوع غير معروف",
       "1": "مملوك",
-      "2": "ممنوح"
+      "2": "ممنوح",
+      "TITLE": "النوع"
     },
     "NAME": "الاسم",
     "NAMEDIALOG": {
@@ -2323,10 +2393,10 @@
       "2": "غير نشط"
     },
     "AZUREADTENANTTYPES": {
-      "3": "معرف المستأجر (Tenant ID)",
       "0": "شائع (Common)",
       "1": "المنظمات",
-      "2": "المستهلكون"
+      "2": "المستهلكون",
+      "3": "معرف المستأجر (Tenant ID)"
     },
     "AZUREADTENANTTYPE": "نوع المستأجر",
     "AZUREADTENANTID": "معرف المستأجر",
@@ -2595,7 +2665,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "الخطوات التالية",
         "0": {
           "TITLE": "إضافة أدوار",
           "DESC": "أدخل أدوار مشروعك"
@@ -2607,7 +2676,8 @@
         "2": {
           "TITLE": "المساعدة والدعم",
           "DESC": "اقرأ وثائقنا حول إنشاء التطبيقات أو اتصل بالدعم لدينا"
-        }
+        },
+        "TITLE": "الخطوات التالية"
       }
     },
     "NAMEDIALOG": {
@@ -2831,16 +2901,17 @@
     "ko": "한국어",
     "ro": "Română",
     "tr": "Türkçe",
+    "uk": "Українська",
     "ar": "العربية"
   },
   "MEMBER": {
     "ADD": "إضافة مسؤول النظام",
     "CREATIONTYPE": "نوع الإنشاء",
     "CREATIONTYPES": {
-      "3": "Instance",
-      "2": "منظمة",
       "0": "مشروع مملوك",
       "1": "مشروع ممنوح",
+      "2": "منظمة",
+      "3": "Instance",
       "4": "مشروع"
     },
     "EDITROLE": "تحرير الأدوار",
@@ -2907,6 +2978,5 @@
       "TITLE": "النشاط",
       "DESCRIPTION": "هنا يمكنك رؤية أحدث الأحداث التي أدت إلى تغيير في المستخدم."
     }
-  },
-  "INSTANCEID": "معرف المثيل"
+  }
 }

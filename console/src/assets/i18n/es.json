@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Clientes dinámicos",
+        "DESCRIPTION": "Clientes que se registraron por sí mismos a través del endpoint Dynamic Client Registration. Solo lectura — los clientes gestionan sus propios metadatos vía RFC 7592.",
+        "EMPTY": "Aún no hay clientes registrados dinámicamente. Los clientes que se registren mediante /oidc/v1/register aparecerán aquí.",
+        "REGISTRATION_METHOD": "Método de registro",
+        "METHOD_ANONYMOUS": "Anónimo",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID de cliente",
+        "COL_CLIENT_NAME": "Nombre del cliente",
+        "COL_CREATED_AT": "Registrado el",
+        "COL_AUDIT": "Auditoría",
+        "VIEW_AUDIT": "Ver eventos de auditoría"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Los Initial Access Tokens (IATs) autorizan Dynamic Client Registration para proyectos específicos. Emite una vez, úsalo hasta N veces, luego revoca.",
+        "EMPTY": "No hay Initial Access Tokens. Emite uno para autorizar el registro de un cliente DCR.",
+        "ISSUE_BUTTON": "Emitir token",
+        "DIALOG_TITLE": "Emitir Initial Access Token",
+        "PROJECT_ID_LABEL": "ID del proyecto",
+        "LIFETIME_LABEL": "Vigencia (horas)",
+        "LIFETIME_HINT": "0 usa la vigencia por defecto del servidor.",
+        "MAX_USES_LABEL": "Máx. usos",
+        "MAX_USES_HINT": "0 significa ilimitado.",
+        "GRANT_TYPES_LABEL": "Grant Types permitidos",
+        "REDIRECT_URI_PATTERNS_LABEL": "Patrones de Redirect URI permitidos",
+        "REDIRECT_URI_PATTERNS_HINT": "Un patrón por línea. Vacío permite cualquier patrón en la lista global DCR.",
+        "DESCRIPTION_LABEL": "Descripción",
+        "REVOKE_BUTTON": "Revocar",
+        "REVOKE_CONFIRM": "¿Revocar este Initial Access Token? Los próximos intentos de registro fallarán. Esto no se puede deshacer.",
+        "REVOKED": "Initial Access Token revocado.",
+        "PLAINTEXT_TITLE": "Token emitido",
+        "PLAINTEXT_WARNING": "Copia este token ahora. Se muestra EXACTAMENTE UNA VEZ. Tras cerrar este diálogo no podrás recuperarlo — emite uno nuevo si lo pierdes.",
+        "PLAINTEXT_REVEAL": "Mostrar token",
+        "PLAINTEXT_DONE": "Lo guardé",
+        "COPIED": "Token copiado al portapapeles.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Proyecto",
+        "COL_EXPIRES_AT": "Expira",
+        "COL_MAX_USES": "Máx. usos",
+        "COL_USES_CONSUMED": "Usado",
+        "COL_STATUS": "Estado",
+        "STATUS_ACTIVE": "Activo",
+        "STATUS_REVOKED": "Revocado",
+        "COL_CREATED_AT": "Creado el",
+        "PLAINTEXT_REMASK": "Ocultar token",
+        "PLAINTEXT_AUTOMASK_HINT": "El token se ocultará automáticamente después de 60 segundos.",
+        "REVOKE_PROJECT_REQUIRED": "No se puede revocar un Initial Access Token sin un ID de proyecto.",
+        "REFRESH": "Actualizar lista",
+        "COPY": "Copiar token",
+        "REVEAL_TOGGLE": "Mostrar u ocultar token",
+        "DISMISS": "Cerrar"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -407,8 +460,8 @@
   },
   "ONBOARDING": {
     "DESCRIPTION": "Tu proceso de embarque",
-    "COMPLETED": "completado",
     "MOREDESCRIPTION": "más atajos",
+    "COMPLETED": "completado",
     "DISMISS": "No gracias, soy pro.",
     "CARD": {
       "TITLE": "Ponte en marcha con Zitadel",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Eres un administrador instancia. Ten en cuenta que tienes permisos ampliados.",
     "SHOWORGS": "Mostrar todas las organizaciones",
     "GRANTS": "Asignaciones de roles",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Acciones",
+    "TARGETS": "Targets",
     "PRIVACY": "Privacidad",
     "TOS": "Términos de Servicio",
     "OPENSHORTCUTSTOOLTIP": "Pulsa ? para mostrar los atajos de teclado",
@@ -500,6 +555,10 @@
     "BROWSEEXAMPLES": "Explora ejemplos",
     "DUPLICATEAPPRENAME": "Ya existe una aplicación con el mismo nombre. Por favor, elige un nombre diferente.",
     "DIALOG": {
+      "CHANGE": {
+        "TITLE": "Change Framework",
+        "DESCRIPTION": "Choose one of the available frameworks for quick setup of your application."
+      },
       "CAMBIAR": {
         "TITLE": "Cambio framework",
         "DESCRIPTION": "Elige uno de los frameworks disponibles para configurar rápidamente tu aplicación."
@@ -741,19 +800,19 @@
   },
   "FILTER": {
     "TITLE": "Filtrar",
+    "ORGNAME": "Nombre de organización",
+    "ORGID": "ID de organización",
     "STATE": "Estado",
+    "PRIMARYDOMAIN": "Dominio de organización",
     "DISPLAYNAME": "Nombre mostrado",
     "EMAIL": "Email",
     "USERNAME": "Nombre de usuario",
-    "ORGNAME": "Nombre de organización",
-    "ORGID": "ID de organización",
-    "PRIMARYDOMAIN": "Dominio de organización",
     "PROJECTNAME": "Nombre de proyecto",
     "RESOURCEOWNER": "Propietario del recurso",
     "METHODS": {
+      "1": "igual",
       "5": "contiene",
-      "7": "finaliza con",
-      "1": "igual"
+      "7": "finaliza con"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +833,7 @@
       "DOMAINS": "<strong>G</strong>o to <strong>D</strong>omains"
     }
   },
+  "INSTANCEID": "ID de instancia",
   "RESOURCEID": "Id de recurso",
   "NAME": "Nombre",
   "VERSION": "Versión",
@@ -1459,10 +1519,10 @@
         "VERIFICATION_SKIP": "Puedes omitir la verificación por ahora y continuar creando tu organización, pero para poder usar este dominio debes completar este paso.",
         "VERIFICATION_VALIDATION_DESC": "No elimines el código de verificación, ya que Zitadel volverá a comprobar la propiedad de tu dominio de vez en cuando.",
         "VERIFICATION_NEWTOKEN_TITLE": "Solicitar nuevo token",
-        "VERIFICATION_NEWTOKEN_DESC": "Si deseas solicitar un nuevo token, selecciona tu método preferido. Si desea validar un token persistente, haga clic en el botón de arriba.",
         "VERIFICATION_VALIDATION_ONGOING": "Se ha seleccionado el método {{ value }} para verificar su dominio. Haz clic en el botón para forzar una verificación o restablecer el proceso de verificación.",
         "VERIFICATION_SUCCESSFUL": "¡Dominio verificado con éxito!",
-        "RESETMETHOD": "Restablecer el método de verificación"
+        "RESETMETHOD": "Restablecer el método de verificación",
+        "VERIFICATION_NEWTOKEN_DESC": "Si deseas solicitar un nuevo token, selecciona tu método preferido. Si desea validar un token persistente, haga clic en el botón de arriba."
       },
       "DOWNLOAD_FILE": "Descargar fichero",
       "SELECTORGTOOLTIP": "Seleccionar esta organización.",
@@ -1557,6 +1617,9 @@
       "EVENTS": "Eventos",
       "FAILEDEVENTS": "Eventos fallidos",
       "VIEWS": "Vistas",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1569,6 +1632,7 @@
       "APPEARANCE": "Apariencia",
       "OTHER": "Otros",
       "STORAGE": "Datos",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BETA"
@@ -2011,6 +2075,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "ID de proyecto",
       "TITLE": "Proyecto",
       "DESCRIPTION": "Aquí puedes definir aplicaciones, gestionar roles y permitir a otras organizaciones utilizar tu proyecto.",
       "DELETE": "Borrar proyecto",
@@ -2026,7 +2091,6 @@
         "GRANTED_SINGULAR": "Proyecto asignado {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Ajustes de imagen de marca",
         "0": {
           "TITLE": "No especificado",
           "DESC": "Tan pronto como el usuario se identifique, se mostrará la imagen de marca de la organización del usuario identificado, antes de que se muestre el aspecto por defecto."
@@ -2039,6 +2103,7 @@
           "TITLE": "Utilizar configuración de la organización del usuario",
           "DESC": "Se mostrará la imagen de marca de la organización del proyecto, pero tan pronto como el usuario se identifique, se mostrará la configuración de la organización del usuario identificado."
         },
+        "TITLE": "Ajustes de imagen de marca",
         "DIALOG": {
           "TITLE": "Ajustes de la imagen de marca",
           "DESCRIPTION": "Selecciona el comportamiento del inicio de sesión cuando se utiliza el proyecto."
@@ -2063,24 +2128,23 @@
           "DESCRIPTION": "¿Realmente quieres borrar tu proyecto?",
           "TYPENAME": "Escribir el nombre del proyecto para borrarlo permanentemente."
         }
-      },
-      "ID": "ID de proyecto"
+      }
     },
     "SETTINGS": {
       "TITLE": "Ajustes",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Estado",
       "0": "No definido",
       "1": "Activo",
-      "2": "Inactivo"
+      "2": "Inactivo",
+      "TITLE": "Estado"
     },
     "TYPE": {
-      "TITLE": "Tipo",
       "0": "Tipo desconocido",
       "1": "Propio",
-      "2": "Concedido"
+      "2": "Concedido",
+      "TITLE": "Tipo"
     },
     "NAME": "Nombre",
     "NAMEDIALOG": {
@@ -2288,6 +2352,14 @@
       "LDAP": {
         "TITLE": "Active Directory / LDAP",
         "DESCRIPTION": "Introduce las credenciales para tu proveedor LDAP"
+      },
+      "APPLE": {
+        "TITLE": "Sign in with Apple",
+        "DESCRIPTION": "Enter the credentials for your Apple Provider"
+      },
+      "SAML": {
+        "TITLE": "Sign in with SAML",
+        "DESCRIPTION": "Enter the credentials for your SAML Provider"
       }
     },
     "DETAIL": {
@@ -2322,10 +2394,10 @@
       "2": "inactivo"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Tenant ID",
       "0": "Common",
       "1": "Organizations",
-      "2": "Consumers"
+      "2": "Consumers",
+      "3": "Tenant ID"
     },
     "AZUREADTENANTTYPE": "Tipo de Tenant",
     "AZUREADTENANTID": "ID de Tenant",
@@ -2408,6 +2480,24 @@
       "HEADERNAME": "Nombre de cabecera",
       "JWTENDPOINT": "JWT Endpoint",
       "JWTKEYSENDPOINT": "JWT Keys Endpoint"
+    },
+    "APPLE": {
+      "TEAMID": "Team ID",
+      "KEYID": "Key ID",
+      "PRIVATEKEY": "Private Key",
+      "UPDATEPRIVATEKEY": "Update Private Key",
+      "UPLOADPRIVATEKEY": "Upload Private Key",
+      "KEYMAXSIZEEXCEEDED": "Maximum size of 5kB exceeded."
+    },
+    "SAML": {
+      "METADATAXML": "Metadata Xml",
+      "METADATAURL": "Metadata URL",
+      "BINDING": "Binding",
+      "SIGNEDREQUEST": "Signed Request",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
+      "NAMEIDFORMAT": "NameID Format",
+      "TRANSIENTMAPPINGATTRIBUTENAME": "Custom Mapping Attribute Name",
+      "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternative attribute name to map the user in case the `nameid-format` returned is `transient`, e.g. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
     },
     "TOAST": {
       "SAVED": "Guardado con éxito.",
@@ -2496,7 +2586,11 @@
         "DELETE_TITLE": "Eliminar configuración SMTP",
         "DELETE_DESCRIPTION": "Estás a punto de eliminar una configuración. Confirma esta acción escribiendo el nombre del remitente",
         "DELETED": "La configuración SMTP ha sido eliminada",
-        "SENDER": "Escribe {{ value }} para eliminar esta configuración SMTP."
+        "SENDER": "Escribe {{ value }} para eliminar esta configuración SMTP.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2572,7 +2666,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Pasos siguientes",
         "0": {
           "TITLE": "Añadir roles",
           "DESC": "Introduce tus roles de proyecto"
@@ -2584,7 +2677,8 @@
         "2": {
           "TITLE": "Ayuda & Soporte",
           "DESC": "Lee nuestra documentación acerca de crear aplicaciones o contactar con nuestro soporte"
-        }
+        },
+        "TITLE": "Pasos siguientes"
       }
     },
     "NAMEDIALOG": {
@@ -2815,10 +2909,10 @@
     "ADD": "Añadir un Administrador",
     "CREATIONTYPE": "Tipo de creación",
     "CREATIONTYPES": {
-      "3": "Instancia",
-      "2": "Organización",
       "0": "Proyecto propio",
       "1": "Proyecto con acceso concedido",
+      "2": "Organización",
+      "3": "Instancia",
       "4": "Proyecto"
     },
     "EDITROLE": "Editar roles",
@@ -2885,6 +2979,5 @@
       "TITLE": "Actividad",
       "DESCRIPTION": "Aquí puedes ver los últimos eventos que han generado un cambio de usuario."
     }
-  },
-  "INSTANCEID": "ID de instancia"
+  }
 }

@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Klienci dynamiczni",
+        "DESCRIPTION": "Klienci, którzy zarejestrowali się sami przez endpoint Dynamic Client Registration. Tylko do odczytu — klienci zarządzają własnymi metadanymi przez RFC 7592.",
+        "EMPTY": "Jeszcze brak klientów zarejestrowanych dynamicznie. Klienci rejestrujący się przez /oidc/v1/register pojawią się tutaj.",
+        "REGISTRATION_METHOD": "Metoda rejestracji",
+        "METHOD_ANONYMOUS": "Anonimowo",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID klienta",
+        "COL_CLIENT_NAME": "Nazwa klienta",
+        "COL_CREATED_AT": "Zarejestrowano",
+        "COL_AUDIT": "Audyt",
+        "VIEW_AUDIT": "Pokaż zdarzenia audytu"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) autoryzują Dynamic Client Registration dla określonych projektów. Wystaw raz, użyj do N razy, następnie odwołaj.",
+        "EMPTY": "Brak Initial Access Tokens. Wystaw jeden, aby autoryzować rejestrację klienta DCR.",
+        "ISSUE_BUTTON": "Wystaw token",
+        "DIALOG_TITLE": "Wystaw Initial Access Token",
+        "PROJECT_ID_LABEL": "ID projektu",
+        "LIFETIME_LABEL": "Czas życia (godziny)",
+        "LIFETIME_HINT": "0 używa domyślnego czasu życia serwera.",
+        "MAX_USES_LABEL": "Maks. użyć",
+        "MAX_USES_HINT": "0 oznacza nieograniczoną liczbę.",
+        "GRANT_TYPES_LABEL": "Dozwolone Grant Types",
+        "REDIRECT_URI_PATTERNS_LABEL": "Dozwolone wzorce Redirect URI",
+        "REDIRECT_URI_PATTERNS_HINT": "Jeden wzorzec na linię. Pusty pozwala na każdy wzorzec z globalnej listy DCR.",
+        "DESCRIPTION_LABEL": "Opis",
+        "REVOKE_BUTTON": "Odwołaj",
+        "REVOKE_CONFIRM": "Odwołać ten Initial Access Token? Przyszłe próby rejestracji nie powiodą się. Nie można cofnąć.",
+        "REVOKED": "Initial Access Token odwołany.",
+        "PLAINTEXT_TITLE": "Token wystawiony",
+        "PLAINTEXT_WARNING": "Skopiuj ten token teraz. Jest pokazywany DOKŁADNIE RAZ. Po zamknięciu tego dialogu nie odzyskasz go — wystaw nowy, jeśli go zgubisz.",
+        "PLAINTEXT_REVEAL": "Pokaż token",
+        "PLAINTEXT_DONE": "Zapisałem go",
+        "COPIED": "Token skopiowano do schowka.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Projekt",
+        "COL_EXPIRES_AT": "Wygasa",
+        "COL_MAX_USES": "Maks. użyć",
+        "COL_USES_CONSUMED": "Użyto",
+        "COL_STATUS": "Status",
+        "STATUS_ACTIVE": "Aktywny",
+        "STATUS_REVOKED": "Odwołany",
+        "COL_CREATED_AT": "Utworzono",
+        "PLAINTEXT_REMASK": "Ukryj token",
+        "PLAINTEXT_AUTOMASK_HINT": "Token zostanie ukryty automatycznie po 60 sekundach.",
+        "REVOKE_PROJECT_REQUIRED": "Nie można odwołać Initial Access Token bez ID projektu.",
+        "REFRESH": "Odśwież listę",
+        "COPY": "Kopiuj token",
+        "REVEAL_TOGGLE": "Pokaż lub ukryj token",
+        "DISMISS": "Zamknij"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Jesteś administratorem instancja. Zauważ, że masz rozszerzone uprawnienia.",
     "SHOWORGS": "Pokaż wszystkie organizacje",
     "GRANTS": "Przypisania ról",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Akcje",
+    "TARGETS": "Targets",
     "PRIVACY": "Prywatność",
     "TOS": "Warunki korzystania z usług",
     "OPENSHORTCUTSTOOLTIP": "Wpisz ? aby pokazać skróty klawiszowe",
@@ -558,8 +613,9 @@
     "NEXT": "Następny",
     "MORE": "więcej",
     "STEP": "Krok",
-    "UNSAVEDCHANGES": "Niezapisane zmiany",
+    "SETUP": "Setup",
     "TEST": "Test",
+    "UNSAVEDCHANGES": "Niezapisane zmiany",
     "UNSAVED": {
       "DIALOG": {
         "DESCRIPTION": "Czy na pewno chcesz odrzucić to nowe działanie? Twoje działanie zostanie utracone",
@@ -740,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "Filtr",
+    "ORGNAME": "Nazwa Organizacji",
+    "ORGID": "ID Organizacji",
     "STATE": "Status",
+    "PRIMARYDOMAIN": "Domena organizacji",
     "DISPLAYNAME": "Wyświetlana Nazwa Użytkownika",
     "EMAIL": "Email",
     "USERNAME": "Nazwa Użytkownika",
-    "ORGNAME": "Nazwa Organizacji",
-    "ORGID": "ID Organizacji",
-    "PRIMARYDOMAIN": "Domena organizacji",
     "PROJECTNAME": "Nazwa Projektu",
     "RESOURCEOWNER": "Właściciel Zasobu",
     "METHODS": {
+      "1": "równa się",
       "5": "zawiera",
-      "7": "kończy się",
-      "1": "równa się"
+      "7": "kończy się"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -773,6 +829,7 @@
       "DOMAINS": "Idź do <strong>D</strong>omen"
     }
   },
+  "INSTANCEID": "ID instancji",
   "RESOURCEID": "Identyfikator zasobu",
   "NAME": "Nazwa",
   "VERSION": "Wersja",
@@ -1555,6 +1612,9 @@
       "EVENTS": "Zdarzenia",
       "FAILEDEVENTS": "Nieudane Zdarzenia",
       "VIEWS": "Widoki",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1567,6 +1627,7 @@
       "APPEARANCE": "Wygląd",
       "OTHER": "Inne",
       "STORAGE": "składowanie",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BETA"
@@ -2009,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "ID projektu",
       "TITLE": "Projekt",
       "DESCRIPTION": "Tutaj możesz zdefiniować aplikacje, zarządzać rolami i udzielać innym organizacjom dostępu do swojego projektu.",
       "DELETE": "Usuń projekt",
@@ -2024,7 +2086,6 @@
         "GRANTED_SINGULAR": "Projekt przydzielony {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Ustawienia marka",
         "0": {
           "TITLE": "Nieokreślony",
           "DESC": "Jak tylko użytkownik zostanie zidentyfikowany, zostanie pokazana marka organizacji zidentyfikowanego użytkownika, przed pokazaniem domyślnej marki systemu."
@@ -2037,6 +2098,7 @@
           "TITLE": "Użyj ustawienia organizacji użytkownika",
           "DESC": "Będzie pokazywana marka organizacji projektu, ale jak tylko użytkownik zostanie zidentyfikowany, zostanie pokazane ustawienie marki organizacji zidentyfikowanego użytkownika."
         },
+        "TITLE": "Ustawienia marka",
         "DIALOG": {
           "TITLE": "Ustawienia marka",
           "DESCRIPTION": "Wybierz zachowanie logowania przy używaniu projektu."
@@ -2061,24 +2123,23 @@
           "DESCRIPTION": "Czy na pewno chcesz usunąć swój projekt?",
           "TYPENAME": "Wpisz nazwę projektu, aby trwale go usunąć."
         }
-      },
-      "ID": "ID projektu"
+      }
     },
     "SETTINGS": {
       "TITLE": "Ustawienia",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Status",
       "0": "Nieokreślony",
       "1": "Aktywny",
-      "2": "Nieaktywny"
+      "2": "Nieaktywny",
+      "TITLE": "Status"
     },
     "TYPE": {
-      "TITLE": "Typ",
       "0": "Nieznany typ",
       "1": "Własny",
-      "2": "Udzielony"
+      "2": "Udzielony",
+      "TITLE": "Typ"
     },
     "NAME": "Nazwa",
     "NAMEDIALOG": {
@@ -2286,6 +2347,14 @@
       "LDAP": {
         "TITLE": "LDAP Provider",
         "DESCRIPTION": "Wprowadź dane dla swojego dostawcy tożsamości LDAP"
+      },
+      "APPLE": {
+        "TITLE": "Sign in with Apple",
+        "DESCRIPTION": "Enter the credentials for your Apple Provider"
+      },
+      "SAML": {
+        "TITLE": "Sign in with SAML",
+        "DESCRIPTION": "Enter the credentials for your SAML Provider"
       }
     },
     "DETAIL": {
@@ -2315,20 +2384,15 @@
       "1": "Instancja",
       "2": "Organizacja"
     },
-    "TYPES": {
-      "0": "nieznany",
-      "1": "OIDC",
-      "3": "JWT"
-    },
     "STATES": {
       "1": "aktywny",
       "2": "nieaktywny"
     },
     "AZUREADTENANTTYPES": {
-      "3": "Tenant ID",
       "0": "Common",
       "1": "Organizations",
-      "2": "Consumers"
+      "2": "Consumers",
+      "3": "Tenant ID"
     },
     "AZUREADTENANTTYPE": "Rodzaj najemcy",
     "AZUREADTENANTID": "Identyfikator najemcy",
@@ -2412,6 +2476,24 @@
       "JWTENDPOINT": "Punkt końcowy JWT",
       "JWTKEYSENDPOINT": "Punkt końcowy kluczy JWT"
     },
+    "APPLE": {
+      "TEAMID": "Team ID",
+      "KEYID": "Key ID",
+      "PRIVATEKEY": "Private Key",
+      "UPDATEPRIVATEKEY": "Update Private Key",
+      "UPLOADPRIVATEKEY": "Upload Private Key",
+      "KEYMAXSIZEEXCEEDED": "Maximum size of 5kB exceeded."
+    },
+    "SAML": {
+      "METADATAXML": "Metadata Xml",
+      "METADATAURL": "Metadata URL",
+      "BINDING": "Binding",
+      "SIGNEDREQUEST": "Signed Request",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
+      "NAMEIDFORMAT": "NameID Format",
+      "TRANSIENTMAPPINGATTRIBUTENAME": "Custom Mapping Attribute Name",
+      "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternative attribute name to map the user in case the `nameid-format` returned is `transient`, e.g. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
+    },
     "TOAST": {
       "SAVED": "Zapisano pomyślnie.",
       "REACTIVATED": "Dostawca tożsamości odnowiony.",
@@ -2426,7 +2508,12 @@
     "ISIDTOKENMAPPING": "Mapowanie z tokena ID",
     "ISIDTOKENMAPPING_DESC": "Jeśli wybrane, informacje dostawcy są mapowane z tokena ID, a nie z punktu końcowego userinfo.",
     "USEPKCE": "Skorzystaj z PKCE",
-    "USEPKCE_DESC": "Określa, czy parametry code_challenge i code_challenge_method są uwzględnione w żądaniu uwierzytelnienia"
+    "USEPKCE_DESC": "Określa, czy parametry code_challenge i code_challenge_method są uwzględnione w żądaniu uwierzytelnienia",
+    "TYPES": {
+      "0": "nieznany",
+      "1": "OIDC",
+      "3": "JWT"
+    }
   },
   "MFA": {
     "LIST": {
@@ -2499,7 +2586,11 @@
         "DELETE_TITLE": "Usuń konfigurację SMTP",
         "DELETE_DESCRIPTION": "Zamierzasz usunąć konfigurację. Potwierdź tę czynność, wpisując nazwę nadawcy",
         "DELETED": "Konfiguracja SMTP została usunięta",
-        "SENDER": "Wpisz {{ value }}, aby usunąć tę konfigurację SMTP."
+        "SENDER": "Wpisz {{ value }}, aby usunąć tę konfigurację SMTP.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2575,7 +2666,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Następne kroki",
         "0": {
           "TITLE": "Dodaj role",
           "DESC": "Wprowadź role swojego projektu"
@@ -2587,7 +2677,8 @@
         "2": {
           "TITLE": "Pomoc i wsparcie",
           "DESC": "Przeczytaj naszą dokumentację dotyczącą tworzenia aplikacji lub skontaktuj się z naszym wsparciem"
-        }
+        },
+        "TITLE": "Następne kroki"
       }
     },
     "NAMEDIALOG": {
@@ -2818,10 +2909,10 @@
     "ADD": "Dodaj administratora",
     "CREATIONTYPE": "Typ utworzenia",
     "CREATIONTYPES": {
-      "3": "Instancja",
-      "2": "Organizacja",
       "0": "Własny projekt",
       "1": "Nadany projekt",
+      "2": "Organizacja",
+      "3": "Instancja",
       "4": "Projekt"
     },
     "EDITROLE": "Edytuj role",
@@ -2888,6 +2979,5 @@
       "TITLE": "Aktywność",
       "DESCRIPTION": "Tutaj możesz zobaczyć ostatnie wydarzenia, które spowodowały zmiany w użytkowniku."
     }
-  },
-  "INSTANCEID": "ID instancji"
+  }
 }

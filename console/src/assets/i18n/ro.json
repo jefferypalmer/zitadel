@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Clienți dinamici",
+        "DESCRIPTION": "Clienți care s-au înregistrat singuri prin endpoint-ul Dynamic Client Registration. Doar citire — clienții își gestionează propriile metadate prin RFC 7592.",
+        "EMPTY": "Încă nu există clienți înregistrați dinamic. Clienții înregistrați prin /oidc/v1/register vor apărea aici.",
+        "REGISTRATION_METHOD": "Metodă de înregistrare",
+        "METHOD_ANONYMOUS": "Anonim",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID client",
+        "COL_CLIENT_NAME": "Nume client",
+        "COL_CREATED_AT": "Înregistrat la",
+        "COL_AUDIT": "Audit",
+        "VIEW_AUDIT": "Vezi evenimente de audit"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) autorizează Dynamic Client Registration pentru proiecte specifice. Emite o dată, folosește până la N ori, apoi revocă.",
+        "EMPTY": "Nu există Initial Access Tokens. Emite unul pentru a autoriza înregistrarea unui client DCR.",
+        "ISSUE_BUTTON": "Emite token",
+        "DIALOG_TITLE": "Emite Initial Access Token",
+        "PROJECT_ID_LABEL": "ID proiect",
+        "LIFETIME_LABEL": "Durată (ore)",
+        "LIFETIME_HINT": "0 folosește durata implicită a serverului.",
+        "MAX_USES_LABEL": "Utilizări max.",
+        "MAX_USES_HINT": "0 înseamnă nelimitat.",
+        "GRANT_TYPES_LABEL": "Grant Types permise",
+        "REDIRECT_URI_PATTERNS_LABEL": "Modele Redirect URI permise",
+        "REDIRECT_URI_PATTERNS_HINT": "Un model pe linie. Gol permite orice model din lista globală DCR.",
+        "DESCRIPTION_LABEL": "Descriere",
+        "REVOKE_BUTTON": "Revocă",
+        "REVOKE_CONFIRM": "Revoci acest Initial Access Token? Încercările viitoare de înregistrare vor eșua. Nu se poate anula.",
+        "REVOKED": "Initial Access Token revocat.",
+        "PLAINTEXT_TITLE": "Token emis",
+        "PLAINTEXT_WARNING": "Copiază acest token acum. Se afișează EXACT O DATĂ. După închiderea acestui dialog, nu îl mai poți recupera — emite unul nou dacă îl pierzi.",
+        "PLAINTEXT_REVEAL": "Arată tokenul",
+        "PLAINTEXT_DONE": "L-am salvat",
+        "COPIED": "Token copiat în clipboard.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Proiect",
+        "COL_EXPIRES_AT": "Expiră",
+        "COL_MAX_USES": "Utilizări max.",
+        "COL_USES_CONSUMED": "Utilizat",
+        "COL_STATUS": "Status",
+        "STATUS_ACTIVE": "Activ",
+        "STATUS_REVOKED": "Revocat",
+        "COL_CREATED_AT": "Creat la",
+        "PLAINTEXT_REMASK": "Ascunde token",
+        "PLAINTEXT_AUTOMASK_HINT": "Tokenul se va ascunde automat după 60 de secunde.",
+        "REVOKE_PROJECT_REQUIRED": "Nu se poate revoca un Initial Access Token fără un ID de proiect.",
+        "REFRESH": "Reîmprospătează lista",
+        "COPY": "Copiază tokenul",
+        "REVEAL_TOGGLE": "Arată sau ascunde tokenul",
+        "DISMISS": "Închide"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Sunteți administrator de instanță. Rețineți că aveți permisiuni extinse.",
     "SHOWORGS": "Afișați toate organizațiile",
     "GRANTS": "Atribuirea rolurilor",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Acțiuni",
+    "TARGETS": "Targets",
     "PRIVACY": "Confidențialitate",
     "TOS": "Termeni și condiții",
     "OPENSHORTCUTSTOOLTIP": "Tastați ? pentru a afișa comenzile rapide de la tastatură",
@@ -705,11 +760,13 @@
     "ORG_OWNER": "Are permisiunea asupra întregii organizații",
     "ORG_USER_MANAGER": "Are permisiunea de a crea și gestiona utilizatorii organizației",
     "ORG_OWNER_VIEWER": "Are permisiunea de a revizui întreaga organizație",
+    "ORG_SETTINGS_MANAGER": "Has permission to manage organization settings",
     "ORG_USER_PERMISSION_EDITOR": "Are permisiunea de a gestiona atribuirea rolurilor",
     "ORG_PROJECT_PERMISSION_EDITOR": "Are permisiunea de a gestiona granturile proiectelor",
     "ORG_PROJECT_CREATOR": "Are permisiunea de a-și crea propriile proiecte și setările de bază",
     "ORG_ADMIN_IMPERSONATOR": "Are permisiunea de a impersona administratorul și utilizatorii finali din organizație",
     "ORG_END_USER_IMPERSONATOR": "Are permisiunea de a impersona utilizatorii finali din organizație",
+    "ORG_USER_SELF_MANAGER": "Has permission to manage their own user",
     "PROJECT_OWNER": "Are permisiunea asupra întregului proiect",
     "PROJECT_OWNER_VIEWER": "Are permisiunea de a revizui întregul proiect",
     "PROJECT_OWNER_GLOBAL": "Are permisiunea asupra întregului proiect",
@@ -739,19 +796,19 @@
   },
   "FILTER": {
     "TITLE": "Filtru",
+    "ORGNAME": "Numele organizației",
+    "ORGID": "ID-ul organizației",
     "STATE": "Stare",
+    "PRIMARYDOMAIN": "Domeniu organizație",
     "DISPLAYNAME": "Numele afișat al utilizatorului",
     "EMAIL": "E-mail",
     "USERNAME": "Numele utilizatorului",
-    "ORGNAME": "Numele organizației",
-    "ORGID": "ID-ul organizației",
-    "PRIMARYDOMAIN": "Domeniu organizație",
     "PROJECTNAME": "Numele proiectului",
     "RESOURCEOWNER": "Proprietarul resursei",
     "METHODS": {
+      "1": "este egal cu",
       "5": "conține",
-      "7": "se termină cu",
-      "1": "este egal cu"
+      "7": "se termină cu"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -772,6 +829,7 @@
       "DOMAINS": "<strong>Du-te</strong> la <strong>D</strong>omenii"
     }
   },
+  "INSTANCEID": "ID instanță",
   "RESOURCEID": "ID-ul resursei",
   "NAME": "Nume",
   "VERSION": "Versiune",
@@ -1554,6 +1612,9 @@
       "EVENTS": "Evenimente",
       "FAILEDEVENTS": "Evenimente eșuate",
       "VIEWS": "Vizualizări",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1566,6 +1627,7 @@
       "APPEARANCE": "Aspect",
       "OTHER": "Altele",
       "STORAGE": "Stocare",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BETA"
@@ -2008,6 +2070,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "ID proiect",
       "TITLE": "Proiect",
       "DESCRIPTION": "Aici puteți defini aplicații, puteți gestiona rolurile și puteți acorda altor organizații să utilizeze proiectul dvs.",
       "DELETE": "Ștergeți proiectul",
@@ -2023,7 +2086,6 @@
         "GRANTED_SINGULAR": "Proiect acordat al {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Setare de branding",
         "0": {
           "TITLE": "Nespecificat",
           "DESC": "De îndată ce utilizatorul este identificat, brandingul organizației utilizatorului identificat va fi afișat înainte ca valoarea implicită a sistemului să fie afișată."
@@ -2036,6 +2098,7 @@
           "TITLE": "Utilizați setarea Organizației utilizatorului",
           "DESC": "Va fi afișat brandingul organizației proiectului, dar de îndată ce utilizatorul este identificat, va fi afișată setarea organizației utilizatorului identificat."
         },
+        "TITLE": "Setare de branding",
         "DIALOG": {
           "TITLE": "Setare branding",
           "DESCRIPTION": "Selectați comportamentul conectării, atunci când utilizați proiectul."
@@ -2060,24 +2123,23 @@
           "DESCRIPTION": "Doriți cu adevărat să vă ștergeți proiectul?",
           "TYPENAME": "Tastați numele proiectului pentru a-l șterge definitiv."
         }
-      },
-      "ID": "ID proiect"
+      }
     },
     "SETTINGS": {
       "TITLE": "Setări",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Stare",
       "0": "Nedefinit",
       "1": "Activ",
-      "2": "Inactiv"
+      "2": "Inactiv",
+      "TITLE": "Stare"
     },
     "TYPE": {
-      "TITLE": "Tip",
       "0": "Tip necunoscut",
       "1": "Deținut",
-      "2": "Acordat"
+      "2": "Acordat",
+      "TITLE": "Tip"
     },
     "NAME": "Nume",
     "NAMEDIALOG": {
@@ -2327,10 +2389,10 @@
       "2": "inactiv"
     },
     "AZUREADTENANTTYPES": {
-      "3": "ID chiriaș",
       "0": "Comun",
       "1": "Organizații",
-      "2": "Consumatori"
+      "2": "Consumatori",
+      "3": "ID chiriaș"
     },
     "AZUREADTENANTTYPE": "Tip chiriaș",
     "AZUREADTENANTID": "ID chiriaș",
@@ -2444,7 +2506,9 @@
       "REMOVED": "Eliminat cu succes."
     },
     "ISIDTOKENMAPPING": "Mapați din tokenul ID",
-    "ISIDTOKENMAPPING_DESC": "Dacă este selectat, informațiile despre furnizor sunt mapate din tokenul ID, nu din endpoint-ul userinfo."
+    "ISIDTOKENMAPPING_DESC": "Dacă este selectat, informațiile despre furnizor sunt mapate din tokenul ID, nu din endpoint-ul userinfo.",
+    "USEPKCE": "Use PKCE",
+    "USEPKCE_DESC": "Determines whether the code_challenge and code_challenge_method params are included in the auth request"
   },
   "MFA": {
     "LIST": {
@@ -2597,7 +2661,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Pași următori",
         "0": {
           "TITLE": "Adăugați roluri",
           "DESC": "Introduceți rolurile proiectului dvs."
@@ -2609,7 +2672,8 @@
         "2": {
           "TITLE": "Ajutor și asistență",
           "DESC": "Citiți documentația noastră despre crearea aplicațiilor sau contactați asistența noastră"
-        }
+        },
+        "TITLE": "Pași următori"
       }
     },
     "NAMEDIALOG": {
@@ -2840,10 +2904,10 @@
     "ADD": "Adăugați un administrator",
     "CREATIONTYPE": "Tip creare",
     "CREATIONTYPES": {
-      "3": "Instanță",
-      "2": "Organizație",
       "0": "Proiect deținut",
       "1": "Proiect acordat",
+      "2": "Organizație",
+      "3": "Instanță",
       "4": "Proiect"
     },
     "EDITROLE": "Editați rolurile",
@@ -2910,6 +2974,5 @@
       "TITLE": "Activitate",
       "DESCRIPTION": "Aici puteți vedea ultimele evenimente care au generat o modificare a utilizatorului."
     }
-  },
-  "INSTANCEID": "ID instanță"
+  }
 }

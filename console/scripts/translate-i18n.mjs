@@ -110,10 +110,24 @@ export function extractPlaceholders(value) {
   return matches ? [...matches].sort() : [];
 }
 
+// EMPHASIS_STOP_LIST — English uppercase words used for emphasis in
+// source strings (e.g. "shown EXACTLY ONCE"). These are not domain
+// initialisms; preserving them verbatim in translations would force
+// foreign locales to use English emphasis. The kit's protected-glossary
+// rule covers real initialisms (JWT, OIDC, etc.); this list keeps the
+// "all-caps detected" heuristic from over-firing on common English.
+const EMPHASIS_STOP_LIST = new Set([
+  'ONCE', 'EXACTLY', 'ALL', 'ANY', 'BUT', 'AND', 'OR', 'NOT', 'THE',
+  'IS', 'ARE', 'WAS', 'WERE', 'BE', 'NOW', 'NEW', 'OLD', 'YES', 'NO',
+  'ON', 'OFF', 'TO', 'OF', 'IN', 'OUT', 'UP', 'DOWN',
+  'WARNING', 'NOTE', 'TIP', 'INFO',
+]);
+
 export function detectInitialisms(value) {
   if (typeof value !== 'string') return [];
   const matches = value.match(/\b[A-Z]{2,6}\b/g);
-  return matches ? [...new Set(matches)] : [];
+  if (!matches) return [];
+  return [...new Set(matches)].filter(t => !EMPHASIS_STOP_LIST.has(t));
 }
 
 // validateLeafTranslation runs cavekit-i18n-pipeline.md R2 per-key

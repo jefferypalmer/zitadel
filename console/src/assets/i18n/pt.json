@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Clientes dinâmicos",
+        "DESCRIPTION": "Clientes que se registaram através do endpoint Dynamic Client Registration. Só leitura — os clientes gerem os seus próprios metadados via RFC 7592.",
+        "EMPTY": "Ainda não há clientes registados dinamicamente. Os clientes que se registem via /oidc/v1/register aparecerão aqui.",
+        "REGISTRATION_METHOD": "Método de registo",
+        "METHOD_ANONYMOUS": "Anónimo",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID do cliente",
+        "COL_CLIENT_NAME": "Nome do cliente",
+        "COL_CREATED_AT": "Registado em",
+        "COL_AUDIT": "Auditoria",
+        "VIEW_AUDIT": "Ver eventos de auditoria"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Os Initial Access Tokens (IATs) autorizam Dynamic Client Registration para projetos específicos. Emita uma vez, use até N vezes, depois revogue.",
+        "EMPTY": "Sem Initial Access Tokens. Emita um para autorizar o registo de um cliente DCR.",
+        "ISSUE_BUTTON": "Emitir token",
+        "DIALOG_TITLE": "Emitir Initial Access Token",
+        "PROJECT_ID_LABEL": "ID do projeto",
+        "LIFETIME_LABEL": "Validade (horas)",
+        "LIFETIME_HINT": "0 usa a validade padrão do servidor.",
+        "MAX_USES_LABEL": "Utilizações máx.",
+        "MAX_USES_HINT": "0 significa ilimitado.",
+        "GRANT_TYPES_LABEL": "Grant Types permitidos",
+        "REDIRECT_URI_PATTERNS_LABEL": "Padrões de Redirect URI permitidos",
+        "REDIRECT_URI_PATTERNS_HINT": "Um padrão por linha. Vazio permite qualquer padrão da allow-list DCR global.",
+        "DESCRIPTION_LABEL": "Descrição",
+        "REVOKE_BUTTON": "Revogar",
+        "REVOKE_CONFIRM": "Revogar este Initial Access Token? Tentativas futuras de registo falharão. Esta ação é irreversível.",
+        "REVOKED": "Initial Access Token revogado.",
+        "PLAINTEXT_TITLE": "Token emitido",
+        "PLAINTEXT_WARNING": "Copie este token agora. É mostrado EXATAMENTE UMA VEZ. Depois de fechar este diálogo, não pode ser recuperado — emita um novo se o perder.",
+        "PLAINTEXT_REVEAL": "Mostrar token",
+        "PLAINTEXT_DONE": "Guardei-o",
+        "COPIED": "Token copiado para a área de transferência.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Projeto",
+        "COL_EXPIRES_AT": "Expira em",
+        "COL_MAX_USES": "Utilizações máx.",
+        "COL_USES_CONSUMED": "Usado",
+        "COL_STATUS": "Estado",
+        "STATUS_ACTIVE": "Ativo",
+        "STATUS_REVOKED": "Revogado",
+        "COL_CREATED_AT": "Criado em",
+        "PLAINTEXT_REMASK": "Ocultar token",
+        "PLAINTEXT_AUTOMASK_HINT": "O token será ocultado automaticamente após 60 segundos.",
+        "REVOKE_PROJECT_REQUIRED": "Não é possível revogar um Initial Access Token sem ID de projeto.",
+        "REFRESH": "Atualizar lista",
+        "COPY": "Copiar token",
+        "REVEAL_TOGGLE": "Mostrar ou ocultar token",
+        "DISMISS": "Fechar"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Você é um Administrador de instância. Observe que você possui permissões estendidas.",
     "SHOWORGS": "Mostrar Todas as Organizações",
     "GRANTS": "Atribuições de funções",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Ações",
+    "TARGETS": "Targets",
     "PRIVACY": "Privacidade",
     "TOS": "Termos de Serviço",
     "OPENSHORTCUTSTOOLTIP": "Digite ? para mostrar os atalhos do teclado",
@@ -484,7 +539,7 @@
   },
   "QUICKSTART": {
     "TITLE": "Integrar a Zitadel na sua aplicação",
-    "DESCRIÇÃO": "Integre a Zitadel na sua aplicação ou utilize uma das nossas amostras para começar em minutos.",
+    "DESCRIPTION": "Integrate Zitadel into your application or use one of our samples to get started in minutes.",
     "BTN_START": "Criar aplicação",
     "BTN_LEARNMORE": "Saiba mais",
     "CREATEPROJECTFORAPP": "Criar projeto {{value}}",
@@ -502,9 +557,11 @@
     "DIALOG": {
       "CHANGE": {
         "TITLE": "Alterar Quadro",
+        "DESCRIPTION": "Choose one of the available frameworks for quick setup of your application.",
         "DESCRIÇÃO": "Escolha uma das estruturas disponíveis para uma configuração rápida da sua aplicação."
       }
-    }
+    },
+    "DESCRIÇÃO": "Integre a Zitadel na sua aplicação ou utilize uma das nossas amostras para começar em minutos."
   },
   "ACTIONS": {
     "ACTIONS": "Ações",
@@ -741,19 +798,19 @@
   },
   "FILTER": {
     "TITLE": "Filtro",
+    "ORGNAME": "Nome da Organização",
+    "ORGID": "ID da Organização",
     "STATE": "Status",
+    "PRIMARYDOMAIN": "Domínio da Organização",
     "DISPLAYNAME": "Nome de Exibição do Usuário",
     "EMAIL": "E-mail",
     "USERNAME": "Nome de Usuário",
-    "ORGNAME": "Nome da Organização",
-    "ORGID": "ID da Organização",
-    "PRIMARYDOMAIN": "Domínio da Organização",
     "PROJECTNAME": "Nome do Projeto",
     "RESOURCEOWNER": "Proprietário do Recurso",
     "METHODS": {
+      "1": "igual a",
       "5": "contém",
-      "7": "termina com",
-      "1": "igual a"
+      "7": "termina com"
     }
   },
   "KEYBOARDSHORTCUTS": {
@@ -774,6 +831,7 @@
       "DOMAINS": "<strong>I</strong>r para <strong>D</strong>omínios"
     }
   },
+  "INSTANCEID": "ID da instância",
   "RESOURCEID": "ID do Recurso",
   "NAME": "Nome",
   "VERSION": "Versão",
@@ -1022,7 +1080,7 @@
       "PREFERREDLOGINNAME": "Nome de login preferido",
       "PREFERRED_LANGUAGE": "Idioma",
       "GENDER": "Gênero",
-      "SENHA": "Senha",
+      "PASSWORD": "Password",
       "AVATAR": {
         "UPLOADTITLE": "Carregar sua Foto de Perfil",
         "UPLOADBTN": "Escolher arquivo",
@@ -1032,7 +1090,8 @@
         "DELETESUCCESS": "Excluído com sucesso!",
         "CROPPERERROR": "Ocorreu um erro ao carregar seu arquivo. Tente um formato e tamanho diferentes, se necessário."
       },
-      "COUNTRY": "País"
+      "COUNTRY": "País",
+      "SENHA": "Senha"
     },
     "MACHINE": {
       "TITLE": "Detalhes da Conta de Serviço",
@@ -1557,6 +1616,9 @@
       "EVENTS": "Eventos",
       "FAILEDEVENTS": "Eventos com Falha",
       "VIEWS": "Visualizações",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1569,6 +1631,7 @@
       "APPEARANCE": "Aparência",
       "OTHER": "Outro",
       "STORAGE": "armazenar",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BETA"
@@ -1685,7 +1748,7 @@
       "LOGINDEFAULTORG": "Organização Padrão de Login",
       "LOGINDEFAULTORG_DESCRIPTION": "A interface de login utilizará as configurações da organização padrão (e não da instância) se nenhum contexto de organização estiver definido",
       "USERSCHEMA": "Esquema de Usuário",
-      "USERSCHEMAS_DESCRIPTION": "Esquemas de Usuário permitem gerenciar esquemas de dados do usuário. Se o sinalizador estiver ativado, você poderá usar a nova API e seus recursos.",
+      "USERSCHEMA_DESCRIPTION": "User Schemas allow to manage data schemas of user. If the flag is enabled, you'll be able to use the new API and its features.",
       "ACTIONS": "Ações",
       "ACTIONS_DESCRIPTION": "Actions v2 permitem gerenciar execuções e destinos de dados. Se a flag estiver habilitada, você poderá usar a nova API e seus recursos.",
       "OIDCSINGLEV1SESSIONTERMINATION": "OIDC Single V1 Término de sessão",
@@ -1711,7 +1774,8 @@
       "LOGINV2_DESCRIPTION": "Ativar esta opção ativa a nova interface de login baseada em TypeScript, com melhorias na segurança, desempenho e personalização.",
       "LOGINV2_BASEURI": "URI base",
       "ENABLERELATIONALTABLES": "Tabelas relacionais",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Ative isso para usar tabelas relacionais em vez de projeções para armazenar dados. Atualmente, este interruptor não faz nada."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Ative isso para usar tabelas relacionais em vez de projeções para armazenar dados. Atualmente, este interruptor não faz nada.",
+      "USERSCHEMAS_DESCRIPTION": "Esquemas de Usuário permitem gerenciar esquemas de dados do usuário. Se o sinalizador estiver ativado, você poderá usar a nova API e seus recursos."
     },
     "DIALOG": {
       "RESET": {
@@ -1955,6 +2019,7 @@
       "ALLOWREGISTER_DESC": "Se a opção estiver selecionada, uma etapa adicional para registrar um usuário aparecerá no login.",
       "FORCEMFA": "Forçar MFA para todos os utilizadores",
       "FORCEMFALOCALONLY": "Forçar MFA apenas para utilizadores autenticados localmente",
+      "FORCEMFALOCALONLY_DESC": "If the option is selected, local authenticated users have to configure a second factor for login.",
       "HIDEPASSWORDRESET_DESC": "Se a opção estiver selecionada, o usuário não poderá redefinir sua senha no processo de login.",
       "HIDELOGINNAMESUFFIX": "Ocultar sufixo do nome de login",
       "HIDELOGINNAMESUFFIX_DESC": "Oculta o sufixo do nome de login na interface de login",
@@ -2010,6 +2075,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "ID do projeto",
       "TITLE": "Projeto",
       "DESCRIPTION": "Aqui você pode definir aplicativos, gerenciar funções e conceder acesso a outras organizações para usar o seu projeto.",
       "DELETE": "Excluir Projeto",
@@ -2025,7 +2091,6 @@
         "GRANTED_SINGULAR": "Projeto atribuído a {{name}}"
       },
       "PRIVATELABEL": {
-        "TITLE": "Configuração de Marca",
         "0": {
           "TITLE": "Não Especificado",
           "DESC": "Assim que o usuário for identificado, a marca da organização do usuário identificado será exibida antes da marca padrão do sistema."
@@ -2038,6 +2103,7 @@
           "TITLE": "Usar configuração da organização do usuário",
           "DESC": "Será exibida a marca da organização do projeto, mas assim que o usuário for identificado, será exibida a configuração da organização do usuário identificado."
         },
+        "TITLE": "Configuração de Marca",
         "DIALOG": {
           "TITLE": "Configuração de Marca",
           "DESCRIPTION": "Selecione o comportamento do login ao usar o projeto."
@@ -2062,24 +2128,23 @@
           "DESCRIPTION": "Tem certeza de que deseja excluir o seu projeto?",
           "TYPENAME": "Digite o nome do projeto para excluí-lo permanentemente."
         }
-      },
-      "ID": "ID do projeto"
+      }
     },
     "SETTINGS": {
       "TITLE": "Configurações",
       "DESCRIPTION": ""
     },
     "STATE": {
-      "TITLE": "Status",
       "0": "Não definido",
       "1": "Ativo",
-      "2": "Inativo"
+      "2": "Inativo",
+      "TITLE": "Status"
     },
     "TYPE": {
-      "TITLE": "Tipo",
       "0": "Tipo desconhecido",
       "1": "Próprio",
-      "2": "Concedido"
+      "2": "Concedido",
+      "TITLE": "Tipo"
     },
     "NAME": "Nome",
     "NAMEDIALOG": {
@@ -2111,12 +2176,12 @@
         "SEL_USER": "Selecione usuários",
         "SEL_ORG": "Definir o domínio",
         "SEL_ORG_DESC": "Insira o domínio completo para especificar a organização a ser concedida.",
-        "ORG_TITLE": "Organização",
         "ORG_DESCRIPTION": "Você está prestes a conceder um usuário para a organização {{name}}.",
         "ORG_DESCRIPTION_DESC": "Altere o contexto no cabeçalho acima para conceder um usuário para outra organização.",
         "SEL_ORG_FORMFIELD": "Domínio Completo",
-        "SEL_ORG_BUTTON": "Buscar Organização",
-        "FOR_ORG": "A concessão do projeto será criada para:"
+        "FOR_ORG": "A concessão do projeto será criada para:",
+        "ORG_TITLE": "Organização",
+        "SEL_ORG_BUTTON": "Buscar Organização"
       },
       "DETAIL": {
         "TITLE": "Concessão de Projeto",
@@ -2289,6 +2354,14 @@
       "LDAP": {
         "TITLE": "Active Directory / LDAP",
         "DESCRIPTION": "Insira as credenciais para o seu Provedor de Identidade LDAP"
+      },
+      "APPLE": {
+        "TITLE": "Sign in with Apple",
+        "DESCRIPTION": "Enter the credentials for your Apple Provider"
+      },
+      "SAML": {
+        "TITLE": "Sign in with SAML",
+        "DESCRIPTION": "Enter the credentials for your SAML Provider"
       }
     },
     "DETAIL": {
@@ -2323,10 +2396,10 @@
       "2": "inativo"
     },
     "AZUREADTENANTTYPES": {
-      "3": "ID do Locatário",
       "0": "Comum",
       "1": "Organizações",
-      "2": "Consumidores"
+      "2": "Consumidores",
+      "3": "ID do Locatário"
     },
     "AZUREADTENANTTYPE": "Tipo de Locatário",
     "AZUREADTENANTID": "ID do Locatário",
@@ -2391,6 +2464,8 @@
     "DELETE": "Excluir",
     "DELETE_TITLE": "Excluir Provedor de Identidade",
     "DELETE_DESCRIPTION": "Você está prestes a excluir um provedor de identidade. As alterações resultantes são irreversíveis. Você realmente deseja fazer isso?",
+    "REMOVE_WARN_TITLE": "Remove IdP",
+    "REMOVE_WARN_DESCRIPTION": "You are about to remove an identity provider. This will remove the selection of the available IdP for your users and already registered users won't be able to login again. Are you sure to continue?",
     "DELETE_SELECTION_TITLE": "Excluir Provedor de Identidade",
     "DELETE_SELECTION_DESCRIPTION": "Você está prestes a excluir um provedor de identidade. As alterações resultantes são irreversíveis. Você realmente deseja fazer isso?",
     "FEDERATEDLOGOUTENABLED": "Logout Federado Ativado",
@@ -2407,6 +2482,24 @@
       "HEADERNAME": "Nome do Cabeçalho",
       "JWTENDPOINT": "Endpoint JWT",
       "JWTKEYSENDPOINT": "Endpoint de Chaves JWT"
+    },
+    "APPLE": {
+      "TEAMID": "Team ID",
+      "KEYID": "Key ID",
+      "PRIVATEKEY": "Private Key",
+      "UPDATEPRIVATEKEY": "Update Private Key",
+      "UPLOADPRIVATEKEY": "Upload Private Key",
+      "KEYMAXSIZEEXCEEDED": "Maximum size of 5kB exceeded."
+    },
+    "SAML": {
+      "METADATAXML": "Metadata Xml",
+      "METADATAURL": "Metadata URL",
+      "BINDING": "Binding",
+      "SIGNEDREQUEST": "Signed Request",
+      "SIGNATUREALGORITHM": "Signature Algorithm",
+      "NAMEIDFORMAT": "NameID Format",
+      "TRANSIENTMAPPINGATTRIBUTENAME": "Custom Mapping Attribute Name",
+      "TRANSIENTMAPPINGATTRIBUTENAME_DESC": "Alternative attribute name to map the user in case the `nameid-format` returned is `transient`, e.g. `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`"
     },
     "TOAST": {
       "SAVED": "Salvo com sucesso.",
@@ -2495,7 +2588,11 @@
         "DELETE_TITLE": "Excluir configuração SMTP",
         "DELETE_DESCRIPTION": "Você está prestes a excluir uma configuração. Confirme esta ação digitando o nome do remetente",
         "DELETED": "A configuração SMTP foi excluída",
-        "SENDER": "Digite {{ value }} para excluir esta configuração SMTP."
+        "SENDER": "Digite {{ value }} para excluir esta configuração SMTP.",
+        "TEST_TITLE": "Test your SMTP settings",
+        "TEST_DESCRIPTION": "Specify an email address to test your SMTP settings",
+        "TEST_EMAIL": "Email address",
+        "TEST_RESULT": "Test result"
       }
     },
     "CREATE": {
@@ -2571,7 +2668,6 @@
         }
       },
       "NEXTSTEPS": {
-        "TITLE": "Próximos Passos",
         "0": {
           "TITLE": "Adicionar funções",
           "DESC": "Insira as funções do seu projeto"
@@ -2583,7 +2679,8 @@
         "2": {
           "TITLE": "Ajuda e Suporte",
           "DESC": "Leia nossa documentação sobre como criar aplicativos ou entre em contato com nosso suporte"
-        }
+        },
+        "TITLE": "Próximos Passos"
       }
     },
     "NAMEDIALOG": {
@@ -2814,10 +2911,10 @@
     "ADD": "Adicionar um Administrador",
     "CREATIONTYPE": "Tipo de Criação",
     "CREATIONTYPES": {
-      "3": "Instância",
-      "2": "Organização",
       "0": "Projeto Próprio",
       "1": "Projeto Concedido",
+      "2": "Organização",
+      "3": "Instância",
       "4": "Projeto"
     },
     "EDITROLE": "Editar funções",
@@ -2884,6 +2981,5 @@
       "TITLE": "Atividade",
       "DESCRIPTION": "Aqui você pode ver os eventos mais recentes que geraram uma alteração no usuário."
     }
-  },
-  "INSTANCEID": "ID da instância"
+  }
 }

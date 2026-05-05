@@ -321,6 +321,59 @@
       }
     },
     "DCR": {
+      "CLIENTS": {
+        "TITLE": "Klien Dinamis",
+        "DESCRIPTION": "Klien yang mendaftarkan diri melalui endpoint Dynamic Client Registration. Hanya-baca — klien mengelola metadata mereka sendiri melalui RFC 7592.",
+        "EMPTY": "Belum ada klien terdaftar dinamis. Klien yang mendaftar melalui /oidc/v1/register akan muncul di sini.",
+        "REGISTRATION_METHOD": "Metode Pendaftaran",
+        "METHOD_ANONYMOUS": "Anonim",
+        "METHOD_IAT": "Initial Access Token",
+        "COL_CLIENT_ID": "ID Klien",
+        "COL_CLIENT_NAME": "Nama Klien",
+        "COL_CREATED_AT": "Terdaftar Pada",
+        "COL_AUDIT": "Audit",
+        "VIEW_AUDIT": "Lihat peristiwa audit"
+      },
+      "IAT": {
+        "TITLE": "Initial Access Tokens",
+        "DESCRIPTION": "Initial Access Tokens (IATs) mengotorisasi Dynamic Client Registration untuk proyek tertentu. Terbitkan sekali, gunakan hingga N kali, lalu cabut.",
+        "EMPTY": "Tidak ada Initial Access Tokens. Terbitkan satu untuk mengotorisasi pendaftaran klien DCR.",
+        "ISSUE_BUTTON": "Terbitkan Token",
+        "DIALOG_TITLE": "Terbitkan Initial Access Token",
+        "PROJECT_ID_LABEL": "ID Proyek",
+        "LIFETIME_LABEL": "Masa berlaku (jam)",
+        "LIFETIME_HINT": "0 menggunakan masa berlaku default server.",
+        "MAX_USES_LABEL": "Maks. penggunaan",
+        "MAX_USES_HINT": "0 berarti tidak terbatas.",
+        "GRANT_TYPES_LABEL": "Grant Types yang diizinkan",
+        "REDIRECT_URI_PATTERNS_LABEL": "Pola Redirect URI yang diizinkan",
+        "REDIRECT_URI_PATTERNS_HINT": "Satu pola per baris. Kosong mengizinkan pola apa pun yang cocok dengan daftar izin DCR global.",
+        "DESCRIPTION_LABEL": "Deskripsi",
+        "REVOKE_BUTTON": "Cabut",
+        "REVOKE_CONFIRM": "Cabut Initial Access Token ini? Upaya pendaftaran berikutnya akan gagal. Ini tidak dapat dibatalkan.",
+        "REVOKED": "Initial Access Token dicabut.",
+        "PLAINTEXT_TITLE": "Token Diterbitkan",
+        "PLAINTEXT_WARNING": "Salin token ini sekarang. Ditampilkan TEPAT SEKALI. Setelah dialog ini ditutup, Anda tidak dapat mengambilnya lagi — terbitkan token baru jika hilang.",
+        "PLAINTEXT_REVEAL": "Tampilkan Token",
+        "PLAINTEXT_DONE": "Saya sudah menyimpannya",
+        "COPIED": "Token disalin ke clipboard.",
+        "COL_ID": "ID",
+        "COL_PROJECT_ID": "Proyek",
+        "COL_EXPIRES_AT": "Kedaluwarsa",
+        "COL_MAX_USES": "Maks. penggunaan",
+        "COL_USES_CONSUMED": "Terpakai",
+        "COL_STATUS": "Status",
+        "STATUS_ACTIVE": "Aktif",
+        "STATUS_REVOKED": "Dicabut",
+        "COL_CREATED_AT": "Dibuat Pada",
+        "PLAINTEXT_REMASK": "Sembunyikan token",
+        "PLAINTEXT_AUTOMASK_HINT": "Token akan disembunyikan otomatis setelah 60 detik.",
+        "REVOKE_PROJECT_REQUIRED": "Tidak dapat mencabut Initial Access Token tanpa ID proyek.",
+        "REFRESH": "Segarkan daftar",
+        "COPY": "Salin token",
+        "REVEAL_TOGGLE": "Tampilkan atau sembunyikan token",
+        "DISMISS": "Tutup"
+      },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
         "TITLE": "Dynamically Registered App",
@@ -475,7 +528,9 @@
     "IAMADMIN": "Anda adalah Administrator instance. Perhatikan bahwa Anda memiliki izin yang diperluas.",
     "SHOWORGS": "Tampilkan Semua Organisasi",
     "GRANTS": "Penugasan Peran",
+    "DYNAMICCLIENTS": "Dynamic Clients",
     "ACTIONS": "Tindakan",
+    "TARGETS": "Targets",
     "PRIVACY": "Pribadi",
     "TOS": "Ketentuan Layanan",
     "OPENSHORTCUTSTOOLTIP": "Jenis ? untuk menampilkan pintasan keyboard",
@@ -741,13 +796,13 @@
   },
   "FILTER": {
     "TITLE": "Menyaring",
+    "ORGNAME": "Nama Organisasi",
+    "ORGID": "ID Organisasi",
     "STATE": "Status",
+    "PRIMARYDOMAIN": "Domain Organisasi",
     "DISPLAYNAME": "Nama Tampilan Pengguna",
     "EMAIL": "E-mail",
     "USERNAME": "Nama belakang",
-    "ORGNAME": "Nama Organisasi",
-    "ORGID": "ID Organisasi",
-    "PRIMARYDOMAIN": "Domain Organisasi",
     "PROJECTNAME": "Nama Proyek",
     "RESOURCEOWNER": "Pemilik Sumber Daya",
     "METHODS": {
@@ -774,6 +829,7 @@
       "DOMAINS": "<strong>Pergi</strong>ke <strong>D</strong>omain"
     }
   },
+  "INSTANCEID": "ID Instans",
   "RESOURCEID": "Id Sumber Daya",
   "NAME": "Nama",
   "VERSION": "Versi",
@@ -1556,6 +1612,9 @@
       "EVENTS": "Acara",
       "FAILEDEVENTS": "Acara Gagal",
       "VIEWS": "Tampilan",
+      "ACTIONS": "Actions",
+      "TARGETS": "Targets",
+      "INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_INITIAL_ACCESS_TOKENS": "Initial Access Tokens",
       "ORG_DCR_POLICY": "DCR Policy"
     },
@@ -1568,6 +1627,7 @@
       "APPEARANCE": "Penampilan",
       "OTHER": "Lainnya",
       "STORAGE": "Penyimpanan",
+      "ACTIONS": "Actions",
       "DCR": "Dynamic Client Registration"
     },
     "BETA": "BETA"
@@ -1687,6 +1747,9 @@
       "USERSCHEMA_DESCRIPTION": "Skema Pengguna memungkinkan untuk mengelola skema data pengguna. Jika tanda ini diaktifkan, Anda akan dapat menggunakan API baru dan fitur-fiturnya.",
       "ACTIONS": "Tindakan",
       "ACTIONS_DESCRIPTION": "Tindakan v2 memungkinkan untuk mengelola eksekusi dan target data. Jika tanda ini diaktifkan, Anda akan dapat menggunakan API baru dan fitur-fiturnya.",
+      "OIDCSINGLEV1SESSIONTERMINATION": "OIDC Single V1 Session Termination",
+      "OIDCSINGLEV1SESSIONTERMINATION_DESCRIPTION": "If the flag is enabled, you'll be able to terminate a single session from the login UI by providing an id_token with a `sid` claim as id_token_hint on the end_session endpoint. Note that currently all sessions from the same user agent (browser) are terminated in the login UI. Sessions managed through the Session API already allow the termination of single sessions.",
+      "DEBUGOIDCPARENTERROR": "Debug OIDC Parent Error",
       "DEBUGOIDCPARENTERROR_DESCRIPTION": "If the flag is enabled, the OIDC parent error will be logged in the console.",
       "PERMISSIONCHECKV2": "Permission Check V2",
       "PERMISSIONCHECKV2_DESCRIPTION": "If the flag is enabled, you'll be able to use the new API and its features.",
@@ -1864,7 +1927,6 @@
         "initPasswordText": "Inisialisasi kata sandi",
         "initializeDoneText": "Inisialisasi pengguna selesai",
         "initializeUserText": "Inisialisasi pengguna",
-        "linkingUserPromptText": "Menautkan perintah pengguna",
         "linkingUserDoneText": "Menautkan pengguna selesai",
         "loginText": "Login",
         "logoutText": "Keluar",
@@ -1886,7 +1948,8 @@
         "passwordlessRegistrationDoneText": "Pendaftaran Passkey Selesai",
         "passwordlessRegistrationText": "Pendaftaran Passkey",
         "passwordlessText": "Passkey",
-        "externalRegistrationUserOverviewText": "Ikhtisar Pengguna Registrasi Eksternal"
+        "externalRegistrationUserOverviewText": "Ikhtisar Pengguna Registrasi Eksternal",
+        "linkingUserPromptText": "Menautkan perintah pengguna"
       }
     },
     "MESSAGE_TEXTS": {
@@ -2008,6 +2071,7 @@
   },
   "PROJECT": {
     "PAGES": {
+      "ID": "ID Proyek",
       "TITLE": "Proyek",
       "DESCRIPTION": "Di sini Anda dapat menentukan aplikasi, mengelola peran, dan mengizinkan organisasi lain untuk menggunakan proyek Anda.",
       "DELETE": "Hapus Proyek",
@@ -2060,8 +2124,7 @@
           "DESCRIPTION": "Apakah Anda benar-benar ingin menghapus proyek Anda?",
           "TYPENAME": "Ketikkan nama proyek untuk menghapusnya secara permanen."
         }
-      },
-      "ID": "ID Proyek"
+      }
     },
     "SETTINGS": {
       "TITLE": "Pengaturan",
@@ -2912,6 +2975,5 @@
       "TITLE": "Aktivitas",
       "DESCRIPTION": "Di sini Anda dapat melihat peristiwa terbaru yang menghasilkan perubahan pengguna."
     }
-  },
-  "INSTANCEID": "ID Instans"
+  }
 }
