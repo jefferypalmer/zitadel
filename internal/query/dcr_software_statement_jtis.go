@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
-	"github.com/zitadel/zitadel/internal/query/projection"
 	"github.com/zitadel/zitadel/internal/telemetry/tracing"
 	"github.com/zitadel/zitadel/internal/zerrors"
 )
@@ -88,8 +87,3 @@ func (q *Queries) ReapExpiredSoftwareStatementJTIs(ctx context.Context, now time
 	}
 	return rows, nil
 }
-
-// Compile-time link to the projection so dead-code linters keep the
-// projection registration honest — if the projection name changes,
-// callers of this query helper will fail to build.
-var _ = projection.DCRSoftwareStatementJTITable

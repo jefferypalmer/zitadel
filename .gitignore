@@ -28,6 +28,10 @@ sandbox.go
 .run
 .vscode
 
+# Cavekit / Claude runtime state (not source)
+.cavekit/
+.claude/
+
 # credential
 google-credentials
 key.json
