@@ -1,5 +1,6 @@
 import { requestHeaders } from '../../support/api/apiauth';
 import { ensureProjectExists } from '../../support/api/projects';
+import { teardownDCRClients, teardownIATs } from '../../support/dcr-helpers';
 import { Context } from 'support/commands';
 
 const testProjectName = 'e2eprojectdcrclients';
@@ -11,6 +12,19 @@ describe('dcr — dynamic clients view', () => {
       .then((ctx) => {
         ensureProjectExists(ctx.api, testProjectName).as('projectId');
       });
+  });
+
+  // cavekit-console-ui-docs-and-observability.md R10 (T-020). Two-stage
+  // cleanup: drop every DCR-registered app under the project, then
+  // revoke every IAT under the project (the registration consumed an
+  // IAT but the project may carry stale fixtures from a partial run).
+  afterEach(() => {
+    cy.get<Context>('@ctx').then((ctx) => {
+      cy.get<string>('@projectId').then((projectId) => {
+        teardownDCRClients(ctx.api, projectId);
+        teardownIATs(ctx.api, projectId);
+      });
+    });
   });
 
   it('renders the dynamic clients sidenav entry on a project and shows the empty state', () => {

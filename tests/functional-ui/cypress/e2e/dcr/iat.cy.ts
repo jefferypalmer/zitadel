@@ -1,4 +1,6 @@
 import { ensureProjectExists } from '../../support/api/projects';
+import { teardownIATs } from '../../support/dcr-helpers';
+import { Context } from 'support/commands';
 
 const testProjectName = 'e2eprojectdcriat';
 
@@ -9,6 +11,18 @@ describe('dcr — initial access tokens', () => {
       .then((ctx) => {
         ensureProjectExists(ctx.api, testProjectName).as('projectId');
       });
+  });
+
+  // cavekit-console-ui-docs-and-observability.md R10 (T-020) — leave the
+  // instance with zero IATs scoped to this project so a second run of
+  // this spec sees a clean projection. Teardown failures are logged
+  // but do NOT fail the test.
+  afterEach(() => {
+    cy.get<Context>('@ctx').then((ctx) => {
+      cy.get<string>('@projectId').then((projectId) => {
+        teardownIATs(ctx.api, projectId);
+      });
+    });
   });
 
   it('issues, lists, and revokes an initial access token', () => {
