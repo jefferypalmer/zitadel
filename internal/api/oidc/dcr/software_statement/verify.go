@@ -42,13 +42,14 @@ const SkewToleranceForExp = 0 * time.Second
 
 // Error keys for R5 verification failures. Replay key lives here too so
 // the JTI dedupe call site (T-030) emits the same envelope without
-// reaching across packages.
+// reaching across packages. InvalidAudienceKey is R13 (T-006).
 const (
 	InvalidSignatureKey     = "Errors.DCR.SoftwareStatement.InvalidSignature"
 	UnsupportedAlgorithmKey = "Errors.DCR.SoftwareStatement.UnsupportedAlgorithm"
 	ExpiredKey              = "Errors.DCR.SoftwareStatement.Expired"
 	NotYetValidKey          = "Errors.DCR.SoftwareStatement.NotYetValid"
 	ReplayKey               = "Errors.DCR.SoftwareStatement.Replay"
+	InvalidAudienceKey      = "Errors.DCR.SoftwareStatement.InvalidAudience"
 )
 
 // Verify runs cavekit-software-statement.md R5 against a previously-
@@ -189,6 +190,44 @@ func Verify(
 	}
 
 	return nil
+}
+
+// VerifyAudience implements cavekit-software-statement.md R13. When the
+// JWT body carries an `aud` claim, it MUST equal (string form) or
+// contain (array form) the configured token-endpoint URL. Absent `aud`
+// is unchanged behavior — no failure mode added. `skipAudValidation`
+// reverts to Phase 2 status quo (no aud check) and is intended only
+// for operators on legacy issuers that cannot mint audience-scoped
+// software statements; default false.
+//
+// On mismatch returns a *ParseError keyed `InvalidAudienceKey`; the
+// envelope code stays `invalid_software_statement` per RFC 7591 §3.2.2.
+// The pipeline maps this i18n key to the `invalid_audience` result-
+// label value on `zitadel.dcr.software_statement_verifications_total`.
+func VerifyAudience(parsed *Parsed, tokenEndpoint string, skipAudValidation bool) *ParseError {
+	if skipAudValidation {
+		return nil
+	}
+	if parsed == nil || parsed.Body.Aud == nil {
+		return nil
+	}
+	switch v := parsed.Body.Aud.(type) {
+	case string:
+		if v == tokenEndpoint {
+			return nil
+		}
+	case []any:
+		for _, entry := range v {
+			if s, ok := entry.(string); ok && s == tokenEndpoint {
+				return nil
+			}
+		}
+	}
+	return &ParseError{
+		Code:        "invalid_software_statement",
+		Description: "software_statement: claim `aud` does not match the token endpoint",
+		I18nKey:     InvalidAudienceKey,
+	}
 }
 
 // selectJWKByKid decodes the JWKS bytes into a JSONWebKeySet and

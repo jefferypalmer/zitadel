@@ -91,6 +91,10 @@ type DCRSoftwareStatementConfig struct {
 	JWKSCacheTTL       time.Duration
 	AllowedAlgorithms  []string
 	JTIRetentionBuffer time.Duration
+	// SkipAudValidation reverts to Phase 2 status quo (no aud check)
+	// per cavekit-software-statement.md R13 — default false; binds to
+	// ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_SKIPAUDVALIDATION.
+	SkipAudValidation bool
 }
 
 // DCRTrustedIssuer is one entry in `OIDC.DCR.SoftwareStatement.TrustedIssuers`.

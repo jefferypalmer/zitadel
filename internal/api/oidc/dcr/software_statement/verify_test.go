@@ -214,3 +214,68 @@ func ptrInt64(v int64) *int64 { return &v }
 // strings reference suppresses unused-import lint when this file is the
 // only consumer of strings (the helpers below all use it via go-jose).
 var _ = strings.TrimSpace
+
+// VerifyAudience truth-table — cavekit-software-statement.md R13 (T-006).
+// Six branches: absent / string-match / array-match / string-mismatch /
+// array-mismatch / skip-flag-on.
+
+const audTokenEndpoint = "https://issuer.example/oauth/v2/token"
+
+func parsedWithAud(aud any) *Parsed {
+	return &Parsed{
+		Header: Header{Alg: "ES256", Kid: "k1"},
+		Body: Body{
+			Iss: "x", Jti: "j",
+			Iat: ptrInt64(time.Now().Unix()),
+			Exp: ptrInt64(time.Now().Add(time.Hour).Unix()),
+			Aud: aud,
+		},
+	}
+}
+
+func TestVerifyAudience_AbsentPasses(t *testing.T) {
+	if err := VerifyAudience(parsedWithAud(nil), audTokenEndpoint, false); err != nil {
+		t.Fatalf("want nil (absent aud is fine), got %+v", err)
+	}
+}
+
+func TestVerifyAudience_StringMatchPasses(t *testing.T) {
+	if err := VerifyAudience(parsedWithAud(audTokenEndpoint), audTokenEndpoint, false); err != nil {
+		t.Fatalf("want nil (string match), got %+v", err)
+	}
+}
+
+func TestVerifyAudience_ArrayMatchPasses(t *testing.T) {
+	aud := []any{"https://other", audTokenEndpoint, "https://yet-another"}
+	if err := VerifyAudience(parsedWithAud(aud), audTokenEndpoint, false); err != nil {
+		t.Fatalf("want nil (array contains endpoint), got %+v", err)
+	}
+}
+
+func TestVerifyAudience_StringMismatchRejected(t *testing.T) {
+	err := VerifyAudience(parsedWithAud("https://wrong-endpoint"), audTokenEndpoint, false)
+	if err == nil || err.I18nKey != InvalidAudienceKey {
+		t.Fatalf("want InvalidAudience, got %+v", err)
+	}
+	if err.Code != "invalid_software_statement" {
+		t.Fatalf("want envelope code invalid_software_statement, got %q", err.Code)
+	}
+}
+
+func TestVerifyAudience_ArrayMismatchRejected(t *testing.T) {
+	aud := []any{"https://other", "https://still-wrong"}
+	err := VerifyAudience(parsedWithAud(aud), audTokenEndpoint, false)
+	if err == nil || err.I18nKey != InvalidAudienceKey {
+		t.Fatalf("want InvalidAudience, got %+v", err)
+	}
+}
+
+func TestVerifyAudience_SkipFlagBypasses(t *testing.T) {
+	if err := VerifyAudience(parsedWithAud("https://wrong-endpoint"), audTokenEndpoint, true); err != nil {
+		t.Fatalf("want nil (skip flag should bypass), got %+v", err)
+	}
+	aud := []any{"https://wrong"}
+	if err := VerifyAudience(parsedWithAud(aud), audTokenEndpoint, true); err != nil {
+		t.Fatalf("want nil (skip flag should bypass for arrays), got %+v", err)
+	}
+}

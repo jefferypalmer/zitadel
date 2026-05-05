@@ -138,6 +138,7 @@ const (
 	MetricSSResultUnsupportedAlgorithm  = "unsupported_algorithm"
 	MetricSSResultMissingRequiredClaim  = "missing_required_claim"
 	MetricSSResultNotYetValid           = "not_yet_valid"
+	MetricSSResultInvalidAudience       = "invalid_audience"
 )
 
 // Result-label values for [MetricRegistrationsTotal].

@@ -53,6 +53,19 @@ type PipelineDeps struct {
 	// `OIDC.DCR.SoftwareStatement.JTIRetentionBuffer`.
 	JTIRetentionBuffer time.Duration
 
+	// TokenEndpoint is the absolute URL the issuer MUST encode in the
+	// software_statement's `aud` claim when `aud` is present.
+	// cavekit-software-statement.md R13. Production wires this from the
+	// OIDC token-endpoint URL.
+	TokenEndpoint string
+
+	// SkipAudValidation reverts to Phase 2 status quo (no aud check)
+	// for operators on legacy issuers that cannot mint audience-scoped
+	// software statements. cavekit-software-statement.md R13 — default
+	// false; sourced from `OIDC.DCR.SoftwareStatement.SkipAudValidation`
+	// with env binding `ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_SKIPAUDVALIDATION`.
+	SkipAudValidation bool
+
 	// Now is the clock seam. Production wires `time.Now`; tests pin a
 	// fixed value to avoid time.Sleep in the iat / exp / replay-
 	// retention math.
@@ -88,6 +101,7 @@ const (
 	VerifyResultUnsupportedAlgorithm = "unsupported_algorithm"
 	VerifyResultMissingRequiredClaim = "missing_required_claim"
 	VerifyResultNotYetValid          = "not_yet_valid"
+	VerifyResultInvalidAudience      = "invalid_audience"
 )
 
 // resultFromParseError maps the i18n key on a ParseError to the
@@ -116,6 +130,8 @@ func resultFromParseError(pe *ParseError) string {
 		return VerifyResultReplay
 	case MissingRequiredClaimKey:
 		return VerifyResultMissingRequiredClaim
+	case InvalidAudienceKey:
+		return VerifyResultInvalidAudience
 	default:
 		return VerifyResultInvalidStructure
 	}
@@ -223,6 +239,11 @@ func Run(ctx context.Context, rawJWT string, deps PipelineDeps) (*Result, *Parse
 	if vErr := Verify(parsed, deps.AllowedAlgorithms, jwksBytes, now()); vErr != nil {
 		runErr = vErr
 		return nil, vErr
+	}
+
+	if audErr := VerifyAudience(parsed, deps.TokenEndpoint, deps.SkipAudValidation); audErr != nil {
+		runErr = audErr
+		return nil, audErr
 	}
 
 	if rcErr := VerifyRequiredClaims(parsed, descriptor.RequiredClaims); rcErr != nil {

@@ -783,6 +783,12 @@ OIDC:
       # janitor reaps it — covers clock-skew between the client and the
       # janitor / replica that observes the row.
       JTIRetentionBuffer: 24h # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_JTIRETENTIONBUFFER
+      # When `aud` is present in the software_statement JWT body, the verifier
+      # checks it equals (string) or contains (array) the configured token-
+      # endpoint URL — cavekit-software-statement.md R13. `SkipAudValidation:
+      # true` reverts to Phase 2 status quo (no aud check); intended only for
+      # legacy issuers that cannot mint audience-scoped statements.
+      SkipAudValidation: false # ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_SKIPAUDVALIDATION
     # 0s = no expiry per RFC 7591 §3.2.1 (`client_secret_expires_at: 0`).
     ClientSecretExpiresIn: 0s # ZITADEL_OIDC_DCR_CLIENTSECRETEXPIRESIN
     # SSRF guard for `jwks_uri` fetches. Loopback is rejected in production;
