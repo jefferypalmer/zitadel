@@ -73,6 +73,20 @@ type DCRConfig struct {
 	SoftwareStatement              DCRSoftwareStatementConfig
 	ClientSecretExpiresIn          time.Duration
 	JwksURI                        DCRJwksURIConfig
+	// Janitor controls the periodic reaper that prunes expired
+	// software_statement (iss, jti) replay-dedupe rows from
+	// projections.dcr_software_statement_jtis1. cavekit-software-
+	// statement.md R9.
+	Janitor DCRJanitorConfig
+}
+
+// DCRJanitorConfig configures the software_statement JTI reaper goroutine
+// started alongside `serviceping.Start` in cmd/start/start.go.
+// Enabled defaults to true; Interval defaults to 1h. Env-var bindings:
+// ZITADEL_OIDC_DCR_JANITOR_ENABLED, ZITADEL_OIDC_DCR_JANITOR_INTERVAL.
+type DCRJanitorConfig struct {
+	Enabled  bool
+	Interval time.Duration
 }
 
 type DCRRegistrationAccessTokenConfig struct {

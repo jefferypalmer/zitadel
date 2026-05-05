@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/zitadel/logging"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
 	"github.com/zitadel/zitadel/internal/telemetry/tracing"
@@ -86,4 +87,39 @@ func (q *Queries) ReapExpiredSoftwareStatementJTIs(ctx context.Context, now time
 		return 0, zerrors.ThrowInternal(err, "QUERY-JTI03", "Errors.Internal")
 	}
 	return rows, nil
+}
+
+// RunSoftwareStatementJTIJanitor drives a periodic reap of expired
+// (iss, jti) rows from projections.dcr_software_statement_jtis1.
+// cavekit-software-statement.md R9 — wired alongside serviceping.Start
+// in cmd/start/start.go. The goroutine exits cleanly within ~one tick
+// of ctx.Done(); reap errors are logged but do not stop the loop so a
+// transient DB failure self-recovers on the next tick.
+//
+// Caller controls cadence via interval (default 1h, sourced from
+// OIDC.DCR.Janitor.Interval). Pass a non-positive interval to disable
+// (the function returns immediately with nil).
+func (q *Queries) RunSoftwareStatementJTIJanitor(ctx context.Context, interval time.Duration) {
+	if interval <= 0 {
+		return
+	}
+	t := time.NewTicker(interval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			rows, err := q.ReapExpiredSoftwareStatementJTIs(ctx, time.Now())
+			if err != nil {
+				logging.OnError(err).WithField("rows", rows).
+					Warn("dcr: software_statement JTI janitor reap failed; will retry next tick")
+				continue
+			}
+			if rows > 0 {
+				logging.WithFields("rows", rows).
+					Debug("dcr: software_statement JTI janitor reaped expired rows")
+			}
+		}
+	}
 }

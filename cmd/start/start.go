@@ -373,6 +373,14 @@ func startZitadel(ctx context.Context, config *Config, masterKey string, server 
 		return err
 	}
 
+	// cavekit-software-statement.md R9 — periodic reap of expired
+	// software_statement (iss, jti) replay-dedupe rows. Default
+	// 1h cadence, gated by OIDC.DCR.Janitor.Enabled (true by default).
+	// The goroutine exits cleanly within one tick of ctx.Done().
+	if config.OIDC.DCR.Janitor.Enabled {
+		go queries.RunSoftwareStatementJTIJanitor(ctx, config.OIDC.DCR.Janitor.Interval)
+	}
+
 	router := mux.NewRouter()
 	tlsConfig, err := config.TLS.Config()
 	if err != nil {

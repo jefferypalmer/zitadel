@@ -808,6 +808,14 @@ OIDC:
         - ::1/128
         - fc00::/7
         - fe80::/10
+    # Periodic janitor for the software_statement (iss, jti) replay-dedupe
+    # table — cavekit-software-statement.md R9. Reaps rows past `expires_at`
+    # so the table never grows unbounded. The reap is a single
+    # `DELETE WHERE expires_at < now()` per tick; cheap on an empty table
+    # because the index on `expires_at` makes it O(reaped-rows).
+    Janitor:
+      Enabled: true # ZITADEL_OIDC_DCR_JANITOR_ENABLED
+      Interval: 1h # ZITADEL_OIDC_DCR_JANITOR_INTERVAL
 
 SAML:
   DefaultLoginURLV2: "/ui/v2/login/login?samlRequest=" # ZITADEL_SAML_DEFAULTLOGINURLV2
