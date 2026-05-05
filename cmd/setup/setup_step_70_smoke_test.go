@@ -35,21 +35,43 @@ func TestSetupStep70_AppliesAgainstEmbeddedPostgres(t *testing.T) {
 		t.Skip("embedded postgres takes ~5s to boot; skipping in -short mode")
 	}
 
-	port := freeTCPPort(t)
 	runtimePath, err := os.MkdirTemp("", "zitadel-setup-step-70-smoke-*")
 	if err != nil {
 		t.Fatalf("mktempdir: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(runtimePath) })
 
-	embedded := embeddedpostgres.NewDatabase(
-		embeddedpostgres.DefaultConfig().
-			Version(embeddedpostgres.V17).
-			Port(uint32(port)).
-			RuntimePath(runtimePath),
+	// cavekit-eventstore-framework-guard.md R3 (T-034): the freeTCPPort
+	// trick has a known race window between the listener close and the
+	// embedded.Start bind. On a busy CI host another process can grab
+	// the port mid-window. Retry up to 3 times with a fresh port each
+	// iteration to eliminate the flake.
+	var (
+		port     int
+		embedded *embeddedpostgres.EmbeddedPostgres
 	)
-	if err := embedded.Start(); err != nil {
-		t.Fatalf("embedded start: %v", err)
+	const maxAttempts = 3
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		port = freeTCPPort(t)
+		embedded = embeddedpostgres.NewDatabase(
+			embeddedpostgres.DefaultConfig().
+				Version(embeddedpostgres.V17).
+				Port(uint32(port)).
+				RuntimePath(runtimePath),
+		)
+		if err = embedded.Start(); err == nil {
+			break
+		}
+		t.Logf("embedded postgres bind attempt %d/%d failed on port %d: %v", attempt, maxAttempts, port, err)
+		// On retry the runtimePath must be reset because the failed
+		// Start may have left state. Wipe and recreate.
+		_ = os.RemoveAll(runtimePath)
+		if err := os.MkdirAll(runtimePath, 0o755); err != nil {
+			t.Fatalf("recreate runtimepath: %v", err)
+		}
+	}
+	if err != nil {
+		t.Fatalf("embedded start after %d attempts: %v", maxAttempts, err)
 	}
 	t.Cleanup(func() { _ = embedded.Stop() })
 
