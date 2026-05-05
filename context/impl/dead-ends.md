@@ -79,3 +79,30 @@ Security additions baked into the kit amendment (beyond the bare
 - Full-token log-redaction regex `zdiat_[^\s"',]+`
   (cavekit-security-hardening.md R3 amendment + cross-ref from
   cavekit-iat.md R5).
+
+## Phase 3 — operator-driven tasks (NOT dead ends; deferred-by-design)
+
+### T-014 (cavekit-console-ui-docs-and-observability.md R3, build-site-phase3.md)
+**Run the i18n pipeline against 22 locales — operator-driven.**
+The pipeline (T-004 / T-005), translation-correctness contract (T-012),
+and CI reproducibility verifier (T-015) are all in place. en.json was
+extended with the four new ARIA-label keys
+(DESCRIPTIONS.DCR.IAT.{REFRESH,COPY,REVEAL_TOGGLE,DISMISS}) so the
+pipeline has source values to translate.
+
+The actual translation requires a live `ANTHROPIC_API_KEY` and is
+operator-driven (CI infrastructure or local dev with the key
+exported). When run, every locale's missing keys are filled and the
+pnpm script `translate-i18n:verify` confirms reproducibility on
+subsequent runs.
+
+Until the operator runs the pipeline, the four new keys resolve via
+ngx-translate's English fallback in non-English locales — acceptable
+for ARIA labels (T-018) but explicitly NOT a passing R3 outcome per
+the kit. T-018 wires the ARIA bindings now; the locale fill is
+backfilled by operator action.
+
+### T-022 (build-site-phase3.md, "operational" cavekit)
+**Image build + push + tag — operator-driven.**
+Listed for release-sequence completeness; no kit acceptance criterion.
+The builder loop ignores it.

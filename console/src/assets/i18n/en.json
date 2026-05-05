@@ -368,7 +368,11 @@
         "COL_CREATED_AT": "Created At",
         "PLAINTEXT_REMASK": "Hide token",
         "PLAINTEXT_AUTOMASK_HINT": "The token will hide automatically after 60 seconds.",
-        "REVOKE_PROJECT_REQUIRED": "Cannot revoke an Initial Access Token without a project ID."
+        "REVOKE_PROJECT_REQUIRED": "Cannot revoke an Initial Access Token without a project ID.",
+        "REFRESH": "Refresh list",
+        "COPY": "Copy token",
+        "REVEAL_TOGGLE": "Reveal or hide token",
+        "DISMISS": "Dismiss"
       },
       "MANAGED_BY_CLIENT": "Managed by client (RFC 7592)",
       "OPERATOR_PANEL": {
