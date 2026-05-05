@@ -100,3 +100,13 @@ test('mergeTranslations: target keys not in source are kept (manual override)', 
   const merged = mergeTranslations(source, target, {});
   assert.equal(merged.legacy, 'Z');
 });
+
+// Codex F-101 / P3 (T-100): null target values count as missing —
+// explicit-null placeholders should trigger translation, matching the
+// R4 idempotent-merge spec intent. Pre-fix `diffMissingPaths` only
+// looked for `undefined`, so a null value silently masked the gap.
+test('diffMissingPaths: null target values count as missing', () => {
+  const source = { a: 1, b: 2, c: 3 };
+  const target = { a: null, b: 'translated' };
+  assert.deepEqual(diffMissingPaths(source, target).sort(), ['a', 'c']);
+});

@@ -34,15 +34,19 @@ export function collectLeafPaths(obj, prefix = '') {
 
 /**
  * Compute the set of leaf paths present in `source` but missing in
- * `target`. "Missing" means the path either doesn't resolve, or
- * resolves to an undefined value. Empty-string values count as
- * present (the operator translated this key to "").
+ * `target`. "Missing" means the path either doesn't resolve, resolves
+ * to `undefined`, or resolves to `null` (Codex F-101 / P3 — explicit
+ * nulls in the target file are treated as placeholders awaiting
+ * translation rather than authoritative empty values, matching the
+ * R4 idempotent-merge intent). Empty-string `""` values still count
+ * as present so an operator can intentionally null-out a label.
  */
 export function diffMissingPaths(source, target) {
   const sourcePaths = collectLeafPaths(source);
   const missing = [];
   for (const path of sourcePaths) {
-    if (!hasPath(target, path)) {
+    const v = getPath(target, path);
+    if (v === undefined || v === null) {
       missing.push(path);
     }
   }

@@ -70,3 +70,18 @@ Verdict: REVISE — 0 P0, 5 P1, 3 P2, 6 P3.
 | DISMISS key in 22 locales but bound to no template | cavekit-console-ui-docs-and-observability.md R9.1 | NEW |
 | getComputedStyle assertion absent from iat-admin.component.spec.ts | cavekit-console-ui-docs-and-observability.md R9.2 | NEW |
 | R3 reproducibility verifier never run with live API key | cavekit-i18n-pipeline.md R3 (existing) | NEW |
+
+---
+
+# Codex Adversarial Review — Phase 3 Tier 5 (2026-05-05)
+
+Source review: `git diff cd21bc6ed..HEAD` (28 commits, 4366-line backend+frontend diff after excluding locale JSON noise).
+Reviewer: Codex CLI (model `o4-mini`) via `bp_codex_review` from cavekit-marketplace plugin.
+Verdict: 4 findings (0 P0, 2 P2, 2 P3). 2 actionable + applied; 2 evaluated and resolved without code change.
+
+| Finding | Severity | File | Status | Notes |
+|---------|----------|------|--------|-------|
+| F-100: Anthropic API call has no timeout — hung network blocks pipeline indefinitely | P2 | console/scripts/translate-i18n.mjs:206 | FIXED | AbortController + I18N_FETCH_TIMEOUT_MS env (default 60s). |
+| F-101: diffMissingPaths treats `null` target value as "present" | P3 | console/scripts/translate-i18n.merge.mjs:34 | FIXED | Treat both `undefined` AND `null` as missing; new test `diffMissingPaths: null target values count as missing`. Theoretical for current DCR data (no nulls in source) but matches R4 spec intent. |
+| F-102: Empty TrustedIssuers + SoftwareStatement.Enabled allows pipeline to run with no trust boundary | P2 | cmd/start/dcr_software_statement_pipeline.go:42 | RESOLVED — startup WARN added | Codex misread: by-design per cavekit-software-statement.md R3 / Phase-1 fallback (empty issuers → `unapproved_software_statement` for any non-empty iss). NOT a security hole — it's the documented backwards-compat path. Added startup WARN log so the foot-gun is surfaced. |
+| F-103: TestDCRRecover_R9_WrapsMount only string-searches start.go | P3 | cmd/start/dcr_recover_test.go:10 | RESOLVED — duplicate-of-existing | Codex reviewed the wrapper test in isolation and missed the runtime sibling test `TestDCRWriteRecoverError_EmitsJSONEnvelope` (cmd/start/dcr_recover_test.go:42-67) which DOES exactly what F-103 requested: mounts a panicking handler, sends an HTTP request, asserts 500 + application/json + envelope shape + no panic-message leak. Both tests exist; T-025 already satisfies the suggestion. |

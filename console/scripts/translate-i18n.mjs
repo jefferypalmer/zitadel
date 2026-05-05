@@ -203,21 +203,38 @@ async function callClaude(env, sourceMissingPayload, locale) {
     JSON.stringify(sourceMissingPayload, null, 2),
   ].join('\n');
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': env.apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: env.model,
-      max_tokens: 8192,
-      temperature: 0,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
+  // Codex F-100 / P2: bound the API call with a configurable timeout so
+  // a hung network call cannot block the entire pipeline indefinitely.
+  // Default 60s; override via I18N_FETCH_TIMEOUT_MS.
+  const timeoutMs = Number.parseInt(process.env.I18N_FETCH_TIMEOUT_MS || '60000', 10);
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60000);
+  let response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': env.apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: env.model,
+        max_tokens: 8192,
+        temperature: 0,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+      signal: ac.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err?.name === 'AbortError') {
+      throw new Error(`Anthropic API call timed out after ${timeoutMs}ms (override via I18N_FETCH_TIMEOUT_MS)`);
+    }
+    throw err;
+  }
+  clearTimeout(timer);
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
