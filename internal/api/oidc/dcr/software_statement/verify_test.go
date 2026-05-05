@@ -1,6 +1,7 @@
 package software_statement
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -277,5 +278,47 @@ func TestVerifyAudience_SkipFlagBypasses(t *testing.T) {
 	aud := []any{"https://wrong"}
 	if err := VerifyAudience(parsedWithAud(aud), audTokenEndpoint, true); err != nil {
 		t.Fatalf("want nil (skip flag should bypass for arrays), got %+v", err)
+	}
+}
+
+// cavekit-software-statement.md R15 (T-024). Empty tokenEndpoint with
+// skip=false MUST reject the JWT regardless of `aud` value — defense-
+// in-depth against misconfigured pipelines. The Validate() method on
+// PipelineDeps SHOULD already have refused to boot, but VerifyAudience
+// is the last line of defense.
+func TestVerifyAudience_EmptyTokenEndpointRejects(t *testing.T) {
+	// aud == "" matches tokenEndpoint == "" trivially; without R15 the
+	// switch's `case string: if v == tokenEndpoint { return nil }` would
+	// accept. R15 forces a reject.
+	if err := VerifyAudience(parsedWithAud(""), "", false); err == nil || err.I18nKey != InvalidAudienceKey {
+		t.Fatalf("want InvalidAudience for empty aud + empty tokenEndpoint, got %+v", err)
+	}
+	// Same for non-empty aud.
+	if err := VerifyAudience(parsedWithAud("https://anywhere"), "", false); err == nil || err.I18nKey != InvalidAudienceKey {
+		t.Fatalf("want InvalidAudience for any aud when tokenEndpoint is empty, got %+v", err)
+	}
+}
+
+func stubJTIRecorder(_ context.Context, _, _ string, _, _ time.Time) (JTIRecorderResult, error) {
+	return JTIRecorderInserted, nil
+}
+
+// PipelineDeps.Validate() must reject the misconfigured combination at
+// boot so the empty-tokenEndpoint case never reaches request handling
+// in production.
+func TestPipelineDepsValidate_EmptyTokenEndpointFailsBoot(t *testing.T) {
+	deps := &PipelineDeps{
+		JWKSCache:          NewJWKSCache(nil, time.Hour),
+		ReplayRecorder:     stubJTIRecorder,
+		JTIRetentionBuffer: 24 * time.Hour,
+		TokenEndpoint:      "",
+		SkipAudValidation:  false,
+	}
+	if err := deps.Validate(); err == nil {
+		t.Fatal("Validate must reject empty TokenEndpoint when SkipAudValidation=false")
+	}
+	deps.SkipAudValidation = true
+	if err := deps.Validate(); err != nil {
+		t.Fatalf("Validate must accept empty TokenEndpoint when SkipAudValidation=true; got %v", err)
 	}
 }

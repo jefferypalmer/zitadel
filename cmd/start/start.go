@@ -80,6 +80,7 @@ import (
 	"github.com/zitadel/zitadel/internal/api/oidc"
 	"github.com/zitadel/zitadel/internal/api/oidc/as_metadata"
 	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr/software_statement"
 	"github.com/zitadel/zitadel/internal/api/robots_txt"
 	"github.com/zitadel/zitadel/internal/api/saml"
 	"github.com/zitadel/zitadel/internal/api/scim"
@@ -718,16 +719,29 @@ func startAPIs(
 		if err != nil {
 			return nil, fmt.Errorf("dcr anti-enum dummy hash: %w", err)
 		}
+		// cavekit-software-statement.md R14 (T-023): construct the
+		// verifier pipeline when software_statement is enabled. Without
+		// this, RegistrationDeps.SoftwareStatementPipeline stays nil,
+		// wire.go's `if deps.SoftwareStatementPipeline != nil` short-
+		// circuits, and all of R5/R9/R13 is dead in production.
+		var ssPipeline *software_statement.PipelineDeps
+		if config.OIDC.DCR.SoftwareStatement.Enabled {
+			ssPipeline, err = buildSoftwareStatementPipeline(config, queries)
+			if err != nil {
+				return nil, fmt.Errorf("dcr software_statement pipeline: %w", err)
+			}
+		}
 		dcrDeps := dcr.RegistrationDeps{
 			Queries:                  &dcrQueriesAdapter{q: queries},
 			Verifier:                 commands, // *command.Commands.VerifyIATPlaintext satisfies dcr.IATVerifier
 			Parser:                   command.ParseIATPlaintext,
 			Config:                   oidc.DCRClampAdapter{C: &config.OIDC.DCR},
 			AnonConfig:               oidc.DCRAnonAdapter{C: &config.OIDC.DCR},
-			SupportedSigAlgs:         oidc.SupportedSigningAlgs(),
-			SoftwareStatementEnabled: config.OIDC.DCR.SoftwareStatement.Enabled,
-			AntiEnumDummyHash:        dcrDummyHash,
-			MaxBodyBytes:             config.OIDC.DCR.MaxRequestBodyBytes,
+			SupportedSigAlgs:          oidc.SupportedSigningAlgs(),
+			SoftwareStatementEnabled:  config.OIDC.DCR.SoftwareStatement.Enabled,
+			SoftwareStatementPipeline: ssPipeline,
+			AntiEnumDummyHash:         dcrDummyHash,
+			MaxBodyBytes:              config.OIDC.DCR.MaxRequestBodyBytes,
 			// Register closure bridges dcr → command without an import
 			// cycle. Translates dcr.RegisterRequest → command.RegisterClientInput
 			// and the result back per cavekit-register-handler.md R6 / T-040.
@@ -865,6 +879,13 @@ func startAPIs(
 		// always read DynamicClientRegistration=false (endpoint
 		// unreachable) OR if any host-routing layer side-steps the gate,
 		// allows cross-tenant write with instance_id="".
+		// cavekit-software-statement.md R14 (T-023): boot-time fail-fast
+		// — if SoftwareStatement.Enabled but the pipeline is nil
+		// (mis-wiring) refuse to start rather than silently fall back to
+		// the Phase 1 unapproved-software_statement path.
+		if err := dcrDeps.Validate(); err != nil {
+			return nil, fmt.Errorf("dcr deps validate: %w", err)
+		}
 		dcrWrapped := instanceInterceptor.Handler(limitingAccessInterceptor.Handle(dcr.NewHandler(dcrDeps)))
 		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcrWrapped)
 		// RFC 8414 AS metadata (cavekit-discovery-and-as-metadata.md

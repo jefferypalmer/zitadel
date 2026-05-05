@@ -343,6 +343,14 @@ func (d RegistrationDeps) Validate() error {
 	if d.ConsumeIAT == nil {
 		return errors.New("dcr: RegistrationDeps.ConsumeIAT is required (wire to command.Commands.ConsumeInitialAccessToken). F-200 — without this, IAT replay protection is non-existent in production.")
 	}
+	// cavekit-software-statement.md R14 (T-023): when SoftwareStatement
+	// is enabled in config, the verifier pipeline MUST be wired. The
+	// nil-pipeline branch in dispatch.go silently falls back to the
+	// Phase-1 unapproved_software_statement path — production with
+	// Enabled=true must reach the real verifier.
+	if d.SoftwareStatementEnabled && d.SoftwareStatementPipeline == nil {
+		return errors.New("dcr: RegistrationDeps.SoftwareStatementPipeline is required when SoftwareStatementEnabled=true (cavekit-software-statement.md R14 — without this, all of R5/R9/R13 is dead in production)")
+	}
 	// Manage is intentionally optional — see field godoc. When set,
 	// validate it; otherwise the manage routes fall back to the
 	// bearer-presence-only gate.

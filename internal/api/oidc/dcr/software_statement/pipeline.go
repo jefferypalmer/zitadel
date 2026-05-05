@@ -17,6 +17,7 @@ package software_statement
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -75,6 +76,27 @@ type PipelineDeps struct {
 	// Production wires this to dcr.RecordSoftwareStatementVerification.
 	// nil disables emission (tests typically pass nil).
 	VerificationRecorder VerificationRecorder
+}
+
+// Validate enforces non-nil/non-empty deps + the kit-mandated
+// TokenEndpoint-non-empty rule (cavekit-software-statement.md R15 /
+// T-024). Called by start.go's `buildSoftwareStatementPipeline` so a
+// misconfigured wiring fails fast at boot rather than 5xxing for the
+// lifetime of the process.
+func (d *PipelineDeps) Validate() error {
+	if d.JWKSCache == nil {
+		return fmt.Errorf("software_statement: PipelineDeps.JWKSCache is required")
+	}
+	if d.ReplayRecorder == nil {
+		return fmt.Errorf("software_statement: PipelineDeps.ReplayRecorder is required")
+	}
+	if d.JTIRetentionBuffer <= 0 {
+		return fmt.Errorf("software_statement: PipelineDeps.JTIRetentionBuffer must be > 0")
+	}
+	if !d.SkipAudValidation && d.TokenEndpoint == "" {
+		return fmt.Errorf("software_statement: PipelineDeps.TokenEndpoint is required when SkipAudValidation=false (cavekit-software-statement.md R15)")
+	}
+	return nil
 }
 
 // VerificationRecorder is invoked exactly once per Run with the issuer

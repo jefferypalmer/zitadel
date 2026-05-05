@@ -204,12 +204,26 @@ func Verify(
 // envelope code stays `invalid_software_statement` per RFC 7591 §3.2.2.
 // The pipeline maps this i18n key to the `invalid_audience` result-
 // label value on `zitadel.dcr.software_statement_verifications_total`.
+//
+// cavekit-software-statement.md R15 (T-024): when skipAudValidation is
+// false, an empty tokenEndpoint is a misconfiguration. We reject all
+// `aud` values defensively rather than accepting on the empty-equals-
+// empty path. PipelineDeps.Validate() should already have refused to
+// boot, but defense-in-depth blocks any test seam that constructs the
+// pipeline directly.
 func VerifyAudience(parsed *Parsed, tokenEndpoint string, skipAudValidation bool) *ParseError {
 	if skipAudValidation {
 		return nil
 	}
 	if parsed == nil || parsed.Body.Aud == nil {
 		return nil
+	}
+	if tokenEndpoint == "" {
+		return &ParseError{
+			Code:        "invalid_software_statement",
+			Description: "software_statement: server misconfiguration — token endpoint not configured for audience validation",
+			I18nKey:     InvalidAudienceKey,
+		}
 	}
 	switch v := parsed.Body.Aud.(type) {
 	case string:
