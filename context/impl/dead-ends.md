@@ -106,3 +106,27 @@ backfilled by operator action.
 **Image build + push + tag — operator-driven.**
 Listed for release-sequence completeness; no kit acceptance criterion.
 The builder loop ignores it.
+
+### T-021 (build-site-phase3.md, end-to-end smoke)
+**Operator-driven CI integration test.**
+Requires booting Zitadel against (a) a fresh empty Postgres and (b) an
+upgrade-simulation Postgres carrying v5.0.0-dcr.2 data, then exercising
+the full register / replay-reject / RFC 7592 PUT / janitor / Cypress
+re-run sequence. The acceptance assertions are too heavy for the
+builder loop:
+- requires a live Postgres
+- requires the zitadel binary running with TLS / DB / queue all wired
+- asserts log-line absence (`refusing to construct`)
+- runs two consecutive Cypress passes
+
+The component pieces are individually tested:
+- T-009 / T-010 — framework guard panic + truth-table tests (unit)
+- T-013 — static back-stop AST walk on every PR
+- T-006 — VerifyAudience truth table (6 unit tests)
+- T-007 — ManageFromContext panic test (unit)
+- T-011 — janitor cancellation deadline (unit)
+- T-020 — Cypress teardown helpers (idempotent)
+
+T-021 stitches them together end-to-end; deliverable when CI runs the
+green-fields + upgrade-from-dcr.2 smoke. Logged as operator-deferred,
+not blocked by builder error.

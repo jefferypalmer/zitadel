@@ -17,25 +17,27 @@ Build site: context/plans/build-site-phase3.md
 | T-006 | DONE | VerifyAudience helper, SkipAudValidation config, invalid_audience metric label, 6 unit tests. |
 | T-007 | DONE | ManageFromContext panics on missing; nil-guards deleted from get/put/delete; legacy 500-tests rewritten. |
 | T-008 | DONE | Doctrine-only verification — kit text + grep-scan zero matches. No code. |
-| T-009 | PENDING | Framework guard at NewHandler (~line 174). |
-| T-010 | PENDING | Truth-table tests for guard. |
-| T-011 | PENDING | Janitor wiring in cmd/start/start.go + Reaper config. |
-| T-012 | PENDING | Translation-correctness contract (glossary, placeholders, JSON-only) on translate-i18n.mjs. |
-| T-013 | PENDING | Boot-smoke back-stop verification of guard. |
-| T-014 | PENDING | Run pipeline against 22 locales to populate DCR keys. |
-| T-015 | PENDING | CI reproducibility verification (translate-i18n.test.mjs). |
-| T-016 | PENDING | Subscription-cleanup hygiene (takeUntil) in iat-admin. |
-| T-017 | PENDING | trackBy hygiene on iat-admin + dynamic-clients tables. |
-| T-018 | PENDING | ARIA-label hygiene on icon-only buttons. |
-| T-019 | PENDING | Status-text-accompanies-color hygiene. |
-| T-020 | PENDING | Cypress teardown helpers + per-spec afterEach. |
-| T-021 | PENDING | E2E smoke (fresh + upgrade Postgres). |
-| T-022 | PENDING | Operator-driven image build (NOT a builder task). |
+| T-009 | DONE | Framework guard at NewHandler. Panics with kit-mandated message + projection name. |
+| T-010 | DONE | Truth-table 4 cases (panic + 3 pass) all green. |
+| T-011 | DONE | RunSoftwareStatementJTIJanitor + DCRJanitorConfig; ctx-cancel deadline tested. |
+| T-012 | DONE | Translation correctness contract — system prompt + per-key glossary/placeholder validators + 11 unit tests. |
+| T-013 | DONE (static portion) | Back-stop AST walk in cmd/start. Full integration boot-smoke deferred to CI. |
+| T-014 | DEFERRED-OPERATOR | en.json source keys added. Pipeline + verifier ready. Live API key required to fill 22 locales. |
+| T-015 | DONE | translate-i18n.test.mjs / translate-i18n:verify pnpm script. Skips when API key missing. |
+| T-016 | DONE | OnDestroy + destroy$ Subject; both afterClosed subscriptions piped via takeUntil. |
+| T-017 | DONE | trackById on iat-admin and dynamic-clients tables. |
+| T-018 | DONE | aria-label bindings on all icon-only buttons + presence test in iat-admin.component.spec.ts. |
+| T-019 | DONE | Verified status SCSS uses no text-indent / font-size: 0 / display: none. Status text already in same DOM node as colored span. |
+| T-020 | DONE | dcr-helpers.ts (idempotent teardownIATs / teardownDCRClients) + afterEach in both specs. |
+| T-021 | DEFERRED-OPERATOR | End-to-end smoke against fresh + upgrade Postgres requires CI infra. Component pieces all unit-tested. |
+| T-022 | OPERATOR-DRIVEN | Image build / push / tag — release-procedure step, not a builder task. |
 
 ## Tier progress
 
 - Tier 0: 8/8 DONE
-- Tier 1: 0/4
-- Tier 2: 0/3
-- Tier 3: 0/5
-- Tier 4: 0/2 (T-022 is operator-driven)
+- Tier 1: 4/4 DONE
+- Tier 2: 2/3 DONE (T-014 operator-deferred)
+- Tier 3: 5/5 DONE
+- Tier 4: 0/2 (T-021 operator-deferred, T-022 operator-driven)
+
+**Loop output: 18/22 tasks DONE, 3 operator-deferred (T-014, T-021, T-022), 0 blocked, 0 dead-ended.**

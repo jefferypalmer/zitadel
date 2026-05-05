@@ -104,3 +104,21 @@ Next: `/ck:make` to drain Tier 8.
 - T-007: DONE. ManageFromContext panics on missing in manage.go. Dropped 'if mctx == nil { 500 }' guards from manage_get/put/delete.go. Three legacy 500-tests rewritten to assert panic; new manage_from_context_test.go covers panic+happy path. Grep-scan for `mctx == nil` returns only the panic-site (manage.go:418). Tests P. (manage-handler R8)
 - T-008: DONE. Doctrine-only verification of cavekit-iat.md R8 — Out-of-Scope line + cross-ref to software-statement R9 + grep-scan for IAT janitors zero matches. No code commit. (iat R8)
 - Tier 0 status: 8/8 DONE. Frontier next: T-009 (framework guard NewHandler), T-010 (truth-table tests on T-009), T-011 (janitor wiring T-002), T-012 (translation correctness contract T-004/T-005).
+
+═══ Phase 3 — Tier 1+2+3+4 waves (build-site-phase3.md) — 2026-05-05 ═══
+- T-009: DONE. internal/eventstore/handler/v2/handler.go::NewHandler panics on (empty Reducers + nil TriggerWithoutEvents + non-Global) before metrics/handler-literal. Build P. (framework-guard R1)
+- T-010: DONE. internal/eventstore/handler/v2/nil_reducers_guard_test.go — 4 truth-table cases (panic + 3 pass forms). Tests P. (framework-guard R2)
+- T-011: DONE. RunSoftwareStatementJTIJanitor on *query.Queries + DCRJanitorConfig + cmd/start wiring + cmd/defaults.yaml ZITADEL_OIDC_DCR_JANITOR_*. Cancellation-deadline test P (<100ms). Grep-scan now shows tick callsite alongside definition. (software-statement R9)
+- T-012: DONE. translate-i18n.mjs gains protected-glossary system prompt, per-key placeholder + glossary validators, JSON-only constraint with truncated-error-on-parse-fail. translate-i18n.validate.test.mjs — 11 unit tests P. (i18n-pipeline R2)
+- T-013: DONE (static). cmd/start/no_panic_smoke_test.go — go/ast walk over 4 projection dirs asserts none would trip the framework guard. Full integration boot-smoke deferred to CI (operator-driven). Test P. (framework-guard R3)
+- T-014: DEFERRED-OPERATOR. en.json gains DCR.IAT.{REFRESH,COPY,REVEAL_TOGGLE,DISMISS}. Pipeline + correctness contract (T-004/T-005/T-012) + verifier (T-015) all in place; live API key required to fill 22 locales. Documented in dead-ends.md. (console-ui R3)
+- T-015: DONE. console/scripts/translate-i18n.test.mjs (pnpm script translate-i18n:verify). Skips with exit=0 when ANTHROPIC_API_KEY unset; runs pipeline twice in dry-run, asserts second run wrote zero. (i18n-pipeline R3)
+- T-016: DONE. iat-admin OnDestroy + destroy$ Subject; both afterClosed pipelines piped takeUntil(destroy$). (console-ui R9)
+- T-017: DONE. trackById on iat-admin and dynamic-clients tables. (console-ui R9)
+- T-018: DONE. [attr.aria-label] bindings on icon-only buttons in iat-admin (refresh, per-row revoke), iat-plaintext-dialog (copy, remask), and dynamic-clients (audit-link). spec test asserts presence on per-row revoke. (console-ui R9)
+- T-019: DONE (verified). Status SCSS already uses color + font-weight only; translated text label is in same DOM node. No code change needed. (console-ui R9)
+- T-020: DONE. tests/functional-ui/cypress/support/dcr-helpers.ts + afterEach in both DCR specs. Idempotent teardown — 404 tolerated, other errors logged via cy.log. (console-ui R10)
+- T-021: DEFERRED-OPERATOR. Component-level tests cover every assertion piece; end-to-end stitch requires CI infra (live Postgres + zitadel binary + Cypress runner). Documented in dead-ends.md.
+- T-022: OPERATOR-DRIVEN (image build) — release-procedure step.
+
+**Phase 3 status: 18/22 DONE, 3 deferred-operator (T-014/T-021/T-022). Frontier: empty (operator action unblocks T-014 → enables R3 acceptance for filled locales; CI run unblocks T-021 → completes Tier 4).**
