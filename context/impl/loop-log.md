@@ -94,3 +94,13 @@ Next: `/ck:make` to drain Tier 8.
 
 
 
+
+═══ Phase 3 — Tier 0 wave (build-site-phase3.md) — 2026-05-05 ═══
+- T-001: DONE. Deleted internal/query/projection/dcr_software_statement_jtis.go + de-registered DCRSoftwareStatementJTIProjection in projection.go. Removed compile-time link in internal/query/dcr_software_statement_jtis.go. Build P. (cavekit-software-statement.md R9/R12)
+- T-002: DONE. cmd/setup/70.{go,sql} creates projections.dcr_software_statement_jtis1 (PK iss/jti/instance, idx expires_at). Registered in config.go + setup.go. Build P. (R9/R12)
+- T-003: DONE. internal/query/projection/no_empty_reducers_test.go — go/ast walk asserts no Reducers() returns nil or []handler.AggregateReducer{}. Test P. (R12)
+- T-004 + T-005: DONE. console/scripts/translate-i18n.{mjs,merge.mjs,merge.test.mjs} — Node ESM pipeline + pure merge module + 11 unit tests (flat + nested R4 cases, key order, manual-override preservation). pnpm scripts translate-i18n + translate-i18n:test wired. (i18n-pipeline R1/R4)
+- T-006: DONE. internal/api/oidc/dcr/software_statement/verify.go +VerifyAudience helper called by Run. PipelineDeps gains TokenEndpoint/SkipAudValidation. New result label invalid_audience added to pipeline.go + metrics.go. Config OIDC.DCR.SoftwareStatement.SkipAudValidation default false in cmd/defaults.yaml. 6/6 audience unit tests P. (software-statement R13)
+- T-007: DONE. ManageFromContext panics on missing in manage.go. Dropped 'if mctx == nil { 500 }' guards from manage_get/put/delete.go. Three legacy 500-tests rewritten to assert panic; new manage_from_context_test.go covers panic+happy path. Grep-scan for `mctx == nil` returns only the panic-site (manage.go:418). Tests P. (manage-handler R8)
+- T-008: DONE. Doctrine-only verification of cavekit-iat.md R8 — Out-of-Scope line + cross-ref to software-statement R9 + grep-scan for IAT janitors zero matches. No code commit. (iat R8)
+- Tier 0 status: 8/8 DONE. Frontier next: T-009 (framework guard NewHandler), T-010 (truth-table tests on T-009), T-011 (janitor wiring T-002), T-012 (translation correctness contract T-004/T-005).
