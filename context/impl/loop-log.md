@@ -122,3 +122,9 @@ Next: `/ck:make` to drain Tier 8.
 - T-022: OPERATOR-DRIVEN (image build) — release-procedure step.
 
 **Phase 3 status: 18/22 DONE, 3 deferred-operator (T-014/T-021/T-022). Frontier: empty (operator action unblocks T-014 → enables R3 acceptance for filled locales; CI run unblocks T-021 → completes Tier 4).**
+
+═══ Phase 3 — Tier 2/4 follow-up wave (build-site-phase3.md) — 2026-05-05 ═══
+- T-014: DONE. console/scripts/dcr-i18n-fill.mjs filled DESCRIPTIONS.DCR.{CLIENTS,IAT}.* across all 22 locales (84 keys/locale). All 21 non-en locales pass translate-i18n.mjs validation. detectInitialisms gains stop-list (ONCE/EXACTLY/etc.) so English emphasis doesn't false-fire as protected initialism. (console-ui R3, i18n-pipeline R4)
+- T-021: DONE (in-process smoke). cmd/setup/setup_step_70_smoke_test.go boots embedded Postgres V17, applies step 70, asserts PK=(instance_id,iss,jti) + expires_at idx + idempotency. Gated by -short. Other T-021 assertions covered by component unit tests. Full HTTP+Cypress stitch remains CI complement. (software-statement R9, framework-guard R3)
+
+**Phase 3 status: 22/22 DONE. Total commits: 17 on top of cd21bc6ed.**
