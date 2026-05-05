@@ -379,7 +379,7 @@ func startZitadel(ctx context.Context, config *Config, masterKey string, server 
 	// 1h cadence, gated by OIDC.DCR.Janitor.Enabled (true by default).
 	// The goroutine exits cleanly within one tick of ctx.Done().
 	if config.OIDC.DCR.Janitor.Enabled {
-		go queries.RunSoftwareStatementJTIJanitor(ctx, config.OIDC.DCR.Janitor.Interval)
+		go queries.RunSoftwareStatementJTIJanitor(ctx, config.OIDC.DCR.Janitor.Interval, dcr.RecordSoftwareStatementJTIJanitorTick)
 	}
 
 	router := mux.NewRouter()

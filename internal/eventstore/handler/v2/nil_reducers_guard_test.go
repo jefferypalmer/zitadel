@@ -98,3 +98,34 @@ func TestNewHandler_GuardCase4_PassWithGlobalProjection(t *testing.T) {
 		t.Fatal("queryGlobal must be true when projection implements GlobalProjection")
 	}
 }
+
+// cavekit-eventstore-framework-guard.md R1.1 (T-028). 5th truth-table
+// case: a projection that returns a non-empty []AggregateReducer slice
+// where every entry has nil/empty EventReducers must still trip the
+// guard. Pre-R1.1 the guard only fired on `len(aggregates) == 0`,
+// missing this degenerate-non-empty shape — the prefill loop would
+// scan the eventstore as no-op statements just as in the empty case.
+func TestNewHandler_GuardCase5_PanicOnDegenerateNonEmptyReducers(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic on degenerate non-empty Reducers (entries with empty EventReducers), got none")
+		}
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("expected string panic value, got %T: %v", r, r)
+		}
+		if !strings.Contains(msg, "refusing to construct") {
+			t.Fatalf("panic message missing 'refusing to construct' substring: %q", msg)
+		}
+	}()
+
+	p := &guardProjection{
+		name: "degenerate_non_empty",
+		reducers: []AggregateReducer{
+			{Aggregate: eventstore.AggregateType("x"), EventReducers: nil},
+			{Aggregate: eventstore.AggregateType("y"), EventReducers: []EventReducer{}},
+		},
+	}
+	_ = NewHandler(t.Context(), &Config{}, p)
+}

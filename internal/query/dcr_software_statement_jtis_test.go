@@ -15,7 +15,7 @@ func TestRunSoftwareStatementJTIJanitor_ExitsOnContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
-		q.RunSoftwareStatementJTIJanitor(ctx, time.Hour)
+		q.RunSoftwareStatementJTIJanitor(ctx, time.Hour, nil)
 		close(done)
 	}()
 	cancel()
@@ -34,7 +34,7 @@ func TestRunSoftwareStatementJTIJanitor_DisabledOnZeroInterval(t *testing.T) {
 	q := &Queries{}
 	done := make(chan struct{})
 	go func() {
-		q.RunSoftwareStatementJTIJanitor(context.Background(), 0)
+		q.RunSoftwareStatementJTIJanitor(context.Background(), 0, nil)
 		close(done)
 	}()
 	select {

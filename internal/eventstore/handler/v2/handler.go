@@ -162,11 +162,13 @@ func NewHandler(
 	projection Projection,
 ) *Handler {
 	aggregates := make(map[eventstore.AggregateType][]eventstore.EventType, len(projection.Reducers()))
+	totalEventTypes := 0
 	for _, reducer := range projection.Reducers() {
 		eventTypes := make([]eventstore.EventType, len(reducer.EventReducers))
 		for i, eventReducer := range reducer.EventReducers {
 			eventTypes[i] = eventReducer.Event
 		}
+		totalEventTypes += len(reducer.EventReducers)
 		if _, ok := aggregates[reducer.Aggregate]; ok {
 			aggregates[reducer.Aggregate] = append(aggregates[reducer.Aggregate], eventTypes...)
 			continue
@@ -174,18 +176,26 @@ func NewHandler(
 		aggregates[reducer.Aggregate] = eventTypes
 	}
 
-	// cavekit-eventstore-framework-guard.md R1: refuse to construct a
-	// projection whose Reducers() returned nothing AND has no
-	// TriggerWithoutEvents callback AND does not implement
-	// GlobalProjection. The prefill loop would otherwise scan the
-	// entire eventstore as no-op statements (the v3 BLOCKER pattern
-	// the dcr_software_statement_jtis projection exhibited before
-	// being deleted in T-001). Application-managed tables MUST move
-	// to a numbered setup step under cmd/setup/; scheduled-wakeup
-	// projections MUST set Config.TriggerWithoutEvents; field
-	// projections use FieldHandler (which constructs Handler{} via
-	// struct literal, bypassing this guard by design).
-	if len(aggregates) == 0 && config.TriggerWithoutEvents == nil {
+	// cavekit-eventstore-framework-guard.md R1 / R1.1: refuse to construct
+	// a projection that has no event reducers AND has no TriggerWithoutEvents
+	// callback AND does not implement GlobalProjection. The prefill loop
+	// would otherwise scan the entire eventstore as no-op statements (the
+	// v3 BLOCKER pattern the dcr_software_statement_jtis projection
+	// exhibited before being deleted in T-001).
+	//
+	// R1.1 (T-028 strengthening): the invariant is `totalEventTypes == 0`,
+	// not `len(aggregates) == 0`. A degenerate projection that returns
+	// `[]AggregateReducer{{Aggregate: "x", EventReducers: nil}}` has
+	// len(aggregates)==1 but produces an empty inner eventTypes slice —
+	// the prefill loop is still effectively a no-op scan. The stricter
+	// check catches the degenerate-non-empty-Reducers shape.
+	//
+	// Application-managed tables MUST move to a numbered setup step under
+	// cmd/setup/; scheduled-wakeup projections MUST set
+	// Config.TriggerWithoutEvents; field projections use FieldHandler
+	// (which constructs Handler{} via struct literal, bypassing this
+	// guard by design).
+	if totalEventTypes == 0 && config.TriggerWithoutEvents == nil {
 		if _, isGlobal := projection.(GlobalProjection); !isGlobal {
 			panic(fmt.Sprintf(
 				"eventstore/handler/v2: projection %q has empty Reducers, no TriggerWithoutEvents, and does not implement GlobalProjection — refusing to construct because the prefill loop would scan the entire eventstore as no-op statements. Use a numbered setup step (cmd/setup/NN.go) for application-managed tables, a TriggerWithoutEvents callback for scheduled-wakeup projections, or a FieldHandler for field projections.",

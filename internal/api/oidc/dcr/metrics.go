@@ -83,6 +83,17 @@ const (
 	// cavekit-software-statement.md R4, R11 / T-043.
 	MetricSoftwareStatementJWKSCacheHitsTotal            = "zitadel.dcr.software_statement_jwks_cache_hits_total"
 	MetricSoftwareStatementJWKSCacheHitsTotalDescription = "Total per-issuer JWKS cache lookups during software_statement verify. Labels: iss, outcome."
+
+	// MetricSoftwareStatementJTIJanitorReapedTotal counts every reap
+	// tick of the (iss, jti) replay-dedupe janitor. Labels: result
+	// (ok | error). cavekit-software-statement.md R9.1 / T-029.
+	MetricSoftwareStatementJTIJanitorReapedTotal            = "zitadel.dcr.software_statement_jti_janitor_reaped_total"
+	MetricSoftwareStatementJTIJanitorReapedTotalDescription = "Total ticks of the software_statement JTI replay-dedupe janitor. Labels: result."
+
+	// MetricSoftwareStatementJTIJanitorDurationSeconds records reap
+	// latency per tick. cavekit-software-statement.md R9.1 / T-029.
+	MetricSoftwareStatementJTIJanitorDurationSeconds            = "zitadel.dcr.software_statement_jti_janitor_duration_seconds"
+	MetricSoftwareStatementJTIJanitorDurationSecondsDescription = "Software_statement JTI replay-dedupe janitor reap duration."
 )
 
 // Label keys.
@@ -217,6 +228,17 @@ func RegisterMetrics() error {
 	if err := metrics.RegisterCounter(MetricSoftwareStatementJWKSCacheHitsTotal, MetricSoftwareStatementJWKSCacheHitsTotalDescription); err != nil {
 		return err
 	}
+	if err := metrics.RegisterCounter(MetricSoftwareStatementJTIJanitorReapedTotal, MetricSoftwareStatementJTIJanitorReapedTotalDescription); err != nil {
+		return err
+	}
+	if err := metrics.RegisterHistogram(
+		MetricSoftwareStatementJTIJanitorDurationSeconds,
+		MetricSoftwareStatementJTIJanitorDurationSecondsDescription,
+		"s",
+		[]float64{0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 30, 60},
+	); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -245,6 +267,22 @@ func RecordSoftwareStatementVerification(ctx context.Context, iss, result string
 	ensureRegistered()
 	_ = metrics.AddCount(ctx, MetricSoftwareStatementVerificationsTotal, 1, map[string]attribute.Value{
 		MetricLabelIss:    attribute.StringValue(iss),
+		MetricLabelResult: attribute.StringValue(result),
+	})
+}
+
+// RecordSoftwareStatementJTIJanitorTick records one reap tick of the
+// software_statement (iss, jti) replay-dedupe janitor. cavekit-software-
+// statement.md R9.1 / T-029. `result` is "ok" for a clean reap (any
+// number of rows reaped, including zero) or "error" when the DELETE
+// failed (DB unreachable, cancelled, etc.). `duration` is the wall-
+// clock time the reap took.
+func RecordSoftwareStatementJTIJanitorTick(ctx context.Context, result string, duration time.Duration) {
+	ensureRegistered()
+	_ = metrics.AddCount(ctx, MetricSoftwareStatementJTIJanitorReapedTotal, 1, map[string]attribute.Value{
+		MetricLabelResult: attribute.StringValue(result),
+	})
+	_ = metrics.AddHistogramMeasurement(ctx, MetricSoftwareStatementJTIJanitorDurationSeconds, duration.Seconds(), map[string]attribute.Value{
 		MetricLabelResult: attribute.StringValue(result),
 	})
 }

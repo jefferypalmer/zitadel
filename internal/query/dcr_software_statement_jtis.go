@@ -89,6 +89,12 @@ func (q *Queries) ReapExpiredSoftwareStatementJTIs(ctx context.Context, now time
 	return rows, nil
 }
 
+// JanitorTickRecorder is the metric-emission seam called once per reap
+// tick. cavekit-software-statement.md R9.1 / T-029. Production wires
+// this to dcr.RecordSoftwareStatementJTIJanitorTick; tests pass nil to
+// skip emission. `result` is "ok" or "error"; `duration` is wall-clock.
+type JanitorTickRecorder func(ctx context.Context, result string, duration time.Duration)
+
 // RunSoftwareStatementJTIJanitor drives a periodic reap of expired
 // (iss, jti) rows from projections.dcr_software_statement_jtis1.
 // cavekit-software-statement.md R9 — wired alongside serviceping.Start
@@ -96,12 +102,24 @@ func (q *Queries) ReapExpiredSoftwareStatementJTIs(ctx context.Context, now time
 // of ctx.Done(); reap errors are logged but do not stop the loop so a
 // transient DB failure self-recovers on the next tick.
 //
+// cavekit-software-statement.md R9.1 / T-029: each reap runs under a
+// per-tick deadline of `interval/2` so a hung DELETE (lock contention,
+// replication lag) cannot block the loop indefinitely; the next tick
+// fires on schedule. Per-tick result + duration are surfaced via
+// `recorder` so operators can distinguish "reap succeeded but did
+// nothing" from "reap is timing out" at the metric layer.
+//
 // Caller controls cadence via interval (default 1h, sourced from
 // OIDC.DCR.Janitor.Interval). Pass a non-positive interval to disable
-// (the function returns immediately with nil).
-func (q *Queries) RunSoftwareStatementJTIJanitor(ctx context.Context, interval time.Duration) {
+// (the function returns immediately with nil). `recorder` may be nil
+// (no metric emission); production wiring sets it.
+func (q *Queries) RunSoftwareStatementJTIJanitor(ctx context.Context, interval time.Duration, recorder JanitorTickRecorder) {
 	if interval <= 0 {
 		return
+	}
+	tickTimeout := interval / 2
+	if tickTimeout <= 0 {
+		tickTimeout = interval
 	}
 	t := time.NewTicker(interval)
 	defer t.Stop()
@@ -110,14 +128,25 @@ func (q *Queries) RunSoftwareStatementJTIJanitor(ctx context.Context, interval t
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			rows, err := q.ReapExpiredSoftwareStatementJTIs(ctx, time.Now())
+			started := time.Now()
+			tickCtx, cancel := context.WithTimeout(ctx, tickTimeout)
+			rows, err := q.ReapExpiredSoftwareStatementJTIs(tickCtx, started)
+			cancel()
+			duration := time.Since(started)
+			result := "ok"
 			if err != nil {
-				logging.OnError(err).WithField("rows", rows).
+				result = "error"
+			}
+			if recorder != nil {
+				recorder(ctx, result, duration)
+			}
+			if err != nil {
+				logging.OnError(err).WithField("rows", rows).WithField("duration_ms", duration.Milliseconds()).
 					Warn("dcr: software_statement JTI janitor reap failed; will retry next tick")
 				continue
 			}
 			if rows > 0 {
-				logging.WithFields("rows", rows).
+				logging.WithFields("rows", rows, "duration_ms", duration.Milliseconds()).
 					Debug("dcr: software_statement JTI janitor reaped expired rows")
 			}
 		}
