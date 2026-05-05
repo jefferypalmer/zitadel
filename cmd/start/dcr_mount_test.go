@@ -31,19 +31,26 @@ func TestDCRMount_F217_HasInterceptorStack(t *testing.T) {
 	require.NoError(t, err)
 	body := string(src)
 
-	// Both wrapped-mount lines MUST exist and MUST nest the handler
-	// inside both interceptors.
+	// Both wrapped-mount lines MUST exist and MUST contain the
+	// interceptor stack + handler factory. The outermost wrap layer
+	// differs between mounts:
+	//   dcrWrapped — adds middleware.RecoverHandler(dcrWriteRecoverError)
+	//                outside instanceInterceptor.Handler per
+	//                cavekit-manage-handler.md R9 (T-025) so panics
+	//                produce the RFC 7591 JSON envelope instead of the
+	//                text/plain FallbackRecoverHandler default.
+	//   asMetaWrapped — instanceInterceptor.Handler at the outermost.
 	assertWrapped := func(t *testing.T, label, varName, factoryFragment string) {
 		t.Helper()
-		idx := strings.Index(body, varName+" := instanceInterceptor.Handler(")
+		idx := strings.Index(body, varName+" :=")
 		require.NotEqual(t, -1, idx,
-			"%s: expected `%s := instanceInterceptor.Handler(...)` wrap line — F-217 kit AC requires the instance interceptor at the outermost wrap of the mount", label, varName)
-		// limitingAccessInterceptor.Handle MUST appear inside the
-		// instance-interceptor wrap.
+			"%s: expected `%s := …` mount-wrap line", label, varName)
 		segment := body[idx:]
 		end := strings.Index(segment, "\n\t\tapis.RegisterHandlerOnPrefix")
 		require.NotEqual(t, -1, end, "%s: missing apis.RegisterHandlerOnPrefix call after wrap", label)
 		wrap := segment[:end]
+		assert.Contains(t, wrap, "instanceInterceptor.Handler",
+			"%s: instanceInterceptor MUST be in the wrap chain — F-217 / R1 AC", label)
 		assert.Contains(t, wrap, "limitingAccessInterceptor.Handle",
 			"%s: limitingAccessInterceptor MUST be in the wrap chain — F-217 / R1 AC", label)
 		assert.Contains(t, wrap, factoryFragment,

@@ -189,9 +189,10 @@ func TestGetClient_MalformedDCRMeta_StillServes200(t *testing.T) {
 // TestGetClient_NoManageContext_Panics asserts cavekit-manage-handler.md
 // R8: ManageFromContext panics when called without
 // manageVerifyDispatch. Production never trips this — the dispatcher
-// monopoly guarantees the value is set. The recover middleware at
-// internal/api/oidc/op.go catches the panic if a router regression
-// mounts a handler outside the dispatch chain.
+// monopoly guarantees the value is set. cavekit-manage-handler.md R9
+// (T-025) wraps the DCR router in middleware.RecoverHandler with
+// dcrWriteRecoverError so a router regression still produces an
+// RFC 7591 JSON envelope rather than the text/plain default.
 func TestGetClient_NoManageContext_Panics(t *testing.T) {
 	deps := newGETDeps(&ManageMetaRow{AppID: "app-1", ClientIDIssuedAt: fixedIssued}, nil)
 	h := getClientHandler(deps)

@@ -9,9 +9,10 @@ import (
 // cavekit-manage-handler.md R8 (T-007). ManageFromContext panics when
 // called without manageVerifyDispatch in the chain. Production paths
 // never trip the panic — the dispatcher monopoly guarantees the value
-// is set; the recover middleware in internal/api/oidc/op.go catches
-// the panic if a future router regression mounts a handler outside the
-// dispatch.
+// is set. cavekit-manage-handler.md R9 (T-025) wraps the DCR router in
+// middleware.RecoverHandler so a router regression that mounts a
+// handler outside the dispatch chain still emits the RFC 7591 JSON
+// envelope from dcrWriteRecoverError (not the text/plain fallback).
 func TestManageFromContext_PanicOnMissing(t *testing.T) {
 	defer func() {
 		r := recover()

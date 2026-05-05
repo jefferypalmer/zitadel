@@ -886,7 +886,15 @@ func startAPIs(
 		if err := dcrDeps.Validate(); err != nil {
 			return nil, fmt.Errorf("dcr deps validate: %w", err)
 		}
-		dcrWrapped := instanceInterceptor.Handler(limitingAccessInterceptor.Handle(dcr.NewHandler(dcrDeps)))
+		// cavekit-manage-handler.md R9 (T-025): DCR routes mount
+		// independently of oidcServer.Handler's middleware chain, so the
+		// OIDC RecoverHandler does NOT cover them. Without this dcr-shape
+		// recover wrapper, an R8 ManageFromContext panic falls through to
+		// FallbackRecoverHandler at start.go:457-461 — which writes
+		// text/plain instead of the RFC 7591 §3.2.2 JSON envelope.
+		dcrWrapped := middleware.RecoverHandler(dcrWriteRecoverError)(
+			instanceInterceptor.Handler(limitingAccessInterceptor.Handle(dcr.NewHandler(dcrDeps))),
+		)
 		apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcrWrapped)
 		// RFC 8414 AS metadata (cavekit-discovery-and-as-metadata.md
 		// R2 / T-030). Mounted on the yaml gate; the runtime feature

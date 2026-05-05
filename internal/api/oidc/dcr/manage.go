@@ -406,9 +406,12 @@ func contextWithManage(ctx context.Context, mctx *ManageContext) context.Context
 // [manageVerifyDispatch]. Panics with a clear programmer-error message
 // when called from a request that did not flow through the manage
 // dispatch — cavekit-manage-handler.md R8. The dispatcher monopoly
-// guarantees production paths never reach the panic; the recover
-// middleware at internal/api/oidc/op.go catches it if a future router
-// regression mounts a handler outside the dispatch chain.
+// guarantees production paths never reach the panic; per
+// cavekit-manage-handler.md R9 (T-025) the DCR router is wrapped in
+// `middleware.RecoverHandler(dcrWriteRecoverError)` at
+// `cmd/start/start.go` so a router regression that mounts a handler
+// outside the dispatch chain still emits the RFC 7591 §3.2.2 JSON
+// envelope (NOT the text/plain FallbackRecoverHandler default).
 func ManageFromContext(ctx context.Context) *ManageContext {
 	v := ctx.Value(manageContextKey{})
 	if v == nil {
