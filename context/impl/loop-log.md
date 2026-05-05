@@ -128,3 +128,20 @@ Next: `/ck:make` to drain Tier 8.
 - T-021: DONE (in-process smoke). cmd/setup/setup_step_70_smoke_test.go boots embedded Postgres V17, applies step 70, asserts PK=(instance_id,iss,jti) + expires_at idx + idempotency. Gated by -short. Other T-021 assertions covered by component unit tests. Full HTTP+Cypress stitch remains CI complement. (software-statement R9, framework-guard R3)
 
 **Phase 3 status: 22/22 DONE. Total commits: 17 on top of cd21bc6ed.**
+
+═══ Phase 3 — Tier 5 wave (build-site-phase3.md) — 2026-05-05 ═══
+- T-023: DONE. cmd/start/dcr_software_statement_pipeline.go. Pipeline wired in production. (R14)
+- T-024: DONE. PipelineDeps.Validate() + VerifyAudience defense-in-depth on empty tokenEndpoint. (R15)
+- T-025: DONE. middleware.RecoverHandler(dcrWriteRecoverError) wraps dcr router; emits JSON envelope on panic. (R9 manage)
+- T-026: DONE. Filled OPERATOR_PANEL/RAT_DIALOG/ORG_IAT/ORG_POLICY/MANAGED_BY_CLIENT in 21 non-en locales. (R5 i18n)
+- T-027: DONE. teardownIATs POST .../_revoke. (R10.1)
+- T-028: DONE. NewHandler totalEventTypes==0 + 5th truth-table case. (R1.1 framework-guard)
+- T-029: DONE. Janitor per-tick deadline + reaped/duration metrics. (R9.1 software-statement)
+- T-030: DONE. DISMISS aria-label on iat-plaintext-dialog close icon. (R9.1 console)
+- T-031: DONE. getComputedStyle status-badge spec test. (R9.2 console)
+- T-032: DONE. loadPage Promise via takeUntil(destroy$). (F-010)
+- T-033: DONE. trackById nullish-coalesce. (F-011)
+- T-034: DONE. Embedded-PG bind 3-attempt retry. (F-013)
+- T-035: DONE. dcr-i18n-fill*.mjs archived with README. (F-009)
+
+**Phase 3 + Tier 5 status: 35/35 DONE. 9 commits this wave.**

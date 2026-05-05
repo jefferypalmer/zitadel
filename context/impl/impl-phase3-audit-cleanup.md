@@ -40,9 +40,34 @@ Build site: context/plans/build-site-phase3.md
 - Tier 3: 5/5 DONE
 - Tier 4: 2/2 DONE
 
-**Loop output: 22/22 tasks DONE.**
+**Loop output: 22/22 tasks DONE (Tier 0..4).**
 
 Every in-scope kit acceptance criterion is met by code in this branch.
 Operator complements (live HTTP + browser end-to-end on real CI infra,
 release-image build + push) remain available but no longer block the
 builder loop.
+
+## Tier 5 — post-loop revision (added 2026-05-05 by /ck:check, completed same day)
+
+| Task | Status | Notes |
+|------|--------|-------|
+| T-023 | DONE | cmd/start/dcr_software_statement_pipeline.go assembles PipelineDeps; assigned to dcrDeps.SoftwareStatementPipeline; Validate() refuses Enabled+nil. F-003 closed. |
+| T-024 | DONE | PipelineDeps.Validate() rejects empty TokenEndpoint when SkipAudValidation=false; VerifyAudience defense-in-depth. F-002 closed. |
+| T-025 | DONE | dcrWriteRecoverError + RecoverHandler wrap on dcr router; JSON envelope on panic. F-001 closed. |
+| T-026 | DONE | OPERATOR_PANEL/RAT_DIALOG/ORG_IAT/ORG_POLICY/MANAGED_BY_CLIENT filled in 21 non-en locales. F-004 closed. |
+| T-027 | DONE | teardownIATs uses POST .../_revoke. F-005 closed. |
+| T-028 | DONE | NewHandler guard on totalEventTypes==0 + 5th truth-table case. F-007 closed. |
+| T-029 | DONE | Janitor per-tick deadline + reaped/duration metrics. F-006 closed. |
+| T-030 | DONE | DISMISS aria-label wired on iat-plaintext-dialog title close button. R9.1. |
+| T-031 | DONE | getComputedStyle status-badge assertion in spec. R9.2. |
+| T-032 | DONE | iat-admin loadPage Promise piped through takeUntil. F-010 closed. |
+| T-033 | DONE | trackById defensive nullish-coalesce. F-011 closed. |
+| T-034 | DONE | Embedded-Postgres bind 3-attempt retry on freeTCPPort race. F-013 closed. |
+| T-035 | DONE | Both fill scripts archived to console/scripts/_archive/ with README. F-009 closed. |
+
+## Tier progress
+
+- Tier 0..4: 22/22
+- Tier 5: 13/13
+
+**Total: 35/35 DONE. All P0/P1 inspection findings closed.**
