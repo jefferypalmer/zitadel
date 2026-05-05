@@ -22,8 +22,8 @@ type guardProjection struct {
 	reducers []AggregateReducer
 }
 
-func (p *guardProjection) Name() string                  { return p.name }
-func (p *guardProjection) Reducers() []AggregateReducer  { return p.reducers }
+func (p *guardProjection) Name() string                 { return p.name }
+func (p *guardProjection) Reducers() []AggregateReducer { return p.reducers }
 
 // guardGlobalProjection adds the GlobalProjection marker (FilterGlobalEvents)
 // so case 4 exercises the global-projection escape hatch.

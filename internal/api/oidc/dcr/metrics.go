@@ -124,9 +124,9 @@ const (
 
 // Outcome-label values for [MetricSoftwareStatementJWKSCacheHitsTotal].
 const (
-	MetricOutcomeHit            = "hit"
-	MetricOutcomeMiss           = "miss"
-	MetricOutcomeRefetchFailed  = "refetch_failed"
+	MetricOutcomeHit           = "hit"
+	MetricOutcomeMiss          = "miss"
+	MetricOutcomeRefetchFailed = "refetch_failed"
 )
 
 // Result-label values for [MetricOrgPolicyChangesTotal].
@@ -139,17 +139,17 @@ const (
 // Mirror the kit's R11 enumeration verbatim — adding new values here
 // requires a kit amendment.
 const (
-	MetricSSResultAccepted              = "accepted"
-	MetricSSResultUntrusted             = "untrusted"
-	MetricSSResultExpired               = "expired"
-	MetricSSResultReplay                = "replay"
-	MetricSSResultInvalidSignature      = "invalid_signature"
-	MetricSSResultInvalidStructure      = "invalid_structure"
-	MetricSSResultFetchFailed           = "fetch_failed"
-	MetricSSResultUnsupportedAlgorithm  = "unsupported_algorithm"
-	MetricSSResultMissingRequiredClaim  = "missing_required_claim"
-	MetricSSResultNotYetValid           = "not_yet_valid"
-	MetricSSResultInvalidAudience       = "invalid_audience"
+	MetricSSResultAccepted             = "accepted"
+	MetricSSResultUntrusted            = "untrusted"
+	MetricSSResultExpired              = "expired"
+	MetricSSResultReplay               = "replay"
+	MetricSSResultInvalidSignature     = "invalid_signature"
+	MetricSSResultInvalidStructure     = "invalid_structure"
+	MetricSSResultFetchFailed          = "fetch_failed"
+	MetricSSResultUnsupportedAlgorithm = "unsupported_algorithm"
+	MetricSSResultMissingRequiredClaim = "missing_required_claim"
+	MetricSSResultNotYetValid          = "not_yet_valid"
+	MetricSSResultInvalidAudience      = "invalid_audience"
 )
 
 // Result-label values for [MetricRegistrationsTotal].

@@ -334,10 +334,10 @@ func TestPUT_Decode_413_BodyTooLarge(t *testing.T) {
 	deps := newPUTDeps(u)
 	deps.MaxBodyBytes = 16 // tiny cap for the test
 	body := validPUTBody(t, &RFC7591Metadata{
-		ClientName:    strings.Repeat("x", 200),
-		RedirectURIs:  []string{"https://example.com/cb"},
-		GrantTypes:    []string{"authorization_code"},
-		ResponseTypes: []string{"code"},
+		ClientName:              strings.Repeat("x", 200),
+		RedirectURIs:            []string{"https://example.com/cb"},
+		GrantTypes:              []string{"authorization_code"},
+		ResponseTypes:           []string{"code"},
 		TokenEndpointAuthMethod: "client_secret_basic",
 		ApplicationType:         "web",
 	})

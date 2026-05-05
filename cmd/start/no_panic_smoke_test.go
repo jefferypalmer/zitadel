@@ -17,12 +17,14 @@ import (
 // TriggerWithoutEvents + non-Global) combination. This static walk
 // asserts that no projection currently registered in cmd/setup or
 // cmd/start would trip the guard at startup — equivalent to the kit's
-// `grep -rn 'func.*Reducers().*\[\]handler.AggregateReducer' \
-//     internal/admin/repository/eventsourcing/handler/ \
-//     internal/auth/repository/eventsourcing/handler/ \
-//     internal/notification/handlers/ \
-//     internal/query/projection/ | \
-//   xargs grep -l 'return nil$\|return \[\]handler.AggregateReducer{}$'`
+//
+//	`grep -rn 'func.*Reducers().*\[\]handler.AggregateReducer' \
+//	    internal/admin/repository/eventsourcing/handler/ \
+//	    internal/auth/repository/eventsourcing/handler/ \
+//	    internal/notification/handlers/ \
+//	    internal/query/projection/ | \
+//	  xargs grep -l 'return nil$\|return \[\]handler.AggregateReducer{}$'`
+//
 // returning empty after T-001 has been applied.
 //
 // The full boot-smoke (cases (a) fresh Postgres + (b) upgrade

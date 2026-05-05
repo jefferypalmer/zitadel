@@ -732,11 +732,11 @@ func startAPIs(
 			}
 		}
 		dcrDeps := dcr.RegistrationDeps{
-			Queries:                  &dcrQueriesAdapter{q: queries},
-			Verifier:                 commands, // *command.Commands.VerifyIATPlaintext satisfies dcr.IATVerifier
-			Parser:                   command.ParseIATPlaintext,
-			Config:                   oidc.DCRClampAdapter{C: &config.OIDC.DCR},
-			AnonConfig:               oidc.DCRAnonAdapter{C: &config.OIDC.DCR},
+			Queries:                   &dcrQueriesAdapter{q: queries},
+			Verifier:                  commands, // *command.Commands.VerifyIATPlaintext satisfies dcr.IATVerifier
+			Parser:                    command.ParseIATPlaintext,
+			Config:                    oidc.DCRClampAdapter{C: &config.OIDC.DCR},
+			AnonConfig:                oidc.DCRAnonAdapter{C: &config.OIDC.DCR},
 			SupportedSigAlgs:          oidc.SupportedSigningAlgs(),
 			SoftwareStatementEnabled:  config.OIDC.DCR.SoftwareStatement.Enabled,
 			SoftwareStatementPipeline: ssPipeline,
@@ -817,7 +817,7 @@ func startAPIs(
 						// canonical bytes through. nil = neither field
 						// in PUT body → command emits .removed if a row
 						// previously stored inline jwks.
-						JwksInline:  []byte(req.Clamped.Jwks),
+						JwksInline: []byte(req.Clamped.Jwks),
 					}
 					res, err := commands.UpdateRegisteredClient(ctx, in)
 					if err != nil {

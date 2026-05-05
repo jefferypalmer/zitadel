@@ -140,10 +140,10 @@ type DCRClampAdapter struct {
 	C *DCRConfig
 }
 
-func (a DCRClampAdapter) AllowedGrantTypes() []string         { return a.C.AllowedGrantTypes }
-func (a DCRClampAdapter) AllowedResponseTypes() []string      { return a.C.AllowedResponseTypes }
-func (a DCRClampAdapter) AllowedAuthMethods() []string        { return a.C.AllowedAuthMethods }
-func (a DCRClampAdapter) AllowedApplicationTypes() []string   { return a.C.AllowedApplicationTypes }
+func (a DCRClampAdapter) AllowedGrantTypes() []string       { return a.C.AllowedGrantTypes }
+func (a DCRClampAdapter) AllowedResponseTypes() []string    { return a.C.AllowedResponseTypes }
+func (a DCRClampAdapter) AllowedAuthMethods() []string      { return a.C.AllowedAuthMethods }
+func (a DCRClampAdapter) AllowedApplicationTypes() []string { return a.C.AllowedApplicationTypes }
 func (a DCRClampAdapter) AllowedRedirectURIHostPatterns() []string {
 	return a.C.AllowedRedirectURIHostPatterns
 }

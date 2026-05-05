@@ -294,8 +294,8 @@ type RegisterRequest struct {
 	// OIDC.DCR.RegistrationAccessToken.Lifetime". When a resolver is
 	// wired, the value supersedes the static config in the Register
 	// closure's RAT issuance path.
-	EffectiveRATLifetime     time.Duration
-	EffectivePolicyResolved  bool
+	EffectiveRATLifetime    time.Duration
+	EffectivePolicyResolved bool
 }
 
 // RegisterResult is the dcr-internal shape returned by the closure.
