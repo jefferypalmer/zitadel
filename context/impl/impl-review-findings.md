@@ -37,3 +37,36 @@ Three PARTIAL coverage findings (R1 AC3, R4 AC2 fixture, R4 AC2 click-through) t
 ## Next
 
 Run `/ck:make` to address Tier 8 (T-091..T-099). The completion sentinel from the prior `/ck:make` run remains valid for Tier 6 — these are fresh tasks routed through a new tier.
+
+---
+
+# Review Findings — /ck:check Phase 3 audit-cleanup (2026-05-05)
+
+Build site: context/plans/build-site-phase3.md
+Source review: `git diff cd21bc6ed..HEAD` (commits 1f2df9105 → 900d395ec, Phase 3 v3 audit cleanup, 17 commits).
+Verdict: REVISE — 0 P0, 5 P1, 3 P2, 6 P3.
+
+| Finding | Severity | File | Status | Maps to amended kit R |
+|---------|----------|------|--------|---------------------|
+| F-001: ManageFromContext panic NOT caught by cited recover middleware — DCR routes mount independently of oidcServer.Handler chain; panics fall through to FallbackRecoverHandler (text/plain) | P1 | `internal/api/oidc/dcr/manage.go:411-416`, `cmd/start/start.go:457-461,868-869`, `internal/api/oidc/op.go:318` | NEW | cavekit-manage-handler.md R9 |
+| F-002: VerifyAudience accepts when both `aud` and `tokenEndpoint` are empty strings — defense-in-depth failure of R13 audience binding | P1 | `internal/api/oidc/dcr/software_statement/verify.go:215-217` | NEW | cavekit-software-statement.md R15 |
+| F-003: SoftwareStatementPipeline never wired in production — RegistrationDeps.SoftwareStatementPipeline left nil in start.go; all of R5/R9/R13 dead code | P1 | `internal/api/oidc/dcr/wire.go:184,493`, `cmd/start/start.go:721-870` | NEW | cavekit-software-statement.md R14 |
+| F-004: T-014 i18n fill missed OPERATOR_PANEL, RAT_DIALOG, ORG_IAT, MANAGED_BY_CLIENT subtrees in every non-en locale | P1 | `console/src/assets/i18n/{ar,bg,cs,de,...}.json` (21 files) | NEW | cavekit-i18n-pipeline.md R5 |
+| F-005: Cypress IAT teardown DELETE points at non-existent endpoint — silent no-op every test (admin proto only registers POST .../_revoke) | P1 | `tests/functional-ui/cypress/support/dcr-helpers.ts:36-42` | NEW | cavekit-console-ui-docs-and-observability.md R10.1 |
+| F-006: Janitor uses long-lived ctx, no per-tick timeout, no metrics — single hung query holds the goroutine until shutdown | P2 | `internal/query/dcr_software_statement_jtis.go:102-125` | NEW | cavekit-software-statement.md R9.1 |
+| F-007: NewHandler guard misses degenerate non-empty Reducers (entries with empty EventReducers) | P2 | `internal/eventstore/handler/v2/handler.go:188` | NEW | cavekit-eventstore-framework-guard.md R1.1 |
+| F-008: AST back-stop tests only inspect single-statement Reducers bodies; misses var-build-then-return shapes | P3 | `internal/query/projection/no_empty_reducers_test.go:76-78`, `cmd/start/no_panic_smoke_test.go:84-86` | NEW | cavekit-eventstore-framework-guard.md R1.1 |
+| F-009: 1133-line one-shot dcr-i18n-fill.mjs lives next to the canonical pipeline; misleads future operators about the canonical translation path | P3 | `console/scripts/dcr-i18n-fill.mjs` | NEW | (cleanup task) |
+| F-010: iat-admin loadPage Promise chain bypasses takeUntil(destroy$) — late toasts and BehaviorSubject writes after navigate-away | P3 | `console/src/app/modules/iat-admin/iat-admin.component.ts:62-80` | NEW | cavekit-console-ui-docs-and-observability.md R9 |
+| F-011: trackById throws on null/undefined rows (no defensive nullish-coalesce) | P3 | `iat-admin.component.ts:41`, `dynamic-clients.component.ts:27-28` | NEW | cavekit-console-ui-docs-and-observability.md R9 |
+| F-012: Cypress dcr-helpers tolerates 404 indistinguishably from URL-misconfiguration — masked F-005 | P2 | `tests/functional-ui/cypress/support/dcr-helpers.ts:43,77` | NEW | cavekit-console-ui-docs-and-observability.md R10.1 |
+| F-013: Embedded-Postgres freeTCPPort race acknowledged but not retried — flake risk on busy CI | P3 | `cmd/setup/setup_step_70_smoke_test.go:136-149` | NEW | (test hardening) |
+| F-014: Comments in 3 sites cite the wrong recover layer (compounds F-001) | P3 | `manage.go:410-411`, `manage_get_test.go:192-194`, `manage_from_context_test.go:12-14` | NEW | cavekit-manage-handler.md R9 |
+
+## Surveyor-Specific Gaps (in-scope, not bugs)
+
+| Finding | Cavekit | Status |
+|---------|---------|--------|
+| DISMISS key in 22 locales but bound to no template | cavekit-console-ui-docs-and-observability.md R9.1 | NEW |
+| getComputedStyle assertion absent from iat-admin.component.spec.ts | cavekit-console-ui-docs-and-observability.md R9.2 | NEW |
+| R3 reproducibility verifier never run with live API key | cavekit-i18n-pipeline.md R3 (existing) | NEW |

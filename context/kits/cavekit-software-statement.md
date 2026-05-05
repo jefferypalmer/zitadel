@@ -1,7 +1,7 @@
 ---
 created: "2026-04-28T00:00:00Z"
-last_edited: "2026-04-28T00:00:00Z"
-complexity: unknown
+last_edited: "2026-05-05T18:00:00Z"
+complexity: medium
 ---
 
 # Cavekit: RFC 7591 §2.3 `software_statement` Verification
@@ -123,7 +123,7 @@ Defines a production-grade verifier for the RFC 7591 §2.3 `software_statement` 
 **Dependencies:** R5, R9; `cavekit-register-handler.md` R6.
 
 ### R9: JTI replay-dedupe storage
-**Description:** Replay protection requires durable per-`(iss, jti)` storage with retention bounded by JWT max lifetime plus a configurable buffer. **Backing store: Postgres** — reuses Zitadel's existing infrastructure (no new operational dependency), and matches the prevailing pattern for unique-constraint-backed dedupe (e.g., the IAT slot dedupe in `cavekit-iat.md` R3). The write load is bounded — one row per accepted software_statement, with periodic TTL eviction.
+**Description:** Replay protection requires durable per-`(iss, jti)` storage with retention bounded by JWT max lifetime plus a configurable buffer. **Backing store: Postgres** — reuses Zitadel's existing infrastructure (no new operational dependency), and matches the prevailing pattern for unique-constraint-backed dedupe (e.g., the IAT slot dedupe in `cavekit-iat.md` R3). The write load is bounded — one row per accepted software_statement, with periodic TTL eviction. Strengthen with two new requirements: (a) the replay-dedupe table is created via a numbered setup step (`cmd/setup/NN.go`), NOT registered as a projection in `internal/query/projection/projection.go` — application-managed dedup tables that are not driven by event reducers MUST NOT be registered as projections; (b) the reaper is wired into a periodic janitor goroutine started from `cmd/start/start.go` near the existing scheduler-and-periodic-jobs block.
 
 **Acceptance Criteria:**
 - [ ] A new Postgres table (name follows the prevailing projection-table convention; e.g., `projections.dcr_software_statement_jtis1`) records `(software_statement_iss, software_statement_jti, created_at, expires_at, instance_id)` rows.
@@ -132,6 +132,12 @@ Defines a production-grade verifier for the RFC 7591 §2.3 `software_statement` 
 - [ ] A periodic janitor (reusing Zitadel's existing eviction infrastructure — see how IAT exhausted-slot rows are reaped in `cavekit-iat.md`) removes rows past `expires_at`; the dedupe window is therefore bounded to roughly (JWT max lifetime) + RetentionBuffer.
 - [ ] A second registration request with the same `(iss, jti)` within the retention window returns 400 `invalid_software_statement` with i18n key `Errors.DCR.SoftwareStatement.Replay` per R5.
 - [ ] When the database is unreachable, the verifier MUST fail-closed — a registration carrying any `software_statement` is rejected with `Errors.DCR.SoftwareStatement.InvalidSignature` (an attacker who can knock the dedupe store offline MUST NOT win replay capability).
+- [ ] Table `projections.dcr_software_statement_jtis1` is created by a numbered setup step under `cmd/setup/`. The step is registered in `cmd/setup/setup.go`'s migration slice.
+- [ ] No file under `internal/query/projection/` registers a projection for this table; specifically, `newProjectionsList()` does NOT contain a `DCRSoftwareStatementJTIProjection` entry.
+- [ ] A reaper function on `*query.Queries` (e.g. `ReapExpiredSoftwareStatementJTIs(ctx, now) (int64, error)`) deletes every row with `expires_at < now`.
+- [ ] A janitor goroutine started during `cmd/start.go` (alongside `serviceping.Start` etc.) calls the reaper on a configurable `time.Ticker` interval (default 1h, configured via `OIDC.DCR.Janitor.{Enabled,Interval}` in `cmd/defaults.yaml` with corresponding `ZITADEL_OIDC_DCR_JANITOR_*` env-var bindings).
+- [ ] The janitor exits cleanly on context cancellation (test asserts goroutine returns within 100ms of ctx.Done()).
+- [ ] grep-scan: `grep -rn "ReapExpiredSoftwareStatementJTIs" --include='*.go'` shows the janitor `tick()` callsite in addition to the function definition (i.e., zero callers is a regression).
 
 **Dependencies:** R5.
 
@@ -158,6 +164,66 @@ Defines a production-grade verifier for the RFC 7591 §2.3 `software_statement` 
 
 **Dependencies:** R5; `cavekit-console-ui-docs-and-observability.md` R7, R8.
 
+### R12: Application-managed tables avoid the projection framework
+**Description:** When a database table is populated by direct application INSERTs (and optionally TTL-DELETE'd by a janitor) and is NOT a materialization of any event stream, it MUST NOT be registered with the projection framework via `internal/query/projection/projection.go`. Instead, the table is created by a numbered setup step (`cmd/setup/NN.go` + embedded SQL) and accessed via raw queries on `*query.Queries`. This rule applies to dedup tables, replay-protection tables, rate-limit counters, and any other state table not derived from eventstore events.
+
+**Acceptance Criteria:**
+- [ ] No file under `internal/query/projection/` declares a projection whose `Reducers()` returns nil or `[]handler.AggregateReducer{}` (empty slice).
+- [ ] A "framework guard" in `internal/eventstore/handler/v2/handler.go::NewHandler` panics if a Handler would be constructed with `len(eventTypes) == 0 && triggerWithoutEvents == nil && !queryGlobal`. (AUTHORITATIVE definition: `cavekit-eventstore-framework-guard.md` R1 — this AC is a one-way existence claim that the framework-guard kit fulfills; do not edit the predicate here without updating R1 there.)
+- [ ] The kit `cavekit-software-statement.md` R9 + the soon-to-exist `cavekit-eventstore-framework-guard.md` together prevent the JTI-projection mistake from recurring on future kits.
+
+**Dependencies:** `cavekit-eventstore-framework-guard.md` (the framework-side guard).
+
+### R13: Auto-validate `aud` claim when present in software_statement
+**Description:** RFC 7519 §4.1.3 makes the `aud` claim optional, but RFC 7591 §2.3 software statements often include `aud` to bind the statement to a specific authorization server. When the parsed software_statement JWT body contains `aud`, the verifier MUST check that it equals (or contains) the configured token-endpoint URL. Operators may opt out via a new config flag for backwards-compat with issuers that populate `aud` differently.
+
+**Acceptance Criteria:**
+- [ ] `OIDC.DCR.SoftwareStatement.SkipAudValidation: false` (default) added to `cmd/defaults.yaml` with env-var binding `ZITADEL_OIDC_DCR_SOFTWARESTATEMENT_SKIPAUDVALIDATION`.
+- [ ] When `aud` is absent in the JWT body, verifier behavior is unchanged (no new failure mode).
+- [ ] When `aud` is a string and matches the token-endpoint URL exactly, verification proceeds.
+- [ ] When `aud` is an array containing the token-endpoint URL, verification proceeds.
+- [ ] When `aud` is present but does NOT match (string) or contain (array) the token-endpoint URL, verification fails with a new result enum value `invalid_audience` mapped to `invalid_software_statement` per RFC 7591 §3.2.2.
+- [ ] When `SkipAudValidation: true`, behavior reverts to "no aud check" (Phase 2 status quo).
+- [ ] Verifier metric `zitadel.dcr.software_statement_verifications_total` adds a new label-value `result=invalid_audience` (kit `cavekit-software-statement.md` R11 metric enum extended).
+- [ ] Unit tests in `internal/api/oidc/dcr/software_statement/verify_test.go` cover all six cases above.
+
+**Dependencies:** R5 (signature and claim verification); R11 (OpenTelemetry surface — adds new label-value).
+
+### R14: SoftwareStatementPipeline MUST be wired in production (post-loop revision F-003)
+**Description:** The Phase 2 + Phase 3 verifier pipeline (Parse → Lookup → JWKS-fetch → Verify → VerifyAudience → VerifyRequiredClaims → RecordReplay) was decomposed into `software_statement.PipelineDeps` consumed by `dcr.RegistrationDeps.SoftwareStatementPipeline` (`internal/api/oidc/dcr/wire.go:184` + `:493`). The dispatcher gates execution on `if deps.SoftwareStatementPipeline != nil { … }`. Today `cmd/start/start.go` constructs every other field of `RegistrationDeps` but never assigns `SoftwareStatementPipeline` — production traffic short-circuits to the Phase-1 "any non-empty `software_statement` → unapproved" fallback, which masks the gap. Every R5/R9/R13 test passes in isolation while the integrated path is dead in production. R14 makes the wiring explicit and verifiable.
+
+**Acceptance Criteria:**
+- [ ] `cmd/start/start.go` constructs a `*software_statement.PipelineDeps` and assigns it to `dcrDeps.SoftwareStatementPipeline` when `OIDC.DCR.SoftwareStatement.Enabled=true`.
+- [ ] `TokenEndpoint` is sourced from the OIDC discovery document's absolute token-endpoint URL (the value already built by `op.go` for `.well-known/openid-configuration`).
+- [ ] `dcr.RegistrationDeps.Validate()` returns an error when `SoftwareStatementEnabled && SoftwareStatementPipeline == nil` so a misconfigured wiring fails fast at boot.
+- [ ] An integration test starts the server with `Enabled=true`, posts a verified software_statement, and asserts the verifier's metric increments (`zitadel.dcr.software_statement_verifications_total{result="accepted"}`) — proving the pipeline is reached, not bypassed.
+- [ ] When `Enabled=false`, the pipeline is correctly nil-gated and the fallback envelope path is preserved.
+
+**Dependencies:** R5, R9, R13 (the entire verifier surface this R wires); cavekit-register-handler.md R4 (RegistrationDeps surface).
+
+### R15: TokenEndpoint MUST be non-empty when SkipAudValidation=false (post-loop revision F-002)
+**Description:** `VerifyAudience` (`internal/api/oidc/dcr/software_statement/verify.go`) compares the JWT body's `aud` claim against `tokenEndpoint`. The current implementation accepts when both `aud` and `tokenEndpoint` are empty strings (`case string: if v == tokenEndpoint { return nil }`). An operator misconfiguration (or a missing R14 wiring) that leaves `TokenEndpoint == ""` combined with a malicious software_statement carrying `"aud": ""` accepts the JWT — a defense-in-depth failure of the audience binding R13 was meant to provide.
+
+**Acceptance Criteria:**
+- [ ] `software_statement.PipelineDeps.Validate()` returns an error when `!SkipAudValidation && TokenEndpoint == ""`.
+- [ ] `VerifyAudience` rejects with `InvalidAudienceKey` when called with `tokenEndpoint == ""` regardless of the source of the misconfiguration (defense in depth).
+- [ ] Unit test pinning: `aud == "" && tokenEndpoint == "" && skipAudValidation == false` → `invalid_audience`.
+- [ ] Boot-time: `start.go` calls `PipelineDeps.Validate()` and surfaces the error, blocking startup.
+
+**Dependencies:** R13, R14.
+
+### R9.1: Janitor MUST emit per-tick metrics and run with a per-tick deadline (post-loop revision F-006)
+**Description:** Strengthens R9. `RunSoftwareStatementJTIJanitor` currently uses the long-lived start `ctx` for every reap, with no `WithTimeout` per tick and no per-tick observability. A hung DELETE (lock contention, replication lag) blocks the goroutine until shutdown; transient errors emit a single `slog.Warn` at most every Interval (1h default). Operators get no signal that the reaper is healthy vs hung.
+
+**Acceptance Criteria:**
+- [ ] Each reap runs under `context.WithTimeout(ctx, interval/2)` (or similar bounded sub-context) so a hung DELETE does not block the loop indefinitely.
+- [ ] Metric `zitadel.dcr.software_statement_jti_janitor_reaped_total` (counter, labels `result={ok|error}`) emitted per tick.
+- [ ] Metric `zitadel.dcr.software_statement_jti_janitor_duration_seconds` (histogram) records reap latency.
+- [ ] Operator runbook documents both metric names with healthy-vs-degraded interpretations.
+- [ ] Test: simulated long DELETE (DB lock) does not block the next scheduled tick.
+
+**Dependencies:** R9 (the function being strengthened).
+
 ## Out of Scope
 - Per-org `TrustedIssuers` (instance-only in Phase 2; org-level overrides not requested).
 - Issuance of `software_statement` JWTs by Zitadel itself (Zitadel is verifier here, not issuer).
@@ -165,6 +231,8 @@ Defines a production-grade verifier for the RFC 7591 §2.3 `software_statement` 
 - `software_statement` rotation / revocation lists from trusted issuers.
 - Trusted-issuer JWKS pinning by thumbprint (current design pins by `iss` + cached JWKS only).
 - Translation tickets for additional locales beyond the 22 yaml bundles.
+- T-045: populating issued access-token `aud` claim from `resource=` parameter — Phase 3.
+- Cert-pinning / custom-CA injection on JWKS fetcher — Phase 3 / on-prem concern.
 
 ## Cross-References
 - See `cavekit-config.md` R1: the Phase 1 `OIDC.DCR.SoftwareStatement.*` config tree refined by R1.
@@ -173,6 +241,9 @@ Defines a production-grade verifier for the RFC 7591 §2.3 `software_statement` 
 - See `cavekit-security-hardening.md` R3: log redaction must cover the `software_statement` field on audit-log emission.
 - See `cavekit-console-ui-docs-and-observability.md` R3, R7, R8: i18n fallback contract, OTel span / metric registration.
 - See `cavekit-console-phase2.md` R7: full 22-locale rollout for these error keys.
+- See `cavekit-eventstore-framework-guard.md`: framework-side guard that structurally prevents the empty-Reducers projection misuse R12 forbids at the domain level.
 
 ## Changelog
 - 2026-04-28: Initial Phase 2 draft.
+- 2026-05-05 (v3 audit cleanup): Strengthened R9 to require numbered setup step for table creation and explicit janitor wiring. Added R12 (application-managed tables avoid projection framework) and R13 (auto-validate `aud` claim when present). Cross-referenced new `cavekit-eventstore-framework-guard.md`. Out-of-scope additions for T-045 and cert-pinning.
+- 2026-05-05 (post-loop revision): Added R14 (SoftwareStatementPipeline production wiring — F-003), R15 (TokenEndpoint non-empty when SkipAudValidation=false — F-002), and R9.1 (janitor per-tick deadline + metrics — F-006). Discovered during /ck:check inspection of the v3-build branch.

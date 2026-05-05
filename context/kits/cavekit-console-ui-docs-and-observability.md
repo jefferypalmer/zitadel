@@ -1,7 +1,7 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-28T00:00:00Z"
-complexity: medium
+last_edited: "2026-05-05T18:00:00Z"
+complexity: complex
 ---
 
 # Cavekit: Console UI, Docs, and Observability
@@ -49,7 +49,7 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 **Dependencies:** `cavekit-iat.md` R6; R3 (i18n).
 
 ### R3: Enumerated i18n keys
-**Description:** All console DCR strings are English + German for Phase 1; other 19 locales receive English fallback. Backend DCR error keys (`Errors.DCR.*`) live under `internal/api/ui/login/static/i18n/*.yaml`; frontend strings under `console/src/assets/i18n/*.json`.
+**Description:** All console DCR strings are English + German for Phase 1; other 19 locales receive English fallback. Backend DCR error keys (`Errors.DCR.*`) live under `internal/api/ui/login/static/i18n/*.yaml`; frontend strings under `console/src/assets/i18n/*.json`. Strengthen to require that the same key set resolves to non-key text in **every** supported locale under `console/src/assets/i18n/*.json`. The bootstrap mechanism is machine translation (one Anthropic-API call per missing locale, per `cavekit-i18n-pipeline.md`); machine output is committed and is replaced over time by human-translated locale-PRs. ngx-translate's missing-key fallback to English is acceptable as a runtime safety net but is NOT a substitute for shipped translations — production users selecting a non-English locale should see translated text on first load, not English fallbacks for new feature surfaces.
 
 **Acceptance Criteria:**
 - [ ] `console/src/assets/i18n/en.json` contains the following keys (flat, dot-separated namespace): `DESCRIPTIONS.DCR.CLIENTS.TITLE`, `DESCRIPTIONS.DCR.CLIENTS.EMPTY`, `DESCRIPTIONS.DCR.CLIENTS.REGISTRATION_METHOD`, `DESCRIPTIONS.DCR.CLIENTS.IAT_USED`, `DESCRIPTIONS.DCR.IAT.TITLE`, `DESCRIPTIONS.DCR.IAT.ISSUE_BUTTON`, `DESCRIPTIONS.DCR.IAT.DIALOG_TITLE`, `DESCRIPTIONS.DCR.IAT.LIFETIME_LABEL`, `DESCRIPTIONS.DCR.IAT.MAX_USES_LABEL`, `DESCRIPTIONS.DCR.IAT.REVOKE_BUTTON`, `DESCRIPTIONS.DCR.IAT.REVOKE_CONFIRM`.
@@ -60,8 +60,13 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 - [ ] **Translator preserves go-i18n's rendered fallback string when `*MessageNotFoundErr` fires.** `internal/i18n/translator.go::localize()` MUST NOT discard the rendered template returned alongside the not-found error from go-i18n's Localizer. Without this branch, every i18n consumer in the repo emits the raw key string when a request arrives with an `Accept-Language` whose bundle has no translation for the requested ID, regardless of whether the bundle's default language has it. (Added 2026-04-27 from /ck:check finding F-T6-002 — discovered while implementing the fallback test above; closed a real cross-package bug.)
 - [ ] **For every supported locale, each `Errors.DCR.*` key resolves to a non-empty, non-raw-key string.** The original Phase-1 plan was to translate only English + German and let go-i18n fall back to English for the remaining 20 locales; T-075 instead translated all 22 locales by hand. Either approach satisfies this AC: a locale's `Errors.DCR.*` block is either present and human-translated OR absent (in which case the fallback test above guarantees English emission). What is NOT acceptable is a locale where the keys are present but partially-empty / partially-English-copied — that is a translation-quality regression, not a fallback. (Rewritten 2026-04-27 from /ck:check finding F-T6-005 — original AC was process-prescriptive, "open 19 GitHub tickets"; replaced with outcome-prescriptive language.)
 - [ ] Per-locale translation tickets do NOT block Phase 1 merge.
+- [ ] Every key in `DESCRIPTIONS.DCR.CLIENTS.*` and `DESCRIPTIONS.DCR.IAT.*` (and any other DCR-namespaced subtrees) exists in all 22 locale files under `console/src/assets/i18n/`. Verifiable via a shell loop that JSON-parses each locale and asserts `CLIENTS in DESCRIPTIONS.DCR and IAT in DESCRIPTIONS.DCR`.
+- [ ] Translated values preserve all `{placeholder}` / `{count}` ICU tokens verbatim from the English source.
+- [ ] No translated value is identical to the English source (would indicate translation skipped) UNLESS the value is itself locale-neutral (e.g., a brand name, an HTTP method, a status code symbol) — flagged via reviewer judgment, not a hard test.
+- [ ] The translation bootstrap is reproducible: re-running the pipeline against the same source produces the same outputs (deterministic prompt + `temperature=0`). Tested via a CI dry-run that diffs two consecutive pipeline outputs.
+- [ ] `ngx-translate` retains its English-fallback config as a runtime safety net, but R3 acceptance does NOT consider a fallback resolution as a passing locale — every locale must have explicit values for the enumerated DCR keys.
 
-**Dependencies:** R1, R2.
+**Dependencies:** R1, R2; `cavekit-i18n-pipeline.md` (translation bootstrap mechanism).
 
 ### R4: Cypress smoke tests
 **Description:** Two Cypress E2E specs cover the console paths end-to-end with admin login.
@@ -129,6 +134,65 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 
 **Dependencies:** none (orthogonal to other kits).
 
+### R9: Console hygiene — subscription cleanup, trackBy, ARIA, status text
+**Description:** Frontend code in DCR Console modules (`console/src/app/modules/iat-admin/`, `console/src/app/modules/dynamic-clients/`) follows four hygiene patterns the wider Zitadel Console either already uses or should use: (1) Subscription cleanup — every `.subscribe(...)` on an Observable not auto-completed by Angular is piped through `takeUntil(this.destroy$)`, where `destroy$ = new Subject<void>()` is completed in `ngOnDestroy()`. (2) trackBy on mat-tables — every `*matRowDef="let row; columns: …"` includes `trackBy: trackByFn` where `trackByFn = (_: number, row: { id: string }) => row.id`. Prevents full re-render on paginator change. (3) ARIA labels on icon-only buttons — every `<button mat-icon-button>` in DCR templates has an explicit `[attr.aria-label]="'KEY' | translate"` matching its tooltip — `matTooltip` does NOT expose to assistive tech. (4) Status text accompanies color — status indicators (active / revoked / pending) include a screen-reader-visible text label, not color-as-only-signal. SCSS MUST NOT use `text-indent: -9999px`, `font-size: 0`, or `display: none` to hide text from sighted users while preserving it for AT — the text is rendered visibly alongside the colored badge.
+
+**Acceptance Criteria:**
+- [ ] `iat-admin.component.ts` implements `OnDestroy`, declares `private destroy$ = new Subject<void>()`, completes it in `ngOnDestroy()`. Both `afterClosed().subscribe(...)` calls (currently lines 76, 127) are piped through `takeUntil(this.destroy$)`.
+- [ ] `iat-admin.component.html` `<table mat-table>` row definition includes `trackBy: trackById` bound to a component method `trackById = (_: number, row: { id: string }) => row.id`.
+- [ ] `dynamic-clients.component.html` row definition includes the same trackBy pattern.
+- [ ] Every `<button mat-icon-button>` in `iat-admin.component.html`, `iat-plaintext-dialog.component.html`, `iat-revoke-dialog.component.html`, `iat-issue-dialog.component.html`, and `dynamic-clients.component.html` has an `[attr.aria-label]="'KEY' | translate"` attribute. Required key names (added to en.json + machine-translated to all 22 locales per R3 + i18n-pipeline kit): `DESCRIPTIONS.DCR.IAT.{REFRESH,REVOKE_BUTTON,COPY,REVEAL_TOGGLE,DISMISS}` — extend with any others discovered during implementation.
+- [ ] Status badges in `iat-admin.component.html` (active / revoked) render a translated text label in the same DOM node as the colored span. The text MUST be visible (no `text-indent: -9999px`, no `display: none`) — verifiable by visual smoke and by `getComputedStyle()` assertion in a unit test.
+- [ ] `console/src/app/modules/iat-admin/iat-admin.component.spec.ts` adds an `aria-label` presence test on the per-row revoke button.
+- [ ] No regression in existing R1/R2 Dynamic-Clients/IAT-admin functionality (existing Cypress smokes from R4 still pass, plus the new R10 teardown additions).
+
+**Dependencies:** R1, R2 (the UI surfaces these hygiene rules apply to); R3 + `cavekit-i18n-pipeline.md` for the additional ARIA-label i18n keys.
+
+### R10: Cypress teardown leaves zero artifacts
+**Description:** The Cypress smoke specs in `tests/functional-ui/cypress/e2e/dcr/iat.cy.ts` and `dcr-clients.cy.ts` (R4) create persistent state — IATs are issued, clients are registered. Without explicit teardown, repeated runs accumulate rows in the test instance and eventually cause assertion noise (e.g., 'list is empty' assertions failing because prior-run artifacts are present). Each spec MUST clean up its own artifacts in an `afterEach()` block using the same gRPC clients used for setup.
+
+**Acceptance Criteria:**
+- [ ] `iat.cy.ts` has an `afterEach()` that revokes every IAT issued during the test (idempotent — tolerates already-revoked).
+- [ ] `dcr-clients.cy.ts` has an `afterEach()` that deletes every client registered during the test (via the management gRPC client; tolerates already-deleted).
+- [ ] Re-running each spec twice in immediate sequence (`npx cypress run --spec '…/iat.cy.ts' && npx cypress run --spec '…/iat.cy.ts'`) shows zero state accumulation: the count of IAT rows / DCR clients in the instance after the second run equals the count before the first run (modulo unrelated test fixtures).
+- [ ] Teardown failures (e.g., RPC unavailable) are logged but do NOT fail the test (preserve diagnostic signal from the actual assertions; teardown is best-effort).
+- [ ] Helper functions (e.g., `teardownIATs(projectId)`) live in a shared `tests/functional-ui/cypress/support/dcr-helpers.ts` so both specs reuse the same logic.
+
+**Dependencies:** R1, R2, R4 (the existing UI surfaces and Cypress harness).
+
+### R10.1: Cypress teardown helpers MUST use real backend endpoints (post-loop revision F-005)
+**Description:** R10's helpers (`teardownIATs`, `teardownDCRClients`) live in `tests/functional-ui/cypress/support/dcr-helpers.ts`. The first cut of `teardownIATs` issued `DELETE /admin/v1/initial_access_tokens/{id}` — but that endpoint does not exist; the admin proto only registers `POST /admin/v1/initial_access_tokens/{iat_id}/_revoke`. Combined with `failOnStatusCode: false` and a 404-tolerance branch ("idempotent"), the helper became a silent no-op: every IAT created during the spec survived teardown. The kit's "re-run twice → zero accumulation" invariant was structurally unsatisfied even though `afterEach()` blocks were in place.
+
+**Acceptance Criteria:**
+- [ ] `teardownIATs` uses `POST /admin/v1/initial_access_tokens/{iat_id}/_revoke` with body `{ project_id }` — matching `RevokeInitialAccessTokenRequest`.
+- [ ] `teardownDCRClients` uses `DELETE /management/v1/projects/{projectId}/apps/{appId}` and is verified against the live management gateway proto.
+- [ ] A positive-control test (or sanity assertion) fails when the helper URL no longer matches the proto. Options: (a) emit a distinct cy.log on 404 vs 200 so a reviewer notices; (b) add a one-time pre-flight that asserts the endpoint returns 200 on a known-good fixture before counting subsequent 404s as idempotent.
+- [ ] Re-running each spec twice in immediate sequence and asserting zero accumulation MUST exercise the live revoke / delete path — not a 404 silenced by `failOnStatusCode: false`.
+
+**Dependencies:** R10 (the helpers being corrected).
+
+### R9.1: Required ARIA-label keys MUST actually be bound to a `mat-icon-button` (post-loop revision)
+**Description:** R9 enumerates `DESCRIPTIONS.DCR.IAT.{REFRESH, REVOKE_BUTTON, COPY, REVEAL_TOGGLE, DISMISS}` as required ARIA-label keys. The first cut of T-018 wired four of them (REFRESH on the refresh button, REVOKE_BUTTON on the per-row revoke + tooltip, COPY on the plaintext-dialog copy, REVEAL_TOGGLE on the plaintext-dialog remask). DISMISS was populated in 22 locales but bound to no `[attr.aria-label]` in any template — the close button on `iat-plaintext-dialog` is a `mat-raised-button` with visible text content, not a `mat-icon-button` subject to the rule. Either the kit's required-key list is wrong (DISMISS is unused) or an icon-only dismiss button is missing. R9.1 forces the resolution.
+
+**Acceptance Criteria (resolution path A — wire DISMISS):**
+- [ ] An icon-only dismiss button (e.g., a close `<button mat-icon-button>` in the dialog header) is added to `iat-plaintext-dialog.component.html` with `[attr.aria-label]="'DESCRIPTIONS.DCR.IAT.DISMISS' | translate"` (or to whichever DCR template owns "dismiss" semantics).
+
+**Acceptance Criteria (resolution path B — drop DISMISS from required list):**
+- [ ] R9 is amended to remove DISMISS from the required ARIA-label key list, AND the DISMISS key is removed from en.json + the 22 locale files (or marked locale-neutral if reused for tooltip text elsewhere).
+
+Either path satisfies R9.1; the implementer chooses based on the current dialog UX.
+
+**Dependencies:** R9 (the rule being enforced).
+
+### R9.2: getComputedStyle assertion MUST be present in spec, not just visual smoke (post-loop revision)
+**Description:** R9 requires status-text-accompanies-color be "verifiable by visual smoke AND `getComputedStyle()` assertion in a unit test". The current implementation passes the visual half but the unit test (`iat-admin.component.spec.ts`) only asserts `aria-label` presence on the per-row revoke button. The getComputedStyle assertion was deferred. R9.2 makes that gap explicit and provides a concrete expectation.
+
+**Acceptance Criteria:**
+- [ ] `iat-admin.component.spec.ts` adds a test that pushes a row with `revoked: true` into `tokens$`, calls `fixture.detectChanges()`, queries the rendered status badge, and asserts via `getComputedStyle()` that none of `text-indent`, `font-size`, or `display` would hide the translated text from sighted users (`text-indent` not extreme negative, `font-size` non-zero, `display` not `none`).
+- [ ] Test runs as part of `pnpm nx affected --targets=test`.
+
+**Dependencies:** R9 (the rule being enforced).
+
 ## Out of Scope
 - Edit-DCR-app affordance in console (Phase 2) — see `cavekit-console-phase2.md`.
 - Bulk IAT operations in console.
@@ -136,6 +200,9 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 - Localized translations beyond English + German for Phase 1.
 - Console redesign / theme changes (re-uses existing patterns).
 - Blog post (tracked in Linear, not in this kit).
+- Adoption of `ChangeDetectionStrategy.OnPush` (performance debt; deferred).
+- Server-side validation error → form-field error mapping (UX polish; deferred).
+- Human-translated locale PRs (machine translations are the v3 release floor; humans replace later).
 
 ## Cross-References
 - See `cavekit-config.md` R1: feature flag inferred from runtime config.
@@ -144,6 +211,7 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
 - See `cavekit-manage-handler.md` R5, R6: PUT idempotency + DELETE token-revocation note in CHANGELOG.
 - See `cavekit-discovery-and-as-metadata.md` R4: hostname-root deployment doc.
 - See `cavekit-security-hardening.md` R6: T1–T20 evidence map mirrored in SECURITY.md.
+- See `cavekit-i18n-pipeline.md`: translation bootstrap mechanism that R3 depends on for full-locale coverage.
 
 ## Source Traceability (brownfield)
 - `console/src/app/pages/projects/apps/` — existing project-app routes; pattern reference for R1. [VERIFIED] plural `projects/apps/` path corrected per pass 11.
@@ -163,3 +231,5 @@ Defines the Phase-1 Console UI surfaces for DCR (M5.5: read-only Dynamic Clients
   - R2 AC: structural plaintext-retention bounds (finding F-005), list pagination via ListQuery (F-002), lifetime upper bound (F-006), revoke guard for empty projectId (F-003).
   - R4 AC: split build/test/lint local-vs-CI execution semantics (F-T6-103); reject `RegExp.toString()` in Cypress assertions (F-001).
 - 2026-04-28: R1 AC promoted from conditional/Phase-1 carve-out to a hard requirement that the App proto MUST carry a DCR marker. Tier 9 of the build site (T-100..T-106) implements the proto field, query surface, mgmt converter, codegen, frontend predicate flip, and Cypress fixture closure. T-096 (BLOCKED in Tier 8) closes when T-104 lands.
+- 2026-05-05 (v3 audit cleanup): Strengthened R3 to require full locale coverage (every key resolves in all 22 locales, not just stub presence). Added R9 (frontend hygiene: subscription cleanup, trackBy, ARIA, status text) and R10 (Cypress teardown). Cross-referenced new `cavekit-i18n-pipeline.md` for translation bootstrap mechanism.
+- 2026-05-05 (post-loop revision): Added R10.1 (Cypress teardown helpers MUST use real backend endpoints — F-005), R9.1 (DISMISS aria-label MUST be wired or dropped — surveyor finding), R9.2 (getComputedStyle assertion MUST be present in spec — surveyor finding).

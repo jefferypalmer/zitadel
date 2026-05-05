@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-27T11:00:00Z"
+last_edited: "2026-05-05T18:00:00Z"
 complexity: complex
 ---
 
@@ -102,6 +102,30 @@ Defines the RFC 7592 client-configuration endpoint: GET / PUT / DELETE on `/oidc
 
 **Dependencies:** `cavekit-register-handler.md` R4.
 
+### R8: `ManageFromContext` panics on missing context (programmer-error contract)
+**Description:** `ManageFromContext(ctx)` (in `internal/api/oidc/dcr/manage.go`) currently returns `nil` when called outside the `manageVerifyDispatch` middleware chain, with each consumer guarding via `if mctx == nil { … WriteError(invalid_token) … }`. This R changes the contract: `ManageFromContext` MUST `panic` when called without a value previously stashed by the dispatcher. The panic is a programmer-error signal — production code paths reach this function only via the dispatcher (single-entry monopoly enforced by `NewHandler` per existing R1), so a missing value can only occur if a future RFC 7592 endpoint is wired without the dispatcher in its middleware chain. The panic provides an immediate stack trace pointing at the wiring mistake; the silent-nil-return path obscures the same mistake behind a generic 401 envelope.
+
+**Acceptance Criteria:**
+- [ ] `ManageFromContext(ctx)` returns `*ManageContext` (non-pointer-nilable contract) and `panic`s with a clear message — e.g. `"dcr.ManageFromContext called without manageVerifyDispatch in the chain — programmer error"` — when no value is found via the private `manageContextKey{}` lookup.
+- [ ] Every consumer in `internal/api/oidc/dcr/manage_get.go`, `manage_put.go`, `manage_delete.go` (and any other present-or-future RFC 7592 file in the package) deletes its `if mctx == nil { … }` guard. Consumers may now treat the return value as non-nil.
+- [ ] A unit test in `internal/api/oidc/dcr/manage_test.go` (or a new `manage_from_context_test.go`) asserts the panic when `ManageFromContext` is called with a raw `context.Background()` (no dispatcher value set).
+- [ ] All existing manage-handler integration tests pass unchanged — the dispatcher monopoly means production paths never trigger the panic.
+- [ ] grep-scan acceptance: `grep -rn 'mctx == nil\|mc == nil' internal/api/oidc/dcr/` returns only the panic site itself (or zero hits if the panic is structured as `if v, ok := …; !ok { panic(…) }` without a separate nil check).
+
+Rationale: A panic is preferred over a typed error return because errors are for runtime conditions a caller might recover from. A missing `ManageContext` is a wiring bug — there is no recovery path other than fixing the code. Panic with an explicit message is the idiomatic Go contract for "this can never happen in correct code; if it does, fail loudly so the bug is caught in the first test run that exercises the misnamed handler." The panic is caught by the existing `middleware.RecoverHandler(writeRecoverError)` at `internal/api/oidc/op.go:300` so a single misconfigured request does not crash the server — the recover handler logs the panic with stack, which is exactly the diagnostic signal R8 is designed to surface.
+
+**Dependencies:** R1 (handler mounting + dispatcher monopoly) — this R only makes sense because R1 already guarantees the dispatcher is the single entry point.
+
+### R9: DCR routes MUST be wrapped in a dcr-shape recover middleware (post-loop revision F-001)
+**Description:** R8's panic-on-missing contract claims the panic is caught by `middleware.RecoverHandler(writeRecoverError)` at `internal/api/oidc/op.go:300`. That assertion is incorrect: DCR routes mount via `apis.RegisterHandlerOnPrefix(dcr.HandlerPrefix, dcrWrapped)` in `cmd/start/start.go` — independent of `oidcServer.Handler`'s middleware chain. The OIDC `RecoverHandler` only wraps the OIDC server. A real R8 panic falls through to `middleware.FallbackRecoverHandler` (at `cmd/start/start.go:457-461`), which writes `text/plain "Internal Server Error"` instead of the RFC 7591 §3.2.2 `application/json` envelope DCR clients expect. R9 fixes this by requiring a dcr-shape recover middleware in the dcr handler chain.
+
+**Acceptance Criteria:**
+- [ ] `cmd/start/start.go` (or the equivalent router-mount site) wraps `dcrWrapped` in `middleware.RecoverHandler(dcrWriteRecoverError)` BEFORE the instance interceptor. `dcrWriteRecoverError` MUST emit `application/json` with the RFC 7591 §3.2.2 envelope (`{"error": "server_error", "error_description": "..."}`).
+- [ ] An invariant test (sibling of `cmd/start/dcr_mount_test.go`) injects a deliberate panic into a stub handler mounted under the dcr prefix and asserts: status 500, `Content-Type: application/json`, body matches the dcr error envelope shape.
+- [ ] Comments at `internal/api/oidc/dcr/manage.go:411`, `internal/api/oidc/dcr/manage_get_test.go:193`, and `internal/api/oidc/dcr/manage_from_context_test.go:11` are corrected to cite the new middleware (or removed if the wiring makes them redundant).
+
+**Dependencies:** R1 (router mount), R8 (the panic this catches).
+
 ## Out of Scope
 - RFC 7591 POST /register (handled in `cavekit-register-handler.md`).
 - Bulk-delete of dynamically-registered apps.
@@ -130,3 +154,5 @@ Defines the RFC 7592 client-configuration endpoint: GET / PUT / DELETE on `/oidc
   - R6 AC2: clarified two-Push non-atomicity is acceptable; revocation-first ordering rationale codified. Finding F-005.
   - R6 AC3: added `/oidc/v1/userinfo` as accepted equivalent oracle alongside `/oauth/v2/introspect`. Finding F-003.
   - R6: added two new ACs (DELETE idempotency across retries; revocation scope = `(instance_id, client_id)`). Findings F-004, F-005.
+- 2026-05-05 (v3 audit cleanup): Added R8 (`ManageFromContext` panic-on-missing — flips return-nil contract to panic-on-missing for clearer programmer-error diagnosis). Backed by existing recover middleware so a misconfigured request does not crash the server.
+- 2026-05-05 (post-loop revision): Added R9 (DCR routes MUST be wrapped in a dcr-shape recover middleware — F-001). Inspection of the v3 build revealed R8's panic is NOT caught by the cited OIDC recover middleware because DCR routes mount independently of `oidcServer.Handler`. Without R9, a real R8 panic returns `text/plain "Internal Server Error"` instead of the RFC 7591 JSON envelope.
