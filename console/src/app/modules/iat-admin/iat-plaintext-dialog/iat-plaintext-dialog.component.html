@@ -13,7 +13,13 @@
   @if (revealed) {
     <div class="iat-plaintext-token-row">
       <code class="iat-plaintext-token">{{ data.token }}</code>
-      <button mat-icon-button type="button" (click)="copy()" matTooltip="{{ 'ACTIONS.COPY' | translate }}">
+      <button
+        mat-icon-button
+        type="button"
+        (click)="copy()"
+        matTooltip="{{ 'ACTIONS.COPY' | translate }}"
+        [attr.aria-label]="'DESCRIPTIONS.DCR.IAT.COPY' | translate"
+      >
         <i class="las la-copy"></i>
       </button>
       <button
@@ -21,6 +27,7 @@
         type="button"
         (click)="remask()"
         matTooltip="{{ 'DESCRIPTIONS.DCR.IAT.PLAINTEXT_REMASK' | translate }}"
+        [attr.aria-label]="'DESCRIPTIONS.DCR.IAT.REVEAL_TOGGLE' | translate"
       >
         <i class="las la-eye-slash"></i>
       </button>

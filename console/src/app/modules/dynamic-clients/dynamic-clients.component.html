@@ -6,7 +6,7 @@
     <mat-progress-bar mode="indeterminate" data-e2e="dcr-clients-loading"></mat-progress-bar>
   }
   @if ((clients$ | async)?.length) {
-    <table mat-table [dataSource]="(clients$ | async) ?? []" class="dcr-clients-table" data-e2e="dcr-clients-table">
+    <table mat-table [dataSource]="(clients$ | async) ?? []" [trackBy]="trackById" class="dcr-clients-table" data-e2e="dcr-clients-table">
       <ng-container matColumnDef="clientId">
         <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.CLIENTS.COL_CLIENT_ID' | translate }}</th>
         <td mat-cell *matCellDef="let row">{{ row.id }}</td>
@@ -42,7 +42,7 @@
             mat-icon-button
             [routerLink]="['/projects', projectId, 'apps', row.id]"
             matTooltip="{{ 'DESCRIPTIONS.DCR.CLIENTS.VIEW_AUDIT' | translate }}"
-            aria-label="View application audit events"
+            [attr.aria-label]="'DESCRIPTIONS.DCR.CLIENTS.VIEW_AUDIT' | translate"
           >
             <i class="las la-history"></i>
           </a>

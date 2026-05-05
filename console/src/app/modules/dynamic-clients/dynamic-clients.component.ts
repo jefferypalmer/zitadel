@@ -24,6 +24,9 @@ export class DynamicClientsComponent implements OnChanges {
   public readonly clients$ = new BehaviorSubject<DcrClientRow[]>([]);
   public readonly loading$ = new BehaviorSubject<boolean>(false);
 
+  // T-017 trackBy mirror — dynamic-clients table.
+  public readonly trackById = (_: number, row: { id: string }) => row.id;
+
   constructor(
     private readonly mgmt: ManagementService,
     private readonly toast: ToastService,

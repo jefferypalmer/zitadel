@@ -1,7 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Duration } from 'google-protobuf/google/protobuf/duration_pb';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { CreateInitialAccessTokenRequest, InitialAccessTokenView } from 'src/app/proto/generated/zitadel/admin_pb';
 import { ListQuery } from 'src/app/proto/generated/zitadel/object_pb';
 import { PageEvent, PaginatorComponent } from 'src/app/modules/paginator/paginator.component';
@@ -20,13 +21,24 @@ const INITIAL_PAGE_SIZE = 100;
   styleUrls: ['./iat-admin.component.scss'],
   standalone: false,
 })
-export class IatAdminComponent implements OnInit {
+export class IatAdminComponent implements OnInit, OnDestroy {
   public readonly displayedColumns = ['id', 'projectId', 'expiresAt', 'maxUses', 'usesConsumed', 'revoked', 'actions'];
   public readonly tokens$ = new BehaviorSubject<InitialAccessTokenView.AsObject[]>([]);
   public readonly loading$ = new BehaviorSubject<boolean>(false);
   public readonly totalResult$ = new BehaviorSubject<number>(0);
   public readonly pageSize = INITIAL_PAGE_SIZE;
   @ViewChild(PaginatorComponent) public paginator?: PaginatorComponent;
+
+  // cavekit-console-ui-docs-and-observability.md R9 (T-016) — completes
+  // in ngOnDestroy so every subscription teed off this Subject via
+  // takeUntil(destroy$) is torn down on navigate-away.
+  private readonly destroy$ = new Subject<void>();
+
+  // T-017 trackBy: row identity is the IAT id; without this the table
+  // re-renders every row on each refresh because Angular default uses
+  // object identity, and the listInitialAccessTokens response builds a
+  // fresh array each call.
+  public readonly trackById = (_: number, row: { id: string }) => row.id;
 
   constructor(
     private readonly admin: AdminService,
@@ -36,6 +48,11 @@ export class IatAdminComponent implements OnInit {
 
   public ngOnInit(): void {
     this.loadPage(0, INITIAL_PAGE_SIZE);
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   public refresh(): void {
@@ -73,7 +90,7 @@ export class IatAdminComponent implements OnInit {
     const ref = this.dialog.open<IatIssueDialogComponent, void, IatIssueDialogResult>(IatIssueDialogComponent, {
       width: '520px',
     });
-    ref.afterClosed().subscribe((result) => {
+    ref.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
       if (!result) {
         return;
       }
@@ -124,7 +141,7 @@ export class IatAdminComponent implements OnInit {
     const ref = this.dialog.open<IatRevokeDialogComponent, void, boolean>(IatRevokeDialogComponent, {
       width: '400px',
     });
-    ref.afterClosed().subscribe((confirmed) => {
+    ref.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((confirmed) => {
       if (!confirmed) {
         return;
       }

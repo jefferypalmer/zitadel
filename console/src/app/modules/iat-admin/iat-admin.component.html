@@ -21,6 +21,7 @@
       [disabled]="loading$ | async"
       (click)="refresh()"
       matTooltip="{{ 'ACTIONS.REFRESH' | translate }}"
+      [attr.aria-label]="'DESCRIPTIONS.DCR.IAT.REFRESH' | translate"
     >
       <i class="las la-sync"></i>
     </button>
@@ -31,7 +32,7 @@
   }
 
   @if ((tokens$ | async)?.length) {
-    <table mat-table [dataSource]="(tokens$ | async) ?? []" class="iat-admin-table" data-e2e="iat-admin-table">
+    <table mat-table [dataSource]="(tokens$ | async) ?? []" [trackBy]="trackById" class="iat-admin-table" data-e2e="iat-admin-table">
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef>{{ 'DESCRIPTIONS.DCR.IAT.COL_ID' | translate }}</th>
         <td mat-cell *matCellDef="let row">{{ row.id }}</td>
@@ -83,6 +84,7 @@
               data-e2e="iat-revoke-button"
               (click)="revoke(row)"
               matTooltip="{{ 'DESCRIPTIONS.DCR.IAT.REVOKE_BUTTON' | translate }}"
+              [attr.aria-label]="'DESCRIPTIONS.DCR.IAT.REVOKE_BUTTON' | translate"
             >
               <i class="las la-ban"></i>
             </button>
