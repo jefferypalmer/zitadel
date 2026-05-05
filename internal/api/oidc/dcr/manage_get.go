@@ -115,13 +115,6 @@ func getClientHandler(deps ManageDeps) http.HandlerFunc {
 		started := time.Now()
 		defer func() { recordRequestDuration(ctx, time.Since(started)) }()
 		mctx := ManageFromContext(ctx)
-		if mctx == nil {
-			// Defensive: the dispatch wrapper sets this; missing means
-			// the handler was wired without manageVerifyDispatch.
-			slog.WarnContext(ctx, "dcr: GET /register handler invoked without ManageContext on ctx — wiring bug")
-			WriteError(w, http.StatusInternalServerError, ErrCodeServerError, "internal server error")
-			return
-		}
 
 		row, err := deps.Queries.DCRMetadataByClientID(ctx, mctx.ClientID)
 		if err != nil {

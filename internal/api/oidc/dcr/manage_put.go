@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -88,14 +87,6 @@ func putClientHandler(deps ManageDeps) http.HandlerFunc {
 		started := time.Now()
 		defer func() { recordRequestDuration(ctx, time.Since(started)) }()
 		mctx := ManageFromContext(ctx)
-		if mctx == nil {
-			// Defensive: dispatch wrapper sets this; missing means the
-			// handler was wired without manageVerifyDispatch. Same shape
-			// the GET handler uses for the equivalent invariant.
-			slog.WarnContext(ctx, "dcr: PUT /register handler invoked without ManageContext on ctx — wiring bug")
-			WriteError(w, http.StatusInternalServerError, ErrCodeServerError, "internal server error")
-			return
-		}
 
 		decoded, err := Decode(r, DecodeOptions{MaxBodyBytes: deps.MaxBodyBytes})
 		if err != nil {

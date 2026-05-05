@@ -186,16 +186,22 @@ func TestGetClient_MalformedDCRMeta_StillServes200(t *testing.T) {
 	assert.Empty(t, body.LogoURI)
 }
 
-// TestGetClient_NoManageContext_500 — defensive: if the handler is
-// somehow wired without manageVerifyDispatch (so no ManageContext on
-// ctx), the response is 500 not a panic.
-func TestGetClient_NoManageContext_500(t *testing.T) {
+// TestGetClient_NoManageContext_Panics asserts cavekit-manage-handler.md
+// R8: ManageFromContext panics when called without
+// manageVerifyDispatch. Production never trips this — the dispatcher
+// monopoly guarantees the value is set. The recover middleware at
+// internal/api/oidc/op.go catches the panic if a router regression
+// mounts a handler outside the dispatch chain.
+func TestGetClient_NoManageContext_Panics(t *testing.T) {
 	deps := newGETDeps(&ManageMetaRow{AppID: "app-1", ClientIDIssuedAt: fixedIssued}, nil)
 	h := getClientHandler(deps)
-	req := httptest.NewRequest(http.MethodGet, "/client-1", nil) // no ctx wrap
+	req := httptest.NewRequest(http.MethodGet, "/client-1", nil)
 	rec := httptest.NewRecorder()
-	h(rec, req.WithContext(context.Background()))
 
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	assert.Contains(t, rec.Body.String(), `"error":"server_error"`)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic from ManageFromContext, got nil")
+		}
+	}()
+	h(rec, req.WithContext(context.Background()))
 }

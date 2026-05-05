@@ -34,11 +34,6 @@ func deleteClientHandler(deps ManageDeps) http.HandlerFunc {
 		started := time.Now()
 		defer func() { recordRequestDuration(ctx, time.Since(started)) }()
 		mctx := ManageFromContext(ctx)
-		if mctx == nil {
-			slog.WarnContext(ctx, "dcr: DELETE /register handler invoked without ManageContext on ctx — wiring bug")
-			WriteError(w, http.StatusInternalServerError, ErrCodeServerError, "internal server error")
-			return
-		}
 
 		revoked, err := deps.Delete(ctx, &DeleteRequest{
 			ProjectID: mctx.ProjectID,

@@ -403,11 +403,20 @@ func contextWithManage(ctx context.Context, mctx *ManageContext) context.Context
 }
 
 // ManageFromContext extracts the ManageContext set by
-// [manageVerifyDispatch]. Returns nil when called from a request that
-// did not flow through the manage dispatch — the future handler bodies
-// MUST handle that case as a programmer error (panic / 500), since a
-// correctly-mounted handler will always have the value present.
+// [manageVerifyDispatch]. Panics with a clear programmer-error message
+// when called from a request that did not flow through the manage
+// dispatch — cavekit-manage-handler.md R8. The dispatcher monopoly
+// guarantees production paths never reach the panic; the recover
+// middleware at internal/api/oidc/op.go catches it if a future router
+// regression mounts a handler outside the dispatch chain.
 func ManageFromContext(ctx context.Context) *ManageContext {
-	mctx, _ := ctx.Value(manageContextKey{}).(*ManageContext)
+	v := ctx.Value(manageContextKey{})
+	if v == nil {
+		panic("dcr.ManageFromContext called without manageVerifyDispatch in the chain — programmer error")
+	}
+	mctx, ok := v.(*ManageContext)
+	if !ok || mctx == nil {
+		panic("dcr.ManageFromContext value has wrong type or is nil — programmer error")
+	}
 	return mctx
 }

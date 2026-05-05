@@ -143,17 +143,24 @@ func TestDELETE_NoBearer_401_DoesNotCallDelete(t *testing.T) {
 	assert.Empty(t, d.calls, "missing Bearer MUST short-circuit before Delete is called")
 }
 
-// TestDELETE_NoManageContext_500 — defensive contract: handler invoked
-// without manageVerifyDispatch returns 500 not a panic.
-func TestDELETE_NoManageContext_500(t *testing.T) {
+// TestDELETE_NoManageContext_Panics asserts cavekit-manage-handler.md
+// R8: ManageFromContext panics when manageVerifyDispatch did not run.
+// Production paths never reach this — dispatcher monopoly + the recover
+// middleware in internal/api/oidc/op.go are the safety net.
+func TestDELETE_NoManageContext_Panics(t *testing.T) {
 	d := &fakeDelete{}
 	deps := newDELETEDeps(d)
 	h := deleteClientHandler(deps)
 	req := httptest.NewRequest(http.MethodDelete, "/client-1", nil)
 	rec := httptest.NewRecorder()
-	h(rec, req.WithContext(context.Background()))
 
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	assert.Contains(t, rec.Body.String(), `"error":"server_error"`)
-	assert.Empty(t, d.calls)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic from ManageFromContext, got nil")
+		}
+		if len(d.calls) != 0 {
+			t.Fatalf("Delete should not have been called before the panic; got %d calls", len(d.calls))
+		}
+	}()
+	h(rec, req.WithContext(context.Background()))
 }

@@ -396,10 +396,12 @@ func TestPUT_UpdateClampErrorPropagates(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), `"error":"feature_disabled"`)
 }
 
-// TestPUT_NoManageContext_500 — defensive contract: if the handler is
-// somehow wired without manageVerifyDispatch, the response is 500 not
-// a panic.
-func TestPUT_NoManageContext_500(t *testing.T) {
+// TestPUT_NoManageContext_Panics asserts cavekit-manage-handler.md R8:
+// ManageFromContext panics when manageVerifyDispatch did not run. The
+// recover middleware at internal/api/oidc/op.go catches it in
+// production; the dispatcher monopoly guarantees the value is set on
+// every real request.
+func TestPUT_NoManageContext_Panics(t *testing.T) {
 	u := &fakeUpdate{}
 	deps := newPUTDeps(u)
 	h := putClientHandler(deps)
@@ -407,11 +409,16 @@ func TestPUT_NoManageContext_500(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPut, "/client-1", strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
-	h(rec, req.WithContext(context.Background()))
 
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	assert.Contains(t, rec.Body.String(), `"error":"server_error"`)
-	assert.Empty(t, u.calls, "no ctx → no Update call")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic from ManageFromContext, got nil")
+		}
+		if len(u.calls) != 0 {
+			t.Fatalf("Update should not have been called before the panic; got %d calls", len(u.calls))
+		}
+	}()
+	h(rec, req.WithContext(context.Background()))
 }
 
 // TestManageDeps_Validate_PUT_RequiresConfigWhenUpdateSet pins the
