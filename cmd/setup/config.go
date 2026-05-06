@@ -186,6 +186,7 @@ type Steps struct {
 	s68TargetAddPayloadTypeColumn           *TargetAddPayloadTypeColumn
 	s69CacheTablesLogged                    *CacheTablesLogged
 	s70DCRSoftwareStatementJTIs             *DCRSoftwareStatementJTIs
+	s71DCRAppOIDCBackfill                   *DCRAppOIDCBackfill
 	RelationalTables                        *TransactionalTables
 }
 
