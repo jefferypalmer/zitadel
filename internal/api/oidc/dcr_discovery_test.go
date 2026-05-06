@@ -12,7 +12,6 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/op"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
-	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/feature"
 )
 
@@ -20,12 +19,6 @@ import (
 // R1 (T-029) dual-gate behavior at the helper level: yaml-off → "",
 // yaml-on + flag-off → "", both-on → issuer + dcr.HandlerPrefix.
 func TestServer_registrationEndpointURL(t *testing.T) {
-	// v5.0.0-dcr.5 hotfix: see runtime_feature.go. Override the default
-	// so the legacy "yaml on, flag off → empty" case still fires.
-	prevDefault := dcr.DefaultRuntimeFlag
-	dcr.DefaultRuntimeFlag = false
-	t.Cleanup(func() { dcr.DefaultRuntimeFlag = prevDefault })
-
 	tests := []struct {
 		name       string
 		dcrEnabled bool
@@ -86,11 +79,6 @@ func TestServer_registrationEndpointURL(t *testing.T) {
 // the JSON body NEVER contains `"registration_endpoint": null` — only an
 // absolute URL string or absence (Claude Code Zod parser bug GH#38102).
 func TestDiscoveryConfig_RegistrationEndpoint_NeverNullInJSON(t *testing.T) {
-	// v5.0.0-dcr.5 hotfix: see runtime_feature.go.
-	prevDefault := dcr.DefaultRuntimeFlag
-	dcr.DefaultRuntimeFlag = false
-	t.Cleanup(func() { dcr.DefaultRuntimeFlag = prevDefault })
-
 	tests := []struct {
 		name       string
 		dcrEnabled bool
@@ -205,15 +193,6 @@ func TestDiscoveryAndAsMetadata_R3_SharedFieldsByteIdentical(t *testing.T) {
 // the `registration_endpoint` key (key absent, never `null` per Claude
 // Code Zod parser bug GH#38102).
 func TestDiscoveryAndAsMetadata_R3_BothOmitRegistrationWhenDisabled(t *testing.T) {
-	// v5.0.0-dcr.5 hotfix: dcr.DefaultRuntimeFlag now defaults to true so
-	// the runtime half of the dual-gate is permissive when the proto/
-	// projection wire-up isn't there. Override to false here so this
-	// test continues to exercise the legacy gate-fires path the kit's
-	// R3 documents. Restore on test exit.
-	prevDefault := dcr.DefaultRuntimeFlag
-	dcr.DefaultRuntimeFlag = false
-	t.Cleanup(func() { dcr.DefaultRuntimeFlag = prevDefault })
-
 	cases := []struct {
 		name       string
 		dcrEnabled bool
@@ -299,14 +278,6 @@ func newServerFixtureForR3(t *testing.T, dcrEnabled bool) *Server {
 // Both /authorize discovery (R1) and the AS metadata handler (R2 / T-030)
 // will share this predicate so the two documents cannot diverge (R3).
 func TestDcrAdvertised_DualGateMatrix(t *testing.T) {
-	// v5.0.0-dcr.5 hotfix: pin the legacy dual-gate semantics here by
-	// flipping dcr.DefaultRuntimeFlag off so flag=false actually closes
-	// the runtime half. The legacy contract is unchanged when the
-	// runtime flag has a settable path; the override emulates that.
-	prevDefault := dcr.DefaultRuntimeFlag
-	dcr.DefaultRuntimeFlag = false
-	t.Cleanup(func() { dcr.DefaultRuntimeFlag = prevDefault })
-
 	cases := []struct {
 		yaml bool
 		flag bool

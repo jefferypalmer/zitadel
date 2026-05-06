@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-28T00:00:00Z"
+last_edited: "2026-05-05T00:00:00Z"
 complexity: unknown
 ---
 
@@ -18,6 +18,8 @@ complexity: unknown
 
 **Source plan:** `context/refs/dcr-plan.md` (1440 lines, 13 senior-review audit passes; convergence achieved).
 
+**Current release:** v5.0.0-dcr.3 (audit-cleanup release, 2026-05-05). Adds two new kits (`cavekit-eventstore-framework-guard.md`, `cavekit-i18n-pipeline.md`) and revises four Phase 1 / Phase 2 kits with v3 audit-cleanup amendments.
+
 ## Domain Index
 
 | # | Cavekit | Status | Requirements | Acceptance Criteria | One-line description |
@@ -34,8 +36,10 @@ complexity: unknown
 | 10 | `cavekit-software-statement.md` | DRAFT (Phase 2) | 11 | 64 | RFC 7591 §2.3 software_statement JWT verification — typed `TrustedIssuers`, header parse + `iss` lookup, JWKS fetch (SSRF-guarded, per-issuer cached), signature + claim verify, JTI replay dedupe, claim-to-metadata override mapping, audit + OTel. |
 | 11 | `cavekit-inline-jwks.md` | DRAFT (Phase 2) | 7 | 45 | RFC 7591 §2.1.1 inline `jwks` on POST + RFC 7592 §2.2 inline `jwks` on PUT — decode + mutual exclusion with `jwks_uri`, JWK validation, JSONB storage column, RFC 7592 GET read-back, token-endpoint authoritativeness for `private_key_jwt`. |
 | 12 | `cavekit-console-phase2.md` | DRAFT (Phase 2) | 10 | 58 | Operator edit-DCR-app panel (RFC 7592 fields read-only); operator-initiated RAT rotation with plaintext-once dialog; per-org IAT admin module; per-org DCR policy editor; full 22-locale rollout (backend yaml + console JSON); Cypress E2E. |
+| 13 | `cavekit-eventstore-framework-guard.md` | DRAFT (v3 audit cleanup) | 3 | 14 | Construction-time guard at `internal/eventstore/handler/v2/handler.go::NewHandler` — refuses to construct a Handler with empty Reducers, no `TriggerWithoutEvents`, and no `GlobalProjection` marker; truth-table tests; back-stop verification that no current projection trips it. |
+| 14 | `cavekit-i18n-pipeline.md` | DRAFT (v3 audit cleanup) | 4 | 22 | Reproducible Anthropic-API console-i18n bootstrap — Node ESM script under `console/scripts/`, placeholder + glossary preservation with `temperature=0` determinism, CI reproducibility verification, idempotent merge that never overwrites existing target values. |
 
-**Totals:** 12 domains, 93 requirements, ~580 acceptance criteria (Phase 1 + Phase 2; Phase 2 = 219; Phase 1 R count frozen at 56, AC count drifted upward from 266 baseline due to post-loop F-* amendments — see per-kit files for current totals).
+**Totals:** 14 domains, 100 requirements, ~616 acceptance criteria (Phase 1 + Phase 2 + v3 audit cleanup; v3 added 7 R + ~36 AC across the 6 touched kits — see per-kit files for current per-kit totals).
 
 ## Cross-Reference Map
 
@@ -65,6 +69,10 @@ discovery-and-as-metadata (5) ←→ security-hardening (7)  T17 (registration_e
 
 security-hardening (7) cross-cuts → 3, 4, 5, and consumes 1
 console-ui-docs-and-observability (8) consumes 2, 3, 4, references 5, 6, 7 in docs
+
+eventstore-framework-guard (13) ←→ software-statement (10)  R12 forbids the misuse at the kit level; R13 enforces it structurally at NewHandler
+eventstore-framework-guard (13) ←→ iat (2)                  R8 (eventstore-derivable identities use UniqueConstraints) — contrast pattern
+i18n-pipeline (14) ←→ console-ui-docs-and-observability (8)  R3 strengthened to require full-locale coverage; this kit defines the bootstrap mechanism
 ```
 
 ## Dependency Graph
@@ -153,3 +161,4 @@ Edge rationale:
 ## Changelog
 - 2026-04-24: Initial draft from `context/refs/dcr-plan.md`.
 - 2026-04-28: Phase 2 — added kits 9–12 (`cavekit-org-dcr-policy.md`, `cavekit-software-statement.md`, `cavekit-inline-jwks.md`, `cavekit-console-phase2.md`); appended Phase 2 dependency-graph subsection. Phase 1 kit R/AC counts FROZEN; Phase 1 kits received cross-reference-only edits to existing Out-of-Scope bullets (no R/AC changes). Phase 1 fork tag at `dcr-rfc8707-v1.0.0`.
+- 2026-05-05 (v5.0.0-dcr.3 audit cleanup): Added kits 13 (`cavekit-eventstore-framework-guard.md`) and 14 (`cavekit-i18n-pipeline.md`); appended cross-reference rows to the Cross-Reference Map. Revised four kits with v3 audit-cleanup amendments — `cavekit-software-statement.md` (strengthened R9; added R12 application-managed-tables and R13 aud-validation), `cavekit-iat.md` (added R8 UniqueConstraint-vs-TTL pattern note), `cavekit-console-ui-docs-and-observability.md` (strengthened R3 full-locale coverage; added R9 frontend hygiene and R10 Cypress teardown), `cavekit-manage-handler.md` (added R8 `ManageFromContext` panic-on-missing). Current release tag: v5.0.0-dcr.3.

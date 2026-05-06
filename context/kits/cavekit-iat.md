@@ -1,6 +1,6 @@
 ---
 created: "2026-04-24T00:00:00Z"
-last_edited: "2026-04-27T00:30:00Z"
+last_edited: "2026-05-05T00:00:00Z"
 complexity: complex
 ---
 
@@ -115,12 +115,24 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 
 **Dependencies:** R2
 
+### R8: IAT replay-protection uses eventstore UniqueConstraints, not a TTL table
+**Description:** Initial Access Tokens enforce `max_uses` exhaustion via eventstore `UniqueConstraint` on `(iat_id, use_index)` per slot — racing consumers see the unique-violation atomically and retry. This is structural protection at the eventstore layer; it does NOT require a TTL janitor. Other DCR replay-protection mechanisms (notably software_statement JTI dedupe in `cavekit-software-statement.md` R9) cannot use this pattern because the JWT issuer is external — the (iss, jti) tuple is not derivable from an eventstore aggregate, so a separate application-managed table is needed there. This R exists to make the rule explicit so future agents pick the right mechanism per replay-protection domain.
+
+**Acceptance Criteria:**
+- [ ] No janitor goroutine, no `Reap*InitialAccessToken*` query, and no scheduled cleanup is wired for the `projections.initial_access_tokens` table — slot exhaustion is enforced atomically via the existing R2 (`Race-safe max_uses consume with 3-retry`) UniqueConstraint pattern.
+- [ ] The kit `cavekit-iat.md` Out of Scope explicitly lists "TTL/janitor cleanup of consumed IAT rows — not needed; slot uniqueness via eventstore UniqueConstraint covers replay protection structurally."
+- [ ] Future kits introducing replay-protection or dedup tables MUST cite either `cavekit-iat.md` R8 (eventstore-aggregate-derivable identity → use UniqueConstraint) OR `cavekit-software-statement.md` R9 (externally-issued identity → use numbered setup step + janitor) as the chosen pattern.
+- [ ] grep-scan acceptance: `grep -rn "func.*Reap.*InitialAccessToken\|func.*[Ii]at[A-Z].*[Jj]anitor" --include='*.go'` returns zero matches (a positive negative — confirms no accidental janitor was added). Tightened from a broader regex to avoid matching diagnostic comments containing "iat" near "janitor".
+
+**Dependencies:** `cavekit-software-statement.md` R9 (the contrasting pattern this R distinguishes against).
+
 ## Out of Scope
 - Inline `jwks` validation through IATs.
 - Per-org IAT policy — see `cavekit-org-dcr-policy.md`, `cavekit-console-phase2.md`.
 - IAT issuance via end-user / non-admin gRPC paths.
 - Token-prefix unification across PAT / IAT / RAT.
 - Bulk IAT import / export.
+- TTL/janitor cleanup of consumed IAT rows — explicitly NOT needed; slot uniqueness via eventstore `UniqueConstraint` (R2) covers replay protection structurally. See R8.
 
 ## Cross-References
 - See `cavekit-config.md` R2: feature flag gates the admin gRPC surface for R6.
@@ -128,6 +140,7 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 - See `cavekit-security-hardening.md` R3: log redaction must cover the gRPC `CreateInitialAccessToken` response body (plaintext IAT field).
 - See `cavekit-security-hardening.md` R5: T18 projection-lag test cross-references R7.
 - See `cavekit-console-ui-docs-and-observability.md` R2: console IAT admin UI consumes the gRPC from R6.
+- See `cavekit-software-statement.md` R9: contrasting external-JWT replay-protection pattern (numbered setup step + janitor); R8 distinguishes from this case.
 
 ## Source Traceability (brownfield)
 - `proto/zitadel/admin.proto:205` — `zitadel.admin.v1.AdminService` definition. [VERIFIED] single monolithic file confirmed.
@@ -150,3 +163,7 @@ Defines the Initial Access Token domain — events scoped to the `project` aggre
 - **Summary:** R3/R4/R5 originally described mutually inconsistent contracts: R5 specified a non-deterministic Passwap-encoded plaintext, R3 indexed `token_hash`, R4 declared an `InitialAccessTokenByHash` lookup. Passwap hashes are non-deterministic by design; the registration handler cannot derive the lookup key from a presented Bearer. Amendment moves to ID-embedded plaintext (`zdiat_<id>.<random>`), drops the unusable hash index from R3, drops `InitialAccessTokenByHash` from R4, and adds three security ACs: dummy-Verify-on-not-found anti-enum (R4), parser contract via `strings.Cut` first-dot split with restricted ID alphabet (R5), and full-token log-redaction regex `zdiat_[^\s"',]+` cross-ref to security R3 (R5).
 - **Commits:** 52210faa4 (T-021 originally) / 78b8f520a (T-019) / c53263536 (T-020) — original drift commits being corrected. Regression test + fix commits to follow.
 - **Pattern category:** kit-internal-inconsistency (cross-requirement contract mismatch).
+
+### 2026-05-05 — Revision (v3 audit cleanup)
+- **Affected:** R8 (new), Out of Scope, Cross-References
+- **Summary:** Added R8 (defensive positive-pattern note: IAT replay-protection uses eventstore UniqueConstraints, not a TTL table — distinguishes from software_statement JTI dedupe). Out-of-scope addition for TTL/janitor cleanup. Cross-reference added to software_statement R9.

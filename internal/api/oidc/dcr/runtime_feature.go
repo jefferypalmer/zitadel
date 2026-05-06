@@ -7,29 +7,23 @@ import (
 )
 
 // runtimeFeatureFlagEnabled implements the runtime half of the
-// cavekit-config.md R3 dual-gate. Phase 1/2 added
-// `feature.KeyDynamicClientRegistration` (`internal/feature/feature.go`
-// line 28) plus the read sites here, in `oidc/server.go::dcrAdvertised`,
-// and in `grpc/admin/iat.go::iatDualGate` — but the proto field on
-// `Set{Instance,System}FeaturesRequest`, the command-layer
-// `InstanceFeaturesWriteModel.DynamicClientRegistration` field, the
-// projection mapping, and the console UI toggle were never added. With
-// no write path, `authz.GetFeatures(ctx).DynamicClientRegistration`
-// always reads the zero-value (false), making the runtime gate
-// permanently closed regardless of operator intent.
+// cavekit-config.md R3 dual-gate. The end-to-end wire-up of
+// `feature.KeyDynamicClientRegistration` lives at
+// `cavekit-feature-flag-dcr-runtime.md` (proto field, command write
+// model, eventstore event types, projection reducer, query read model,
+// console toggle). With that wire-up in place, operators flip the
+// per-instance flag via the console (Instance Settings → Features →
+// Dynamic Client Registration) or the SetInstanceFeatures gRPC, and
+// the cascade through `internal/query/instance_by_id.sql`'s
+// `json_object_agg(coalesce(i.value, s.value))` makes the projected
+// value reach `authz.GetFeatures(ctx).DynamicClientRegistration`.
 //
-// v5.0.0-dcr.5 hotfix: when the explicit runtime flag is true (i.e. a
-// future wire-up has set it via the eventstore), honor that. When it's
-// false, fall back to the runtime default — which v5.0.0-dcr.5 sets to
-// true so the yaml gate (`OIDC.DCR.Enabled` / `s.dcrYAMLEnabled` /
-// `s.dcrEnabled`) becomes the authoritative on/off. Multi-tenant
-// per-instance disable returns once the proto + command + projection
-// are wired (tracked as a follow-up).
-//
-// `DefaultRuntimeFlag` is a package-var so tests that assert the
-// gate-fires-when-runtime-off contract can override it to false and
-// verify the legacy code path still behaves correctly.
-var DefaultRuntimeFlag = true
+// `DefaultRuntimeFlag` is a package var so tests can pin permissive
+// semantics for cases that exercise the gate-passes-when-off branch
+// (the v5.0.0-dcr.5 hotfix permissive-default behavior, kept as a
+// test-only seam in case a future operational override is needed).
+// Production default is false — strict dual-gate.
+var DefaultRuntimeFlag = false
 
 // RuntimeFeatureFlagEnabled reports the effective per-instance runtime
 // flag. Production callers should use this rather than reading

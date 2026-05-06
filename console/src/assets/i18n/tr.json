@@ -1770,7 +1770,9 @@
       "LOGINV2_DESCRIPTION": "Bunu etkinleştirmek, gelişmiş güvenlik, performans ve özelleştirme ile yeni TypeScript tabanlı giriş UI'ını etkinleştirir.",
       "LOGINV2_BASEURI": "Temel URI",
       "ENABLERELATIONALTABLES": "İlişkisel Tablolar",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Veri depolamak için projeksiyonlar yerine ilişkisel tabloları kullanmak için bunu etkinleştirin. Şu anda bu anahtar hiçbir şey yapmıyor."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Veri depolamak için projeksiyonlar yerine ilişkisel tabloları kullanmak için bunu etkinleştirin. Şu anda bu anahtar hiçbir şey yapmıyor.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "OAuth/OIDC istemcilerinin çalışma zamanında /oidc/v1/register (RFC 7591) üzerinden kendilerini kaydetmesine izin verir. yaml kapısı (OIDC.DCR.Enabled) da açık olmalı; her iki kapı VE ile birleşir."
     },
     "DIALOG": {
       "RESET": {

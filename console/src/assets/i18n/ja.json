@@ -1770,7 +1770,9 @@
       "LOGINV2_DESCRIPTION": "これを有効にすると、セキュリティ、パフォーマンス、およびカスタマイズ性が向上した、TypeScript ベースの新しいログイン UI が有効になります。",
       "LOGINV2_BASEURI": "ベースURI",
       "ENABLERELATIONALTABLES": "リレーショナルテーブル",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "データを保存するためにプロジェクションの代わりにリレーショナルテーブルを使用するには、これを有効にします。現在、このトグルは何もしません。"
+      "ENABLERELATIONALTABLES_DESCRIPTION": "データを保存するためにプロジェクションの代わりにリレーショナルテーブルを使用するには、これを有効にします。現在、このトグルは何もしません。",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "OAuth/OIDC クライアントが /oidc/v1/register (RFC 7591) を介して実行時に自己登録することを許可します。yaml ゲート (OIDC.DCR.Enabled) も有効である必要があります。両ゲートが AND で結合されます。"
     },
     "DIALOG": {
       "RESET": {

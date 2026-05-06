@@ -1775,7 +1775,9 @@
       "LOGINV2_BASEURI": "URI base",
       "ENABLERELATIONALTABLES": "Tabelas relacionais",
       "ENABLERELATIONALTABLES_DESCRIPTION": "Ative isso para usar tabelas relacionais em vez de projeções para armazenar dados. Atualmente, este interruptor não faz nada.",
-      "USERSCHEMAS_DESCRIPTION": "Esquemas de Usuário permitem gerenciar esquemas de dados do usuário. Se o sinalizador estiver ativado, você poderá usar a nova API e seus recursos."
+      "USERSCHEMAS_DESCRIPTION": "Esquemas de Usuário permitem gerenciar esquemas de dados do usuário. Se o sinalizador estiver ativado, você poderá usar a nova API e seus recursos.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Permite que clientes OAuth/OIDC se registem em tempo de execução via /oidc/v1/register (RFC 7591). A porta yaml (OIDC.DCR.Enabled) também tem de estar ativa; ambas as portas E juntas."
     },
     "DIALOG": {
       "RESET": {

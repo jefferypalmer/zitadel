@@ -380,7 +380,15 @@ func NewHandler(deps RegistrationDeps) http.Handler {
 		panic(err)
 	}
 	r := mux.NewRouter()
-	r.StrictSlash(true)
+	// Match both /oidc/v1/register and /oidc/v1/register/ on the
+	// post-StripPrefix paths "" and "/". `StrictSlash(true)` would
+	// 301-redirect "" → "/" which corrupts the POST body (curl without
+	// -L drops the redirect; many HTTP clients downgrade to GET).
+	// Registering both empty-path and `/` is the standard fix for this
+	// gorilla-mux + http.StripPrefix interaction (the same pattern
+	// `apis.RegisterHandlerOnPrefix` produces for /idp, /assets, etc.,
+	// which all sub-route from "" rather than "/").
+	r.HandleFunc("", postRegisterDispatch(deps)).Methods(http.MethodPost)
 	r.HandleFunc("/", postRegisterDispatch(deps)).Methods(http.MethodPost)
 	getH, putH, delH := manageRoutes(deps)
 	r.HandleFunc("/{client_id}", getH).Methods(http.MethodGet)

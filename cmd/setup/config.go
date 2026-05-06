@@ -187,6 +187,7 @@ type Steps struct {
 	s69CacheTablesLogged                    *CacheTablesLogged
 	s70DCRSoftwareStatementJTIs             *DCRSoftwareStatementJTIs
 	s71DCRAppOIDCBackfill                   *DCRAppOIDCBackfill
+	s72SeedDCRRuntimeFeatureFlag            *SeedDCRRuntimeFeatureFlag
 	RelationalTables                        *TransactionalTables
 }
 

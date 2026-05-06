@@ -1770,7 +1770,9 @@
       "LOGINV2_DESCRIPTION": "Ennek engedélyezésével aktiválódik az új, TypeScript-alapú bejelentkezési felület, amely jobb biztonságot, teljesítményt és testreszabhatóságot nyújt.",
       "LOGINV2_BASEURI": "Alap URI",
       "ENABLERELATIONALTABLES": "Kapcsolati táblák",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Engedélyez ezt a relációs táblák használatához a projekciók helyett az adatok tárolásához. Jelenleg ez a kapcsoló semmit sem csinál."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Engedélyez ezt a relációs táblák használatához a projekciók helyett az adatok tárolásához. Jelenleg ez a kapcsoló semmit sem csinál.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Engedélyezi az OAuth/OIDC-klienseknek, hogy futás közben regisztrálják magukat a /oidc/v1/register (RFC 7591) végponton. A yaml-kapunak (OIDC.DCR.Enabled) is bekapcsolva kell lennie; a két kapu ÉS-kapcsolatban van."
     },
     "DIALOG": {
       "RESET": {

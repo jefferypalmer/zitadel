@@ -1770,7 +1770,9 @@
       "LOGINV2_DESCRIPTION": "Enabling this activates the new TypeScript-based login UI with improved security, performance, and customization.",
       "LOGINV2_BASEURI": "Base URI",
       "ENABLERELATIONALTABLES": "Relational Tables",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Enable this to use relational tables instead of projections for storing data. Currently this toggle does nothing."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Enable this to use relational tables instead of projections for storing data. Currently this toggle does nothing.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Allow OAuth/OIDC clients to register themselves at runtime via /oidc/v1/register (RFC 7591). The yaml gate (OIDC.DCR.Enabled) must also be on; both gates AND together."
     },
     "DIALOG": {
       "RESET": {

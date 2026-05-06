@@ -1770,7 +1770,9 @@
       "LOGINV2_DESCRIPTION": "Mengaktifkan ini akan mengaktifkan antarmuka login baru berbasis TypeScript dengan keamanan, performa, dan kustomisasi yang lebih baik.",
       "LOGINV2_BASEURI": "URI dasar",
       "ENABLERELATIONALTABLES": "Tabel Relasional",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Aktifkan ini untuk menggunakan tabel relasional alih-alih proyeksi untuk menyimpan data. Saat ini, toggle ini tidak berfungsi."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Aktifkan ini untuk menggunakan tabel relasional alih-alih proyeksi untuk menyimpan data. Saat ini, toggle ini tidak berfungsi.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Mengizinkan klien OAuth/OIDC mendaftarkan diri saat runtime melalui /oidc/v1/register (RFC 7591). Gerbang yaml (OIDC.DCR.Enabled) juga harus aktif; kedua gerbang DAN bersama."
     },
     "DIALOG": {
       "RESET": {

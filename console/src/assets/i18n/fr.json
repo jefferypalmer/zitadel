@@ -1770,7 +1770,9 @@
       "LOGINV2_DESCRIPTION": "L’activation de cette option lance la nouvelle interface de connexion basée sur TypeScript, avec une sécurité, des performances et une personnalisation améliorées.",
       "LOGINV2_BASEURI": "URI de base",
       "ENABLERELATIONALTABLES": "Tables relationnelles",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Activez ceci pour utiliser des tables relationnelles au lieu de projections pour stocker des données. Actuellement, ce commutateur ne fait rien."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Activez ceci pour utiliser des tables relationnelles au lieu de projections pour stocker des données. Actuellement, ce commutateur ne fait rien.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Autorise les clients OAuth/OIDC à s'enregistrer à l'exécution via /oidc/v1/register (RFC 7591). La porte yaml (OIDC.DCR.Enabled) doit aussi être activée ; les deux portes ET ensemble."
     },
     "DIALOG": {
       "RESET": {

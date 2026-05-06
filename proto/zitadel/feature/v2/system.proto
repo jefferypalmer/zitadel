@@ -81,6 +81,12 @@ message SetSystemFeaturesRequest{
     }
   ];
 
+  optional bool dynamic_client_registration = 14 [
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      example: "true";
+      description: "System-level default for the DCR runtime gate (cavekit-feature-flag-dcr-runtime.md). When set, every instance inherits dynamic_client_registration=true unless the instance has its own override. The yaml gate (OIDC.DCR.Enabled) must also be on; both gates AND together per cavekit-config.md R3.";
+    }
+  ];
 }
 
 message SetSystemFeaturesResponse {
@@ -160,6 +166,13 @@ message GetSystemFeaturesResponse {
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
       example: "true";
       description: "If this is enabled Zitadel will use the relational tables instead of the projections as the main source to store the data. Regardless of the flag state, both the relational table and the projections are kept up to date. Currently the flag has no effect.";
+    }
+  ];
+
+  FeatureFlag dynamic_client_registration = 15 [
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      example: "true";
+      description: "System-level default for the DCR runtime gate (cavekit-feature-flag-dcr-runtime.md). When set, every instance inherits dynamic_client_registration=true unless the instance has its own override.";
     }
   ];
 }

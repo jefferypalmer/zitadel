@@ -1774,7 +1774,9 @@
       "LOGINV2_DESCRIPTION": "Att aktivera detta startar det nya inloggningsgränssnittet baserat på TypeScript med förbättrad säkerhet, prestanda och anpassning.",
       "LOGINV2_BASEURI": "Bas-URI",
       "ENABLERELATIONALTABLES": "Relationella tabeller",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Aktivera detta för att använda relationella tabeller istället för projektioner för att lagra data. För närvarande gör denna växel ingenting."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Aktivera detta för att använda relationella tabeller istället för projektioner för att lagra data. För närvarande gör denna växel ingenting.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Tillåter OAuth/OIDC-klienter att registrera sig vid körning via /oidc/v1/register (RFC 7591). yaml-grinden (OIDC.DCR.Enabled) måste också vara på; båda grindarna OCH tillsammans."
     },
     "DIALOG": {
       "RESET": {

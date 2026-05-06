@@ -1831,7 +1831,9 @@
       "LOGINV2_DESCRIPTION": "Включение этой опции активирует новый интерфейс входа на основе TypeScript с улучшенной безопасностью, производительностью и возможностью настройки.",
       "LOGINV2_BASEURI": "Базовый URI",
       "ENABLERELATIONALTABLES": "Реляционные таблицы",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Включите это, чтобы использовать реляционные таблицы вместо проекций для хранения данных. В настоящее время этот переключатель ничего не делает."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Включите это, чтобы использовать реляционные таблицы вместо проекций для хранения данных. В настоящее время этот переключатель ничего не делает.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Разрешает клиентам OAuth/OIDC самостоятельно регистрироваться во время выполнения через /oidc/v1/register (RFC 7591). yaml-врата (OIDC.DCR.Enabled) также должна быть включена; обе вратa объединяются И."
     },
     "DIALOG": {
       "RESET": {

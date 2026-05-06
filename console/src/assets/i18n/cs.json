@@ -1770,7 +1770,9 @@
       "LOGINV2_DESCRIPTION": "Povolením této možnosti se aktivuje nové přihlašovací rozhraní založené na TypeScriptu s vylepšeným zabezpečením, výkonem a přizpůsobitelností.",
       "LOGINV2_BASEURI": "Základní URI",
       "ENABLERELATIONALTABLES": "Relační tabulky",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Povolte toto pro použití relačních tabulek místo projekcí pro ukládání dat. Momentálně tento přepínač nic nedělá."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Povolte toto pro použití relačních tabulek místo projekcí pro ukládání dat. Momentálně tento přepínač nic nedělá.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Umožňuje OAuth/OIDC klientům, aby se sami registrovali za běhu přes /oidc/v1/register (RFC 7591). yaml brána (OIDC.DCR.Enabled) také musí být zapnutá; obě brány spojené AND."
     },
     "DIALOG": {
       "RESET": {

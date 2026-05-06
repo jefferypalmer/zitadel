@@ -1770,7 +1770,9 @@
       "LOGINV2_DESCRIPTION": "Door dit in te schakelen wordt de nieuwe TypeScript-gebaseerde login-UI geactiveerd met verbeterde beveiliging, prestaties en aanpasbaarheid.",
       "LOGINV2_BASEURI": "Basis-URI",
       "ENABLERELATIONALTABLES": "Relationele tabellen",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Schakel dit in om relationele tabellen te gebruiken in plaats van projecties voor het opslaan van gegevens. Momenteel doet deze schakelaar niets."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Schakel dit in om relationele tabellen te gebruiken in plaats van projecties voor het opslaan van gegevens. Momenteel doet deze schakelaar niets.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Staat OAuth/OIDC-clients toe zich tijdens runtime te registreren via /oidc/v1/register (RFC 7591). De yaml-gate (OIDC.DCR.Enabled) moet ook aan staan; beide gates EN samen."
     },
     "DIALOG": {
       "RESET": {

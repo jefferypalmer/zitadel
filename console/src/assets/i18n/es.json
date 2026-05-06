@@ -1775,7 +1775,9 @@
       "LOGINV2_DESCRIPTION": "Al habilitar esto, se activa la nueva interfaz de inicio de sesión basada en TypeScript con mejoras en seguridad, rendimiento y personalización.",
       "LOGINV2_BASEURI": "URI base",
       "ENABLERELATIONALTABLES": "Tablas relacionales",
-      "ENABLERELATIONALTABLES_DESCRIPTION": "Habilitar esto para usar tablas relacionales en lugar de proyecciones para almacenar datos. Actualmente este interruptor no hace nada."
+      "ENABLERELATIONALTABLES_DESCRIPTION": "Habilitar esto para usar tablas relacionales en lugar de proyecciones para almacenar datos. Actualmente este interruptor no hace nada.",
+      "DYNAMICCLIENTREGISTRATION": "Dynamic Client Registration",
+      "DYNAMICCLIENTREGISTRATION_DESCRIPTION": "Permite a los clientes OAuth/OIDC registrarse en tiempo de ejecución vía /oidc/v1/register (RFC 7591). La puerta yaml (OIDC.DCR.Enabled) también debe estar activa; ambas puertas Y juntas."
     },
     "DIALOG": {
       "RESET": {
