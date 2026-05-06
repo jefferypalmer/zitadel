@@ -13,7 +13,6 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/zitadel/zitadel/internal/api/authz"
 )
 
 // HandlerPrefix is the URL path prefix the DCR handler is mounted at.
@@ -117,7 +116,10 @@ func manageBearerGate(next http.HandlerFunc) http.HandlerFunc {
 // validation error.
 func featureGateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !authz.GetFeatures(r.Context()).DynamicClientRegistration {
+		// v5.0.0-dcr.5 hotfix: read via RuntimeFeatureFlagEnabled because
+		// the proto / command / projection wire-up for the runtime flag
+		// was never finished (Phase 1/2 omission). See runtime_feature.go.
+		if !RuntimeFeatureFlagEnabled(r.Context()) {
 			WriteError(w, http.StatusForbidden, ErrCodeFeatureDisabled,
 				"Dynamic Client Registration is not enabled for this instance.")
 			return

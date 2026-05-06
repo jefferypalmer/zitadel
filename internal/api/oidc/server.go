@@ -191,7 +191,12 @@ func (s *Server) EndSession(ctx context.Context, r *op.Request[oidc.EndSessionRe
 // documents agree on `registration_endpoint` advertisement
 // (cavekit-discovery-and-as-metadata.md R1/R3 / T-029).
 func (s *Server) dcrAdvertised(ctx context.Context) bool {
-	return s.dcrEnabled && authz.GetFeatures(ctx).DynamicClientRegistration
+	// v5.0.0-dcr.5 hotfix: read the runtime half of the dual-gate via
+	// dcr.RuntimeFeatureFlagEnabled because the proto/command/projection
+	// wire-up for `feature.KeyDynamicClientRegistration` was never
+	// finished (Phase 1/2 omission). The yaml gate (s.dcrEnabled) is
+	// still authoritative.
+	return s.dcrEnabled && dcr.RuntimeFeatureFlagEnabled(ctx)
 }
 
 // registrationEndpointURL returns the absolute URL of the DCR register

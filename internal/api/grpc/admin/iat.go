@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/query"
 	object_pb "github.com/zitadel/zitadel/pkg/grpc/object"
 
@@ -50,7 +51,11 @@ func (s *Server) iatDualGate(ctx context.Context) error {
 	if !s.dcrYAMLEnabled {
 		return errIATYAMLDisabled
 	}
-	if !authz.GetFeatures(ctx).DynamicClientRegistration {
+	// v5.0.0-dcr.5 hotfix: route through dcr.RuntimeFeatureFlagEnabled.
+	// See internal/api/oidc/dcr/runtime_feature.go for the rationale
+	// (proto/command/projection wire-up for the runtime flag was never
+	// finished — Phase 1/2 omission).
+	if !dcr.RuntimeFeatureFlagEnabled(ctx) {
 		return errFeatureDisabledIAT(ctx)
 	}
 	return nil

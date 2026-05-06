@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
+	"github.com/zitadel/zitadel/internal/api/oidc/dcr"
 	"github.com/zitadel/zitadel/internal/feature"
 	"github.com/zitadel/zitadel/pkg/grpc/admin"
 )
@@ -23,6 +24,14 @@ import (
 // moves the gate after a command call, these tests will panic loudly
 // on the nil deref and force the regression to be caught.
 func TestIAT_RuntimeFeatureGate(t *testing.T) {
+	// v5.0.0-dcr.5 hotfix: dcr.DefaultRuntimeFlag now defaults to true
+	// (see internal/api/oidc/dcr/runtime_feature.go). Override to false
+	// here so the legacy "runtime flag off → FAILED_PRECONDITION"
+	// contract still has a test seam.
+	prevDefault := dcr.DefaultRuntimeFlag
+	dcr.DefaultRuntimeFlag = false
+	t.Cleanup(func() { dcr.DefaultRuntimeFlag = prevDefault })
+
 	s := &Server{dcrYAMLEnabled: true}
 	ctx := authz.WithFeatures(context.Background(), feature.Features{DynamicClientRegistration: false})
 
