@@ -380,15 +380,6 @@ func NewHandler(deps RegistrationDeps) http.Handler {
 		panic(err)
 	}
 	r := mux.NewRouter()
-	// Match both /oidc/v1/register and /oidc/v1/register/ on the
-	// post-StripPrefix paths "" and "/". `StrictSlash(true)` would
-	// 301-redirect "" → "/" which corrupts the POST body (curl without
-	// -L drops the redirect; many HTTP clients downgrade to GET).
-	// Registering both empty-path and `/` is the standard fix for this
-	// gorilla-mux + http.StripPrefix interaction (the same pattern
-	// `apis.RegisterHandlerOnPrefix` produces for /idp, /assets, etc.,
-	// which all sub-route from "" rather than "/").
-	r.HandleFunc("", postRegisterDispatch(deps)).Methods(http.MethodPost)
 	r.HandleFunc("/", postRegisterDispatch(deps)).Methods(http.MethodPost)
 	getH, putH, delH := manageRoutes(deps)
 	r.HandleFunc("/{client_id}", getH).Methods(http.MethodGet)
@@ -401,7 +392,23 @@ func NewHandler(deps RegistrationDeps) http.Handler {
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 	})
-	return featureGateMiddleware(r)
+	// Normalize the post-StripPrefix path so the gorilla router below
+	// matches consistently for both /oidc/v1/register and /oidc/v1/register/.
+	// `apis.RegisterHandlerOnPrefix` strips `/oidc/v1/register`, leaving
+	// path="" when the original URL had no trailing slash and path="/"
+	// when it did. Gorilla mux treats `r.HandleFunc("", ...)` and
+	// `r.HandleFunc("/", ...)` identically (both register the root pattern),
+	// so neither matches an actually-empty path string. Without this
+	// normalization the parent mux falls through to the catch-all login
+	// handler, which 301-redirects to `/` — corrupting POST bodies in
+	// every HTTP client without `-L` and downgrading to GET.
+	gated := featureGateMiddleware(r)
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "" {
+			req.URL.Path = "/"
+		}
+		gated.ServeHTTP(w, req)
+	})
 }
 
 // postRegisterDispatch is the assembled POST /oidc/v1/register
