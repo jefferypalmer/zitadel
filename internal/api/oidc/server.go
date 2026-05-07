@@ -208,7 +208,20 @@ func (s *Server) registrationEndpointURL(ctx context.Context) string {
 	if !s.dcrAdvertised(ctx) {
 		return ""
 	}
-	issuer := op.IssuerFromContext(ctx)
+	// Use zitadel's own DomainContext-backed issuer rather than
+	// op.IssuerFromContext: the latter is only populated when the
+	// request flowed through the OIDC server's IssuerInterceptor, which
+	// the AS metadata handler at /.well-known/oauth-authorization-server
+	// does NOT — that handler mounts independently of oidcServer. The
+	// global WithOrigin middleware (cmd/start/start.go:458-462) populates
+	// DomainContext on every request regardless of mount point, so this
+	// works for both the OIDC discovery path and the AS metadata path.
+	issuer := ContextToIssuer(ctx)
+	if issuer == "" || issuer == "://" {
+		// Fallback for tests that wire the issuer via op.ContextWithIssuer
+		// directly (no global WithOrigin middleware in fixture).
+		issuer = op.IssuerFromContext(ctx)
+	}
 	if issuer == "" {
 		return ""
 	}
@@ -223,7 +236,18 @@ func (s *Server) registrationEndpointURL(ctx context.Context) string {
 // createDiscoveryConfig uses, so the two well-known documents cannot
 // diverge for shared fields (R3).
 func (s *Server) AsMetadata(ctx context.Context) *as_metadata.Metadata {
-	issuer := op.IssuerFromContext(ctx)
+	// Source issuer from zitadel's DomainContext (populated by the
+	// global WithOrigin middleware) rather than op.IssuerFromContext
+	// (only populated when going through the OIDC server's mux). The
+	// AS metadata handler mounts independently per cavekit-discovery-
+	// and-as-metadata.md R2, so the op-side ctx value is empty here.
+	// Falling back to op.IssuerFromContext when DomainContext is unset
+	// preserves the original code path for tests that wire the op ctx
+	// directly.
+	issuer := ContextToIssuer(ctx)
+	if issuer == "" || issuer == "://" {
+		issuer = op.IssuerFromContext(ctx)
+	}
 	gtSupported := op.GrantTypes(s.Provider())
 	gtStrings := make([]oidc.GrantType, 0, len(gtSupported))
 	gtStrings = append(gtStrings, gtSupported...)
