@@ -1,5 +1,5 @@
 import { SelectionModel } from '@angular/cdk/collections';
-import { AfterViewInit, Component, Input, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { MatTable } from '@angular/material/table';
 import { merge } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -18,6 +18,11 @@ import { ProjectApplicationsDataSource } from './applications-datasource';
 export class ApplicationsComponent implements AfterViewInit, OnInit {
   @Input() public projectId: string = '';
   @Input() public disabled: boolean = false;
+  // showDynamicClients emits when the user clicks the
+  // "X dynamically-registered clients hidden" info banner; the parent
+  // (owned-project-detail) routes the click to the Dynamic Clients
+  // sidenav setting (cavekit-dcr-bootstrap-validation.md R11).
+  @Output() public showDynamicClients: EventEmitter<void> = new EventEmitter<void>();
   @ViewChild(PaginatorComponent) public paginator!: PaginatorComponent;
   @ViewChild(MatTable) public table!: MatTable<App.AsObject>;
   public dataSource: ProjectApplicationsDataSource = new ProjectApplicationsDataSource(this.mgmtService);

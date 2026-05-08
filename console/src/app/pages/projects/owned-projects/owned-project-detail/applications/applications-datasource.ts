@@ -9,12 +9,25 @@ import { ManagementService } from 'src/app/services/mgmt.service';
  * Data source for the ProjectMembers view. This class should
  * encapsulate all logic for fetching and manipulating the displayed data
  * (including sorting, pagination, and filtering).
+ *
+ * Dynamically-registered (RFC 7591) clients are filtered out at the
+ * datasource level — they are surfaced separately under the
+ * "Dynamic Clients" sidenav peer (see
+ * cavekit-dcr-bootstrap-validation.md R11). The mgmt gRPC `ListApps`
+ * RPC continues to return both kinds; the filter is UI-only so a
+ * project hosting hundreds of MCP-registered clients doesn't drown
+ * out operator-created apps in the General tab.
  */
 export class ProjectApplicationsDataSource extends DataSource<App.AsObject> {
   public totalResult: number = 0;
   public viewTimestamp!: Timestamp.AsObject;
 
   public appsSubject: BehaviorSubject<App.AsObject[]> = new BehaviorSubject<App.AsObject[]>([]);
+  // hiddenCountSubject reports how many dynamically-registered clients
+  // were dropped from the most recent page so the table view can render
+  // an info banner with a click-through to the Dynamic Clients sidenav
+  // setting (cavekit-dcr-bootstrap-validation.md R11).
+  public hiddenCountSubject: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   private loadingSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   public loading$: Observable<boolean> = this.loadingSubject.asObservable();
 
@@ -42,7 +55,10 @@ export class ProjectApplicationsDataSource extends DataSource<App.AsObject> {
         finalize(() => this.loadingSubject.next(false)),
       )
       .subscribe((apps) => {
-        this.appsSubject.next(apps);
+        const visible = apps.filter((app) => app?.oidcConfig?.dynamicallyRegistered !== true);
+        const hiddenCount = apps.length - visible.length;
+        this.hiddenCountSubject.next(hiddenCount);
+        this.appsSubject.next(visible);
       });
   }
 
@@ -61,6 +77,7 @@ export class ProjectApplicationsDataSource extends DataSource<App.AsObject> {
    */
   public disconnect(): void {
     this.appsSubject.complete();
+    this.hiddenCountSubject.complete();
     this.loadingSubject.complete();
   }
 }

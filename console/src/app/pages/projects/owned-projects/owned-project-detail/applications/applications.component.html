@@ -1,3 +1,17 @@
+@if ((dataSource.hiddenCountSubject | async) ?? 0; as hiddenCount) {
+  @if (hiddenCount > 0) {
+    <div class="dcr-hidden-banner" role="status">
+      <mat-icon class="icon">info</mat-icon>
+      <span class="text">
+        {{ 'APP.DCR.HIDDEN_BANNER' | translate: { count: hiddenCount } }}
+      </span>
+      <button mat-button color="primary" type="button" (click)="showDynamicClients.emit()">
+        {{ 'APP.DCR.HIDDEN_BANNER_LINK' | translate }}
+      </button>
+    </div>
+  }
+}
+
 <cnsl-refresh-table
   [loading]="dataSource.loading$ | async"
   [selection]="selection"

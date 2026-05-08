@@ -101,6 +101,7 @@
                   isZitadel || (['project.app.write:' + project.id, 'project.app.write$'] | hasRole | async) === false
                 "
                 [projectId]="projectId"
+                (showDynamicClients)="switchToDynamicClients()"
               ></cnsl-applications>
             </cnsl-card>
           }

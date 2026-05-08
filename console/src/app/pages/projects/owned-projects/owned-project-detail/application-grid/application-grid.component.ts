@@ -29,7 +29,12 @@ export class ApplicationGridComponent implements OnInit {
     from(this.mgmtService.listApps(this.projectId, 100, 0))
       .pipe(
         map((resp) => {
-          return resp.resultList;
+          // cavekit-dcr-bootstrap-validation.md R11: hide
+          // dynamically-registered clients from the project's General
+          // grid; they live under the Dynamic Clients sidenav peer.
+          // The mgmt gRPC ListApps RPC keeps returning both kinds —
+          // this filter is UI-only.
+          return resp.resultList.filter((app) => app?.oidcConfig?.dynamicallyRegistered !== true);
         }),
         // catchError(() => of([])),
         finalize(() => this.loadingSubject.next(false)),

@@ -2630,6 +2630,10 @@
     "URLS": "URLs",
     "CONFIGURATION": "Settings",
     "TOKEN": "Token Settings",
+    "DCR": {
+      "HIDDEN_BANNER": "{{count}} dynamically-registered clients hidden from this list",
+      "HIDDEN_BANNER_LINK": "See Dynamic Clients"
+    },
     "PAGES": {
       "TITLE": "Application",
       "ID": "Application ID",

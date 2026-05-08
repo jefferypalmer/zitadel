@@ -86,6 +86,16 @@ export class OwnedProjectDetailComponent implements OnInit {
     }
   }
 
+  // switchToDynamicClients flips the sidenav to the Dynamic Clients
+  // setting in response to the Apps-tab info banner click
+  // (cavekit-dcr-bootstrap-validation.md R11).
+  public switchToDynamicClients(): void {
+    const setting = this.settingsList.find((s) => s.id === 'dynamicclients');
+    if (setting) {
+      this.currentSetting = setting;
+    }
+  }
+
   public openNameDialog(): void {
     const dialogRef = this.dialog.open(NameDialogComponent, {
       data: {

@@ -10,3 +10,29 @@
 tr {
   outline: none;
 }
+
+// cavekit-dcr-bootstrap-validation.md R11: info banner shown when the
+// Apps tab dropped one or more dynamically-registered clients from the
+// list.
+.dcr-hidden-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(96, 125, 139, 0.08);
+  border-left: 3px solid var(--mdc-theme-primary, #1976d2);
+
+  .icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    color: var(--mdc-theme-primary, #1976d2);
+  }
+
+  .text {
+    flex: 1;
+    font-size: 0.875rem;
+  }
+}
