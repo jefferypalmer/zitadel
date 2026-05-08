@@ -816,6 +816,22 @@ OIDC:
     Janitor:
       Enabled: true # ZITADEL_OIDC_DCR_JANITOR_ENABLED
       Interval: 1h # ZITADEL_OIDC_DCR_JANITOR_INTERVAL
+    # Duplicate-client_name policy applied between the RFC 7591 metadata
+    # clamp and the eventstore push. RFC 7591 makes no uniqueness
+    # guarantee on `client_name`, but the underlying app aggregate's
+    # unique-constraint table keys on `(instance_id, project_id, app_name)`
+    # — so a duplicate name otherwise raises SQLSTATE 23505 and surfaces as
+    # 500. Allowed values:
+    #   "suffix"  (default) — auto-append `-N` (smallest non-colliding) and
+    #                         persist the suffixed name in the response.
+    #                         MCP-friendly: clients re-registering on every
+    #                         startup get a clean 201 instead of a 500.
+    #   "reject"            — return 400 invalid_client_metadata describing
+    #                         the duplicate. Useful for operators who want
+    #                         stable client_name → client_id round-trips.
+    #   ""                  — disable; pre-R8 behavior (constraint → 500).
+    # See cavekit-dcr-bootstrap-validation.md R8.
+    OnNameCollision: suffix # ZITADEL_OIDC_DCR_ONNAMECOLLISION
 
 SAML:
   DefaultLoginURLV2: "/ui/v2/login/login?samlRequest=" # ZITADEL_SAML_DEFAULTLOGINURLV2

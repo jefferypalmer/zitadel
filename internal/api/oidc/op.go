@@ -78,6 +78,15 @@ type DCRConfig struct {
 	// projections.dcr_software_statement_jtis1. cavekit-software-
 	// statement.md R9.
 	Janitor DCRJanitorConfig
+	// OnNameCollision selects the duplicate-client_name policy applied
+	// between the RFC 7591 metadata clamp and the eventstore push:
+	//   "suffix" (default) — auto-append "-N" to make the name unique
+	//   "reject"           — return 400 invalid_client_metadata
+	//   ""                 — disable (pre-R8 behavior; eventstore unique
+	//                        constraint surfaces as 500)
+	// cavekit-dcr-bootstrap-validation.md R8. Env var
+	// ZITADEL_OIDC_DCR_ONNAMECOLLISION.
+	OnNameCollision string
 }
 
 // DCRJanitorConfig configures the software_statement JTI reaper goroutine

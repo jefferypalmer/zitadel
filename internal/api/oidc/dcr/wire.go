@@ -245,6 +245,22 @@ type RegistrationDeps struct {
 	// the manage routes so deployments still in mid-rollout return
 	// 401 instead of 500. Production wiring sets every field.
 	Manage *ManageDeps
+
+	// OnNameCollision selects the duplicate-client_name policy applied
+	// between the metadata clamp and RegisterClient. Allowed values:
+	// [CollisionPolicyOff] (default — disable), [CollisionPolicySuffix],
+	// [CollisionPolicyReject]. cavekit-dcr-bootstrap-validation.md R8.
+	// Production wiring sets CollisionPolicySuffix by default; operators
+	// can flip to CollisionPolicyReject via OIDC.DCR.OnNameCollision.
+	OnNameCollision string
+
+	// AppNameTaken is the function-shaped seam that probes whether a
+	// (project_id, app_name) pair already exists in the apps projection.
+	// Optional — when nil, OnNameCollision is treated as off and
+	// duplicate names fall through to the eventstore unique-constraint
+	// (which surfaces as the pre-R8 500 in the register handler).
+	// Production wires this to a closure over Queries.AppNameExistsInProject.
+	AppNameTaken AppNameTakenFn
 }
 
 // ConsumeIATFn is the function-shaped seam for invoking
@@ -652,6 +668,25 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			attribute.String("dcr.policy.scope", policyScope),
 			attribute.String("dcr.jwks.source", jwksSource),
 		)
+
+		// 3d. Apply duplicate-client_name policy (cavekit-dcr-bootstrap-
+		// validation.md R8). MUST run AFTER the clamp + IAT-consume
+		// steps so probe-time UX failures don't burn an IAT slot, and
+		// MUST run BEFORE Register so an auto-suffixed name lands in
+		// the persisted ApplicationAddedEvent (not a post-event update).
+		// The policy is a no-op when OnNameCollision is empty or
+		// AppNameTaken is unwired — keeps existing tests green.
+		if collErr := applyClientNameCollisionPolicy(
+			ctx,
+			deps.OnNameCollision,
+			deps.AppNameTaken,
+			regCtx.ProjectID,
+			clamped,
+		); collErr != nil {
+			recordError(ctx, collErr.Code)
+			writeDispatchError(ctx, w, collErr)
+			return
+		}
 
 		// 4. Persist (R6)
 		registrationMethod := RegMethodAnonymous

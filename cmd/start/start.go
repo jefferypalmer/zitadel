@@ -836,6 +836,16 @@ func startAPIs(
 					return commands.DeleteRegisteredClient(ctx, req.ProjectID, req.OrgID, req.AppID, req.ClientID)
 				},
 			},
+			// cavekit-dcr-bootstrap-validation.md R8: duplicate-client_name
+			// policy. AppNameTaken closes over queries.AppNameExistsInProject
+			// so the dcr package never imports query directly. Empty
+			// OnNameCollision falls back to pre-R8 (eventstore unique
+			// constraint surfaces as 500); production default is "suffix"
+			// for MCP-friendly transparent re-registration.
+			OnNameCollision: config.OIDC.DCR.OnNameCollision,
+			AppNameTaken: func(ctx context.Context, projectID, appName string) (bool, error) {
+				return queries.AppNameExistsInProject(ctx, projectID, appName)
+			},
 			ConsumeIAT: func(ctx context.Context, regCtx *dcr.RegistrationContext) error {
 				lookup := func(ctx context.Context) (*command.IATSnapshot, error) {
 					row, err := queries.InitialAccessTokenByID(ctx, regCtx.IATID, regCtx.OrgID)
