@@ -51,6 +51,10 @@ func (o *OPStorage) GetClientByClientID(ctx context.Context, id string) (_ op.Cl
 	if err != nil {
 		return nil, err
 	}
+	// cavekit-dcr-bootstrap-validation.md R12: record this lookup as a
+	// "successful client use" for the DCR client janitor. Throttled +
+	// best-effort — the auth path MUST NOT fail here.
+	touchClientLastSeen(ctx, o.query, client.AppID)
 	return ClientFromBusiness(client, o.defaultLoginURL, o.defaultLoginURLV2), nil
 }
 
@@ -223,6 +227,10 @@ func (s *Server) VerifyClient(ctx context.Context, r *op.Request[op.ClientCreden
 		return nil, err
 	}
 
+	// cavekit-dcr-bootstrap-validation.md R12: record this token-endpoint
+	// auth as a successful client use for the DCR client janitor.
+	// Throttled + best-effort.
+	touchClientLastSeen(ctx, s.query, client.AppID)
 	return ClientFromBusiness(client, s.defaultLoginURL, s.defaultLoginURLV2), nil
 }
 

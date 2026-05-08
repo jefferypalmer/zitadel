@@ -188,6 +188,7 @@ type Steps struct {
 	s70DCRSoftwareStatementJTIs             *DCRSoftwareStatementJTIs
 	s71DCRAppOIDCBackfill                   *DCRAppOIDCBackfill
 	s72SeedDCRRuntimeFeatureFlag            *SeedDCRRuntimeFeatureFlag
+	s73DCRAppOIDCLastSeenAt                 *DCRAppOIDCLastSeenAt
 	RelationalTables                        *TransactionalTables
 }
 

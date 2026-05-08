@@ -251,6 +251,7 @@ func Setup(ctx context.Context, config *Config, steps *Steps, masterKey string) 
 	steps.s70DCRSoftwareStatementJTIs = &DCRSoftwareStatementJTIs{dbClient: dbClient}
 	steps.s71DCRAppOIDCBackfill = &DCRAppOIDCBackfill{dbClient: dbClient}
 	steps.s72SeedDCRRuntimeFeatureFlag = &SeedDCRRuntimeFeatureFlag{eventstore: eventstoreClient}
+	steps.s73DCRAppOIDCLastSeenAt = &DCRAppOIDCLastSeenAt{dbClient: dbClient}
 
 	err = projection.Create(ctx, dbClient, eventstoreClient, config.Projections, nil, nil, nil)
 	if err != nil {
@@ -311,6 +312,7 @@ func Setup(ctx context.Context, config *Config, steps *Steps, masterKey string) 
 		steps.s70DCRSoftwareStatementJTIs,
 		steps.s71DCRAppOIDCBackfill,
 		steps.s72SeedDCRRuntimeFeatureFlag,
+		steps.s73DCRAppOIDCLastSeenAt,
 	} {
 		setupErr = executeMigration(ctx, eventstoreClient, step, "migration failed")
 		if setupErr != nil {

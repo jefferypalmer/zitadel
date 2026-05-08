@@ -75,6 +75,18 @@ const (
 	// cavekit-inline-jwks.md R3 AC).
 	AppOIDCConfigColumnJwksInline = "jwks_inline"
 
+	// AppOIDCConfigColumnLastSeenAt is the timestamp of the last
+	// successful client use (token issuance, /authorize, /userinfo,
+	// /introspect). Nullable so back-fill is purely additive — the
+	// "never seen" sentinel is the NULL itself. The DCR client janitor
+	// reaps DCR-registered clients (registration_access_token_hash IS
+	// NOT NULL) whose last_seen_at is older than the configured
+	// retention window. cavekit-dcr-bootstrap-validation.md R12.
+	//
+	// Writes are throttled (once per minute per app_id) to bound
+	// projection-table churn — see internal/query/dcr_last_seen.go.
+	AppOIDCConfigColumnLastSeenAt = "last_seen_at"
+
 	appSAMLTableSuffix              = "saml_configs"
 	AppSAMLConfigColumnAppID        = "app_id"
 	AppSAMLConfigColumnInstanceID   = "instance_id"
@@ -152,6 +164,10 @@ func (*appProjection) Init() *old_handler.Check {
 			handler.NewColumn(AppOIDCConfigColumnRegistrationAccessTokenExpiresAt, handler.ColumnTypeTimestamp, handler.Nullable()),
 			handler.NewColumn(AppOIDCConfigColumnDCRMeta, handler.ColumnTypeJSONB, handler.Nullable()),
 			handler.NewColumn(AppOIDCConfigColumnJwksInline, handler.ColumnTypeJSONB, handler.Nullable()),
+			// cavekit-dcr-bootstrap-validation.md R12: last successful
+			// client-use timestamp. Drives the DCR client janitor's reap
+			// query. See cmd/setup/73.{go,sql} for the upgrade-path ALTER.
+			handler.NewColumn(AppOIDCConfigColumnLastSeenAt, handler.ColumnTypeTimestamp, handler.Nullable()),
 		},
 			handler.NewPrimaryKey(AppOIDCConfigColumnInstanceID, AppOIDCConfigColumnAppID),
 			appOIDCTableSuffix,
