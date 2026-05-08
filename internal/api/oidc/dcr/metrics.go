@@ -94,6 +94,18 @@ const (
 	// latency per tick. cavekit-software-statement.md R9.1 / T-029.
 	MetricSoftwareStatementJTIJanitorDurationSeconds            = "zitadel.dcr.software_statement_jti_janitor_duration_seconds"
 	MetricSoftwareStatementJTIJanitorDurationSecondsDescription = "Software_statement JTI replay-dedupe janitor reap duration."
+
+	// MetricClientJanitorReapedTotal counts every tick of the DCR
+	// client retention janitor (cavekit-dcr-bootstrap-validation.md R12).
+	// Labels: result (ok | error).
+	MetricClientJanitorReapedTotal            = "zitadel.dcr.client_janitor_reaped_total"
+	MetricClientJanitorReapedTotalDescription = "Total ticks of the DCR client retention janitor. Labels: result."
+
+	// MetricClientJanitorDurationSeconds records reap-tick latency for
+	// the DCR client retention janitor. cavekit-dcr-bootstrap-validation
+	// R12.
+	MetricClientJanitorDurationSeconds            = "zitadel.dcr.client_janitor_duration_seconds"
+	MetricClientJanitorDurationSecondsDescription = "DCR client retention janitor reap duration."
 )
 
 // Label keys.
@@ -239,6 +251,17 @@ func RegisterMetrics() error {
 	); err != nil {
 		return err
 	}
+	if err := metrics.RegisterCounter(MetricClientJanitorReapedTotal, MetricClientJanitorReapedTotalDescription); err != nil {
+		return err
+	}
+	if err := metrics.RegisterHistogram(
+		MetricClientJanitorDurationSeconds,
+		MetricClientJanitorDurationSecondsDescription,
+		"s",
+		[]float64{0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 30, 60},
+	); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -283,6 +306,21 @@ func RecordSoftwareStatementJTIJanitorTick(ctx context.Context, result string, d
 		MetricLabelResult: attribute.StringValue(result),
 	})
 	_ = metrics.AddHistogramMeasurement(ctx, MetricSoftwareStatementJTIJanitorDurationSeconds, duration.Seconds(), map[string]attribute.Value{
+		MetricLabelResult: attribute.StringValue(result),
+	})
+}
+
+// RecordClientJanitorTick records one tick of the DCR client retention
+// janitor (cavekit-dcr-bootstrap-validation.md R12). `result` is "ok"
+// for a clean reap (any number of clients reaped, including zero) or
+// "error" when at least one delete or the list query failed.
+// `duration` is the wall-clock time the tick took.
+func RecordClientJanitorTick(ctx context.Context, result string, duration time.Duration) {
+	ensureRegistered()
+	_ = metrics.AddCount(ctx, MetricClientJanitorReapedTotal, 1, map[string]attribute.Value{
+		MetricLabelResult: attribute.StringValue(result),
+	})
+	_ = metrics.AddHistogramMeasurement(ctx, MetricClientJanitorDurationSeconds, duration.Seconds(), map[string]attribute.Value{
 		MetricLabelResult: attribute.StringValue(result),
 	})
 }
