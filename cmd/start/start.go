@@ -896,6 +896,18 @@ func startAPIs(
 		if err := dcrDeps.Validate(); err != nil {
 			return nil, fmt.Errorf("dcr deps validate: %w", err)
 		}
+		// cavekit-dcr-bootstrap-validation.md R4: when DCR is in anonymous
+		// mode (RequireInitialAccessToken=false), the configured
+		// DefaultProjectID + DefaultOrgID MUST resolve to ACTIVE rows in
+		// projections.projects4 / projections.orgs1, AND the project's
+		// resource_owner MUST equal DefaultOrgID. Without this check,
+		// anonymous DCR registrations succeed and emit ApplicationAddedEvent
+		// with a dangling FK; the dangling reference fails hours later when
+		// the first /authorize request hits, with no startup signal. This
+		// is the failure mode v5.0.0-dcr.7 produced.
+		if err := oidc.ValidateDCRDefaultDataAtBoot(ctx, queries, &config.OIDC.DCR); err != nil {
+			return nil, err
+		}
 		// cavekit-manage-handler.md R9 (T-025): DCR routes mount
 		// independently of oidcServer.Handler's middleware chain, so the
 		// OIDC RecoverHandler does NOT cover them. Without this dcr-shape

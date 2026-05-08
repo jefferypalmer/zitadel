@@ -60,10 +60,23 @@ func (q *Queries) DCRDefaultProjectByID(ctx context.Context, id string) (info DC
 	ctx, span := tracing.NewSpan(ctx)
 	defer func() { span.EndWithError(err) }()
 
+	instanceID := authz.GetInstance(ctx).InstanceID()
 	stmt, scan := prepareDCRDefaultProjectQuery()
-	eq := sq.Eq{
-		ProjectColumnID.identifier():         id,
-		ProjectColumnInstanceID.identifier(): authz.GetInstance(ctx).InstanceID(),
+	var eq sq.Sqlizer
+	if instanceID != "" {
+		eq = sq.Eq{
+			ProjectColumnID.identifier():         id,
+			ProjectColumnInstanceID.identifier(): instanceID,
+		}
+	} else {
+		// Boot-time validation runs without a per-instance context (the
+		// DCR DefaultProjectID is currently a single global config knob;
+		// per-instance overrides are a Phase 2 / cavekit-org-dcr-policy
+		// concern). Fall back to "exists anywhere" — a snowflake project
+		// ID is globally unique, so a non-instance-scoped probe is
+		// sufficient to catch typos. Per-request validation (R5) then
+		// re-checks under the actual request instance.
+		eq = sq.Eq{ProjectColumnID.identifier(): id}
 	}
 	query, args, err := stmt.Where(eq).ToSql()
 	if err != nil {
@@ -88,10 +101,17 @@ func (q *Queries) DCRDefaultOrgByID(ctx context.Context, id string) (info DCRDef
 	ctx, span := tracing.NewSpan(ctx)
 	defer func() { span.EndWithError(err) }()
 
+	instanceID := authz.GetInstance(ctx).InstanceID()
 	stmt, scan := prepareDCRDefaultOrgQuery()
-	eq := sq.Eq{
-		OrgColumnID.identifier():         id,
-		OrgColumnInstanceID.identifier(): authz.GetInstance(ctx).InstanceID(),
+	var eq sq.Sqlizer
+	if instanceID != "" {
+		eq = sq.Eq{
+			OrgColumnID.identifier():         id,
+			OrgColumnInstanceID.identifier(): instanceID,
+		}
+	} else {
+		// Boot-time fallback (see DCRDefaultProjectByID).
+		eq = sq.Eq{OrgColumnID.identifier(): id}
 	}
 	query, args, err := stmt.Where(eq).ToSql()
 	if err != nil {
