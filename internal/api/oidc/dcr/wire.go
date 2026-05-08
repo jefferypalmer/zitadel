@@ -261,6 +261,18 @@ type RegistrationDeps struct {
 	// (which surfaces as the pre-R8 500 in the register handler).
 	// Production wires this to a closure over Queries.AppNameExistsInProject.
 	AppNameTaken AppNameTakenFn
+
+	// DefaultDataValidator is the request-time existence probe for the
+	// configured anonymous-mode DefaultProjectID + DefaultOrgID. When
+	// wired (production) the dispatcher calls it after ResolveAnonymous
+	// and before Register; on miss it returns a 503 RFC 7591 envelope
+	// instead of letting the eventstore push emit an
+	// ApplicationAddedEvent with a dangling FK.
+	// cavekit-dcr-bootstrap-validation.md R5.
+	//
+	// Optional: when nil, the in-request defense is disabled and the
+	// boot-time check (R4) is the only safety net.
+	DefaultDataValidator DefaultDataValidator
 }
 
 // ConsumeIATFn is the function-shaped seam for invoking
@@ -668,6 +680,20 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			attribute.String("dcr.policy.scope", policyScope),
 			attribute.String("dcr.jwks.source", jwksSource),
 		)
+
+		// 3c2. cavekit-dcr-bootstrap-validation.md R5: in-request
+		// defense for the configured anonymous-mode default project /
+		// org. The boot check (R4) is the primary safety net; this
+		// validator catches the race where an operator deletes the
+		// default project/org mid-run. Anonymous mode only — IAT mode
+		// carries identifiers via the IAT row.
+		if deps.DefaultDataValidator != nil && mode == AuthModeAnonymous {
+			if validErr := deps.DefaultDataValidator(ctx, regCtx.ProjectID, regCtx.OrgID); validErr != nil {
+				recordError(ctx, validErr.Code)
+				writeDispatchError(ctx, w, validErr)
+				return
+			}
+		}
 
 		// 3d. Apply duplicate-client_name policy (cavekit-dcr-bootstrap-
 		// validation.md R8). MUST run AFTER the clamp + IAT-consume

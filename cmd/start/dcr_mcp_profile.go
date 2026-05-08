@@ -1,7 +1,12 @@
 package start
 
 import (
+	"context"
+	"net"
+	"net/url"
 	"strings"
+
+	"github.com/zitadel/logging"
 
 	"github.com/zitadel/zitadel/internal/api/oidc"
 	"github.com/zitadel/zitadel/internal/domain"
@@ -38,6 +43,67 @@ func applyMCPProfileToOIDCApp(app *domain.OIDCApp, profile *oidc.DCRMCPProfileCo
 		c := profile.ClockSkew
 		app.ClockSkew = &c
 	}
+}
+
+// applyDevModeFromRedirects auto-enables OIDCApp.DevMode when ANY
+// redirect URI is http loopback / private-IP — the local-dev shape
+// MCP clients (VS Code, Claude Code MCP, etc.) register with. Without
+// DevMode the redirect-host clamps reject http URIs as insecure, which
+// defeats the zero-config DCR promise for local-dev clients.
+// cavekit-dcr-bootstrap-validation.md R10.
+//
+// Logs the determination at INFO with the redirect URIs and the reason
+// so operators can see WHY DevMode is on for a given app.
+//
+// Operates on the OIDCApp.DevMode pointer field: a non-nil pointer
+// (request explicitly set DevMode true or false) is preserved.
+func applyDevModeFromRedirects(ctx context.Context, app *domain.OIDCApp) {
+	if app == nil || app.DevMode != nil {
+		return
+	}
+	dev := false
+	for _, raw := range app.RedirectUris {
+		if isLocalDevHTTPRedirect(raw) {
+			dev = true
+			break
+		}
+	}
+	if !dev {
+		return
+	}
+	app.DevMode = &dev
+	logging.WithFields(
+		"redirect_uris", app.RedirectUris,
+		"reason", "http_loopback_or_private_ip_redirect",
+	).Info("dcr: DevMode auto-enabled (cavekit-dcr-bootstrap-validation R10)")
+}
+
+// isLocalDevHTTPRedirect mirrors the dcr-package isLocalDevRedirectURI
+// helper. Duplicated here (rather than imported) because cmd/start
+// already accumulates a small set of dcr-internal heuristics and a
+// circular import via dcr → start is undesirable. Behavioral parity is
+// pinned by the tests in dcr_mcp_profile_test.go and the dcr package's
+// dcr_defaults_test.go.
+func isLocalDevHTTPRedirect(raw string) bool {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u == nil {
+		return false
+	}
+	if !strings.EqualFold(u.Scheme, "http") {
+		return false
+	}
+	host := u.Hostname()
+	if host == "" {
+		return false
+	}
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback() || ip.IsPrivate()
 }
 
 // mapAccessTokenType translates the operator-config string ("JWT" /

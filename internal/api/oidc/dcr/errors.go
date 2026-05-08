@@ -49,6 +49,18 @@ const (
 	// distinct from the RFC 7591 §3.2.2 metadata codes so consumers
 	// can distinguish an internal fault from a client-input fault.
 	ErrCodeServerError = "server_error"
+
+	// ErrCodeDefaultProjectNotFound is the envelope `error` code
+	// returned when anonymous-mode DCR cannot resolve the configured
+	// DefaultProjectID / DefaultOrgID at request time — the projection
+	// row was deleted or never existed. The dispatcher maps this to
+	// HTTP 503 (server_error) so callers retry rather than treating it
+	// as a permanent client-input fault. cavekit-dcr-bootstrap-validation
+	// R5. The body still uses the RFC 7591 envelope `error: server_error`
+	// per RFC 6749 §5.2 because RFC 7591 §3.2.2 doesn't enumerate a
+	// per-deployment-state code; downstream tooling can disambiguate via
+	// the description string.
+	ErrCodeDefaultProjectNotFound = "default_project_not_found"
 )
 
 // ErrorEnvelope is the RFC 7591 §3.2.2 client-registration error body.

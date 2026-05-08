@@ -755,6 +755,14 @@ func startAPIs(
 				// nil pointers (omitted by the request) get the profile
 				// default.
 				applyMCPProfileToOIDCApp(app, &config.OIDC.DCR.MCPProfile)
+				// cavekit-dcr-bootstrap-validation.md R10: auto-enable
+				// DevMode when ANY redirect URI is http loopback /
+				// private-IP. Without this, native MCP clients
+				// (VS Code, Claude Code MCP, etc.) registering with
+				// http://127.0.0.1/cb fail downstream redirect-host
+				// clamps. Logs the determination so operators can see
+				// WHY DevMode is on.
+				applyDevModeFromRedirects(ctx, app)
 				in := &command.RegisterClientInput{
 					App:                  app,
 					OrgID:                req.OrgID,
@@ -854,6 +862,21 @@ func startAPIs(
 			AppNameTaken: func(ctx context.Context, projectID, appName string) (bool, error) {
 				return queries.AppNameExistsInProject(ctx, projectID, appName)
 			},
+			// cavekit-dcr-bootstrap-validation.md R5: in-request default-
+			// data validator. Closes over queries.DCR Default* helpers
+			// and adapts the typed return values to the primitive
+			// closure signature dcr.NewDefaultDataValidator expects —
+			// keeps the dcr package free of internal/query imports.
+			DefaultDataValidator: dcr.NewDefaultDataValidator(
+				func(ctx context.Context, projectID string) (bool, bool, string, error) {
+					info, err := queries.DCRDefaultProjectByID(ctx, projectID)
+					return info.Exists, info.Active, info.ResourceOwner, err
+				},
+				func(ctx context.Context, orgID string) (bool, bool, error) {
+					info, err := queries.DCRDefaultOrgByID(ctx, orgID)
+					return info.Exists, info.Active, err
+				},
+			),
 			ConsumeIAT: func(ctx context.Context, regCtx *dcr.RegistrationContext) error {
 				lookup := func(ctx context.Context) (*command.IATSnapshot, error) {
 					row, err := queries.InitialAccessTokenByID(ctx, regCtx.IATID, regCtx.OrgID)

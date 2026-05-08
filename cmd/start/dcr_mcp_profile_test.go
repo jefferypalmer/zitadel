@@ -1,12 +1,77 @@
 package start
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/zitadel/zitadel/internal/api/oidc"
 	"github.com/zitadel/zitadel/internal/domain"
 )
+
+func TestApplyDevModeFromRedirects_AllHttps(t *testing.T) {
+	app := &domain.OIDCApp{RedirectUris: []string{"https://app.example.com/cb"}}
+	applyDevModeFromRedirects(context.Background(), app)
+	if app.DevMode != nil {
+		t.Errorf("all-https → DevMode must remain nil, got %v", *app.DevMode)
+	}
+}
+
+func TestApplyDevModeFromRedirects_LocalhostFlipsTrue(t *testing.T) {
+	app := &domain.OIDCApp{RedirectUris: []string{"http://localhost:33418/cb"}}
+	applyDevModeFromRedirects(context.Background(), app)
+	if app.DevMode == nil || !*app.DevMode {
+		t.Errorf("http://localhost → DevMode=true, got %v", app.DevMode)
+	}
+}
+
+func TestApplyDevModeFromRedirects_LoopbackIPFlipsTrue(t *testing.T) {
+	app := &domain.OIDCApp{RedirectUris: []string{"http://127.0.0.1:5050/cb"}}
+	applyDevModeFromRedirects(context.Background(), app)
+	if app.DevMode == nil || !*app.DevMode {
+		t.Errorf("http://127.0.0.1 → DevMode=true, got %v", app.DevMode)
+	}
+}
+
+func TestApplyDevModeFromRedirects_MixedFlipsTrue(t *testing.T) {
+	app := &domain.OIDCApp{RedirectUris: []string{"https://app.example.com/cb", "http://localhost/cb"}}
+	applyDevModeFromRedirects(context.Background(), app)
+	if app.DevMode == nil || !*app.DevMode {
+		t.Errorf("mixed http-localhost + https → DevMode=true, got %v", app.DevMode)
+	}
+}
+
+func TestApplyDevModeFromRedirects_PrivateIPFlipsTrue(t *testing.T) {
+	app := &domain.OIDCApp{RedirectUris: []string{"http://10.0.0.5/cb"}}
+	applyDevModeFromRedirects(context.Background(), app)
+	if app.DevMode == nil || !*app.DevMode {
+		t.Errorf("private-IP http → DevMode=true, got %v", app.DevMode)
+	}
+}
+
+func TestApplyDevModeFromRedirects_PublicHTTPDoesNotFlip(t *testing.T) {
+	app := &domain.OIDCApp{RedirectUris: []string{"http://app.example.com/cb"}}
+	applyDevModeFromRedirects(context.Background(), app)
+	if app.DevMode != nil {
+		t.Errorf("public-http (non-loopback) must NOT auto-flip DevMode, got %v", *app.DevMode)
+	}
+}
+
+func TestApplyDevModeFromRedirects_RequestExplicitWins(t *testing.T) {
+	explicit := false
+	app := &domain.OIDCApp{
+		RedirectUris: []string{"http://localhost/cb"},
+		DevMode:      &explicit,
+	}
+	applyDevModeFromRedirects(context.Background(), app)
+	if *app.DevMode != false {
+		t.Errorf("request-explicit DevMode=false must be preserved, got %v", *app.DevMode)
+	}
+}
+
+func TestApplyDevModeFromRedirects_NilSafe(t *testing.T) {
+	applyDevModeFromRedirects(context.Background(), nil)
+}
 
 func TestApplyMCPProfileToOIDCApp_FillsOmittedFields(t *testing.T) {
 	app := &domain.OIDCApp{}
