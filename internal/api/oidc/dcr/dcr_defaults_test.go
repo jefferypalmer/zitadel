@@ -1,6 +1,73 @@
 package dcr
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
+
+func TestApplyMCPProfileDefaults_FillsOmittedFields(t *testing.T) {
+	meta := &RFC7591Metadata{
+		ClientName:   "minimal",
+		RedirectURIs: []string{"https://app.example.com/cb"},
+	}
+	applyMCPProfileDefaults(meta)
+	if !reflect.DeepEqual(meta.GrantTypes, []string{"authorization_code", "refresh_token"}) {
+		t.Errorf("grant_types: %v", meta.GrantTypes)
+	}
+	if !reflect.DeepEqual(meta.ResponseTypes, []string{"code"}) {
+		t.Errorf("response_types: %v", meta.ResponseTypes)
+	}
+	if meta.TokenEndpointAuthMethod != "none" {
+		t.Errorf("token_endpoint_auth_method: %q", meta.TokenEndpointAuthMethod)
+	}
+	if meta.ApplicationType != "web" {
+		t.Errorf("application_type: %q (https-only redirects → web)", meta.ApplicationType)
+	}
+}
+
+func TestApplyMCPProfileDefaults_HttpLoopbackPicksNative(t *testing.T) {
+	meta := &RFC7591Metadata{RedirectURIs: []string{"http://127.0.0.1:5050/cb"}}
+	applyMCPProfileDefaults(meta)
+	if meta.ApplicationType != "native" {
+		t.Errorf("expected native for loopback redirect, got %q", meta.ApplicationType)
+	}
+}
+
+func TestApplyMCPProfileDefaults_MixedRedirectsPickNative(t *testing.T) {
+	meta := &RFC7591Metadata{RedirectURIs: []string{"https://app.example.com/cb", "http://localhost/cb"}}
+	applyMCPProfileDefaults(meta)
+	if meta.ApplicationType != "native" {
+		t.Errorf("expected native when ANY entry is loopback, got %q", meta.ApplicationType)
+	}
+}
+
+func TestApplyMCPProfileDefaults_ExplicitGrantTypesWin(t *testing.T) {
+	meta := &RFC7591Metadata{GrantTypes: []string{"client_credentials"}}
+	applyMCPProfileDefaults(meta)
+	if !reflect.DeepEqual(meta.GrantTypes, []string{"client_credentials"}) {
+		t.Errorf("explicit grant_types must not be overwritten, got %v", meta.GrantTypes)
+	}
+}
+
+func TestApplyMCPProfileDefaults_ExplicitTokenAuthMethodWins(t *testing.T) {
+	meta := &RFC7591Metadata{TokenEndpointAuthMethod: "private_key_jwt"}
+	applyMCPProfileDefaults(meta)
+	if meta.TokenEndpointAuthMethod != "private_key_jwt" {
+		t.Errorf("explicit token_endpoint_auth_method must not be overwritten, got %q", meta.TokenEndpointAuthMethod)
+	}
+}
+
+func TestApplyMCPProfileDefaults_NilSafe(t *testing.T) {
+	applyMCPProfileDefaults(nil) // must not panic
+}
+
+func TestApplyMCPProfileDefaults_NoRedirectsPickWeb(t *testing.T) {
+	meta := &RFC7591Metadata{}
+	applyMCPProfileDefaults(meta)
+	if meta.ApplicationType != "web" {
+		t.Errorf("expected web when no redirects supplied, got %q", meta.ApplicationType)
+	}
+}
 
 func TestDeriveDevMode(t *testing.T) {
 	tests := []struct {

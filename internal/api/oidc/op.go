@@ -87,6 +87,35 @@ type DCRConfig struct {
 	// cavekit-dcr-bootstrap-validation.md R8. Env var
 	// ZITADEL_OIDC_DCR_ONNAMECOLLISION.
 	OnNameCollision string
+	// MCPProfile carries the OIDCApp-side defaults the dispatcher applies
+	// to dynamically-registered clients per cavekit-dcr-bootstrap-
+	// validation.md R9. RFC-shape fields (grant_types / response_types /
+	// token_endpoint_auth_method / application_type) are handled inside
+	// dcr.applyMCPProfileDefaults; these four (AccessTokenType,
+	// IDTokenRoleAssertion, IDTokenUserinfoAssertion, ClockSkew) need
+	// post-synthesis OIDCApp access and are applied in the Register
+	// closure (cmd/start/start.go).
+	MCPProfile DCRMCPProfileConfig
+}
+
+// DCRMCPProfileConfig is the operator-tunable subset of the MCP profile.
+// Defaults match cavekit-dcr-bootstrap-validation.md R9. Env-var
+// bindings: ZITADEL_OIDC_DCR_MCPPROFILE_*.
+type DCRMCPProfileConfig struct {
+	// AccessTokenType is the OIDCApp.AccessTokenType to apply when the
+	// request body did not specify one. Default "JWT" — Claude Code MCP
+	// clients expect JWT access tokens for self-introspection. Allowed
+	// values mirror domain.OIDCTokenType: "Bearer" / "JWT".
+	AccessTokenType string
+	// IDTokenRoleAssertion controls whether user roles are asserted
+	// inside the ID Token. Default true (MCP profile).
+	IDTokenRoleAssertion bool
+	// IDTokenUserinfoAssertion controls whether userinfo claims are
+	// asserted inside the ID Token. Default true (MCP profile).
+	IDTokenUserinfoAssertion bool
+	// ClockSkew bounds clock-skew tolerance on token verification.
+	// Default 2s.
+	ClockSkew time.Duration
 }
 
 // DCRJanitorConfig configures the software_statement JTI reaper goroutine

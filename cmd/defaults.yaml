@@ -832,6 +832,25 @@ OIDC:
     #   ""                  — disable; pre-R8 behavior (constraint → 500).
     # See cavekit-dcr-bootstrap-validation.md R8.
     OnNameCollision: suffix # ZITADEL_OIDC_DCR_ONNAMECOLLISION
+    # MCP-friendly OIDC profile applied to dynamically-registered clients
+    # per cavekit-dcr-bootstrap-validation.md R9. RFC-shape fields
+    # (grant_types / response_types / token_endpoint_auth_method /
+    # application_type) get sensible defaults inside the dcr package's
+    # applyMCPProfileDefaults helper; these four are operator-tunable
+    # because they affect token shape and may interact with downstream
+    # consumers.
+    MCPProfile:
+      # JWT-typed access tokens are what Claude Code / MCP clients expect.
+      # Bearer (opaque) tokens require the consumer to call /introspect
+      # to learn the subject — extra round-trip + state. Switch to Bearer
+      # only if a downstream service hard-requires opaque tokens.
+      AccessTokenType: JWT # ZITADEL_OIDC_DCR_MCPPROFILE_ACCESSTOKENTYPE
+      IDTokenRoleAssertion: true # ZITADEL_OIDC_DCR_MCPPROFILE_IDTOKENROLEASSERTION
+      IDTokenUserinfoAssertion: true # ZITADEL_OIDC_DCR_MCPPROFILE_IDTOKENUSERINFOASSERTION
+      # Bounds clock-skew tolerance on token-verification paths. RFC 7519
+      # default-ish; tightening to 0s breaks deployments where the IdP
+      # and the resource server clocks drift.
+      ClockSkew: 2s # ZITADEL_OIDC_DCR_MCPPROFILE_CLOCKSKEW
 
 SAML:
   DefaultLoginURLV2: "/ui/v2/login/login?samlRequest=" # ZITADEL_SAML_DEFAULTLOGINURLV2

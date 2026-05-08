@@ -747,6 +747,14 @@ func startAPIs(
 			// and the result back per cavekit-register-handler.md R6 / T-040.
 			Register: func(ctx context.Context, req *dcr.RegisterRequest) (*dcr.RegisterResult, error) {
 				app, dcrMeta := req.Clamped.ToOIDCApp(), req.Clamped.BuildDCRMeta()
+				// cavekit-dcr-bootstrap-validation.md R9: apply the
+				// OIDCApp-side MCP profile defaults (the four fields the
+				// dcr/applyMCPProfileDefaults helper cannot fill because
+				// they live on the synthesized domain.OIDCApp, not on
+				// RFC7591Metadata). Request-explicit values win — only
+				// nil pointers (omitted by the request) get the profile
+				// default.
+				applyMCPProfileToOIDCApp(app, &config.OIDC.DCR.MCPProfile)
 				in := &command.RegisterClientInput{
 					App:                  app,
 					OrgID:                req.OrgID,

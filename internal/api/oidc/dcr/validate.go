@@ -134,6 +134,14 @@ func ValidateAndClampMetadata(
 		out.Jwks = canonical
 	}
 
+	// cavekit-dcr-bootstrap-validation.md R9: supply MCP-friendly
+	// defaults for grant_types / response_types / token_endpoint_auth_method
+	// / application_type when the request omits them. Runs BEFORE the
+	// empty-check + intersect so operator allow-lists remain authoritative
+	// — a default that lands outside the configured allow-list still
+	// fails with the same RFC 7591 envelope user-supplied requests get.
+	applyMCPProfileDefaults(&out)
+
 	// grant_types — empty after defaulting is a 400.
 	if len(out.GrantTypes) == 0 {
 		return nil, newClampError(ErrCodeInvalidClientMetadata, "grant_types", "must not be empty", "DCR-Vt003")
