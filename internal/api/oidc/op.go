@@ -78,6 +78,11 @@ type DCRConfig struct {
 	// projections.dcr_software_statement_jtis1. cavekit-software-
 	// statement.md R9.
 	Janitor DCRJanitorConfig
+	// ClientRetention controls the periodic reaper that deletes
+	// inactive DCR-registered clients per
+	// cavekit-dcr-bootstrap-validation.md R12. Disabled by default
+	// (operator opt-in — destructive).
+	ClientRetention DCRClientRetentionConfig
 	// OnNameCollision selects the duplicate-client_name policy applied
 	// between the RFC 7591 metadata clamp and the eventstore push:
 	//   "suffix" (default) — auto-append "-N" to make the name unique
@@ -125,6 +130,35 @@ type DCRMCPProfileConfig struct {
 type DCRJanitorConfig struct {
 	Enabled  bool
 	Interval time.Duration
+}
+
+// DCRClientRetentionConfig configures the DCR client retention janitor
+// (cavekit-dcr-bootstrap-validation.md R12). Disabled by default —
+// reaping is destructive (a stale-but-still-functional client loses
+// its identity and has to re-register on next use). Operators opt in
+// when their projects accumulate enough idle MCP clients to warrant
+// cleanup.
+//
+// Env-var bindings: ZITADEL_OIDC_DCR_CLIENTRETENTION_*.
+type DCRClientRetentionConfig struct {
+	// Enabled is the operator opt-in switch. False (default) means the
+	// janitor goroutine never starts.
+	Enabled bool
+	// Interval bounds reap cadence. Default 6h — frequent enough to
+	// keep tables small, sparse enough that the cumulative DELETE load
+	// is invisible. Lower values increase write amplification on the
+	// projection tables.
+	Interval time.Duration
+	// MaxIdleDuration is the retention window. Clients (DCR-registered)
+	// whose last_seen_at is older than this window are reaped on the
+	// next tick. NULL last_seen_at falls back to the row's creation
+	// date so freshly-registered, never-used clients are not reaped
+	// before the window expires. Default 720h (30 days).
+	MaxIdleDuration time.Duration
+	// BatchLimit caps per-tick reap count so a tick that finds
+	// thousands of stale clients makes progress without monopolising
+	// the eventstore. Default 100.
+	BatchLimit int
 }
 
 type DCRRegistrationAccessTokenConfig struct {

@@ -382,6 +382,32 @@ func startZitadel(ctx context.Context, config *Config, masterKey string, server 
 		go queries.RunSoftwareStatementJTIJanitor(ctx, config.OIDC.DCR.Janitor.Interval, dcr.RecordSoftwareStatementJTIJanitorTick)
 	}
 
+	// cavekit-dcr-bootstrap-validation.md R12 — periodic reap of
+	// inactive DCR-registered clients. Disabled by default (operator
+	// opt-in — destructive). The deleteFn closure bridges to
+	// commands.DeleteRegisteredClient so reaped rows go through the
+	// same RFC 7592 DELETE path manage-handler DELETE uses (events
+	// emitted, sessions revoked, projection chain consistent).
+	if config.OIDC.DCR.ClientRetention.Enabled {
+		retention := config.OIDC.DCR.ClientRetention
+		batchLimit := retention.BatchLimit
+		if batchLimit <= 0 {
+			batchLimit = 100
+		}
+		deleteFn := func(ctx context.Context, c query.InactiveDCRClient) error {
+			_, err := commands.DeleteRegisteredClient(ctx, c.ProjectID, c.OrgID, c.AppID, c.ClientID)
+			return err
+		}
+		go queries.RunDCRClientJanitor(
+			ctx,
+			retention.Interval,
+			retention.MaxIdleDuration,
+			batchLimit,
+			deleteFn,
+			dcr.RecordClientJanitorTick,
+		)
+	}
+
 	router := mux.NewRouter()
 	tlsConfig, err := config.TLS.Config()
 	if err != nil {

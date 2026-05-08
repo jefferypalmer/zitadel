@@ -816,6 +816,19 @@ OIDC:
     Janitor:
       Enabled: true # ZITADEL_OIDC_DCR_JANITOR_ENABLED
       Interval: 1h # ZITADEL_OIDC_DCR_JANITOR_INTERVAL
+    # DCR client retention janitor — periodically deletes
+    # DCR-registered clients whose last activity (token issuance,
+    # /authorize, /userinfo) is older than `MaxIdleDuration`.
+    # cavekit-dcr-bootstrap-validation.md R12. Disabled by default
+    # because reaping is destructive: a stale-but-still-functional
+    # client loses its identity and has to re-register on next use.
+    # Enable when your projects accumulate enough idle MCP clients to
+    # warrant cleanup; the JTI janitor is a separate concern.
+    ClientRetention:
+      Enabled: false # ZITADEL_OIDC_DCR_CLIENTRETENTION_ENABLED
+      Interval: 6h # ZITADEL_OIDC_DCR_CLIENTRETENTION_INTERVAL
+      MaxIdleDuration: 720h # ZITADEL_OIDC_DCR_CLIENTRETENTION_MAXIDLEDURATION
+      BatchLimit: 100 # ZITADEL_OIDC_DCR_CLIENTRETENTION_BATCHLIMIT
     # Duplicate-client_name policy applied between the RFC 7591 metadata
     # clamp and the eventstore push. RFC 7591 makes no uniqueness
     # guarantee on `client_name`, but the underlying app aggregate's
