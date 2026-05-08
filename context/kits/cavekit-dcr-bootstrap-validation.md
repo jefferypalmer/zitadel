@@ -255,6 +255,188 @@ and re-emerges on projection rebuild. NOT a supported path.
 **Acceptance Criteria:**
 - [x] Doc-only — captures the supported deletion paths.
 
+### R8: Duplicate client_name on registration MUST NOT 500
+
+**Status:** PENDING — Alexander hit on dcr.8.
+
+**Description:** Posting `/oidc/v1/register` twice with the same
+`client_name` returns 500 because the eventstore's unique-constraint
+table (`unique_constraints` keyed on `(instance_id, project_id,
+app_name)`) raises SQLSTATE 23505 on the second push, which the
+dispatcher logs but doesn't translate to an RFC-7591 envelope. Symptom
+in logs: `add unique constraint failed … duplicate key value violates
+unique constraint "unique_constraints_pkey" … err.kind=AlreadyExists
+err.message=Errors.Project.App.AlreadyExists`.
+
+RFC 7591 makes no uniqueness guarantee on `client_name` — multiple
+clients are explicitly allowed to share a display name. The right
+behavior is to either (a) auto-suffix the name on collision (e.g.
+`smoke-test`, `smoke-test-2`, `smoke-test-3` — the existing pattern
+Alexander observed in his own retries), or (b) detect the
+`Errors.Project.App.AlreadyExists` and return a clean 400 envelope.
+
+**Acceptance Criteria:**
+- [ ] `commands.RegisterClient` (or the dcr command's pre-push step)
+      detects collision risk by querying the projection for an existing
+      app with `(project_id, app_name)` matching the request.
+- [ ] On collision, auto-append a numeric suffix `-<N>` where N is the
+      smallest integer ≥ 2 that yields a non-colliding name. The final
+      name appears in `ApplicationAddedEvent.Name` and round-trips to
+      the response.
+- [ ] OR (alternative AC): on collision return a *ClampError* keyed
+      `invalid_client_metadata` with description "client_name already
+      in use under this project; supply a different name". The
+      dispatcher maps to 400.
+- [ ] Implementer chooses (auto-suffix vs reject); the kit accepts
+      either. Auto-suffix is preferred for MCP / Claude-Code-style
+      clients that re-register on every startup.
+- [ ] Unit + integration test: register twice with same client_name;
+      assert second response is 201 (auto-suffix path) OR 400 (reject
+      path) — never 500.
+
+### R9: DCR-registered clients MUST default to MCP-friendly OIDC settings
+
+**Status:** PENDING — currently DCR registrations inherit Zitadel's
+generic OIDC defaults, which don't match what local-dev MCP clients need.
+
+**Description:** RFC 7591's `application_type: "native"` is right for
+CLI tools but the OIDC config defaults (token type, role assertions,
+clock skew) come from `command.OIDCApp` zero-values, not a DCR-tuned
+profile. Alexander's enumeration of the desired defaults:
+
+- `application_type`: `WEB` when redirect URIs include https; `NATIVE`
+  for `http://localhost`-style. (RFC 7591 §3.2.1 — derive from
+  `redirect_uris` rather than echoing the request's `application_type`
+  blindly.)
+- `response_types`: `["code"]`
+- `token_endpoint_auth_method`: `none` (PKCE-only public client)
+- `grant_types`: `["authorization_code", "refresh_token"]`
+- `refresh_token`: enabled
+- `access_token_type`: **JWT** (not opaque/Bearer)
+- `id_token_role_assertion`: `true` (user roles inside ID Token)
+- `id_token_userinfo_assertion`: `true` (profile info in ID Token)
+- `clock_skew`: `2s`
+
+The kit's design choice: DCR registrations apply the MCP-friendly
+profile by default; operators can override via the `OIDC.DCR.*` config
+tree if needed.
+
+**Acceptance Criteria:**
+- [ ] `internal/api/oidc/dcr/validate.go` (or a new
+      `dcr_defaults.go`) defines an `applyMCPProfileDefaults(*RFC7591Metadata)`
+      helper that fills the eight fields above when the request body
+      omits them.
+- [ ] Helper called from `ValidateAndClampMetadata` AFTER the operator-
+      allow-list clamp but BEFORE the OIDCApp synthesis — so request
+      explicit values override the profile, but request omissions
+      inherit MCP-friendly defaults instead of zero-values.
+- [ ] `cmd/defaults.yaml` gains `OIDC.DCR.MCPProfile.{AccessTokenType,
+      IDTokenRoleAssertion, IDTokenUserinfoAssertion, ClockSkew}`
+      operator overrides with the values above as the in-source defaults.
+      Env-var bindings:
+      `ZITADEL_OIDC_DCR_MCPPROFILE_*`.
+- [ ] Unit test: register a minimal client, assert the resulting
+      `OIDCApp` has `access_token_type=JWT`, `id_token_role_assertion=true`,
+      `id_token_userinfo_assertion=true`, `clock_skew=2s`,
+      `grant_types=[authorization_code, refresh_token]`,
+      `response_types=[code]`, `token_endpoint_auth_method=none`.
+- [ ] Unit test: register with explicit `access_token_type=Bearer` —
+      assert request value wins over the profile default.
+
+### R10: Auto-enable DevMode for DCR clients with http (non-https) redirect URIs
+
+**Status:** PENDING — required for local-dev MCP clients.
+
+**Description:** Native clients (VS Code, Claude Code MCP, etc.)
+register with `redirect_uris` like `http://127.0.0.1:33418/`. Without
+DevMode enabled on the OIDC app, Zitadel's CSP + redirect-host clamps
+reject http URIs as insecure. Currently the operator must manually
+toggle DevMode in the console after registration; that defeats the
+zero-config promise of DCR.
+
+**Acceptance Criteria:**
+- [ ] `applyMCPProfileDefaults` (or a new `deriveDevMode` helper) sets
+      `OIDCApp.DevMode = true` when ANY entry in `redirect_uris` has
+      scheme `http` AND host is loopback (`localhost`, `127.0.0.1`,
+      `::1`) OR a private-range IP.
+- [ ] Mixed redirect lists (one http localhost + one https) → DevMode
+      true (the http entry justifies it).
+- [ ] All-https redirects → DevMode false.
+- [ ] Unit test pins each branch.
+- [ ] DevMode determination is logged at registration time so the
+      operator sees WHY DevMode is on for a given app.
+
+**Dependencies:** R9 (lives in the same `applyMCPProfileDefaults`
+helper).
+
+### R11: Hide dynamically-registered clients from Project → General apps list
+
+**Status:** PENDING — UX hygiene.
+
+**Description:** The Project detail page's "Apps" tab lists every
+application under the project. With DCR enabled, every MCP client that
+re-registers on startup adds a new row — hundreds within a week. The
+"Dynamic Clients" sidenav already shows DCR-registered clients
+separately. The General Apps list should filter them out so operator-
+created apps stay visible.
+
+**Acceptance Criteria:**
+- [ ] `console/src/app/pages/projects/owned-projects/owned-project-detail/...`
+      Apps tab filters `apps` by `oidcConfig?.dynamicallyRegistered !== true`.
+      DCR-registered clients appear ONLY under the "Dynamic Clients"
+      sidenav peer.
+- [ ] An info banner under the Apps tab notes "X dynamically-registered
+      clients hidden — see Dynamic Clients" when the filter dropped
+      any rows. Click-through to the Dynamic Clients view.
+- [ ] The mgmt gRPC `ListApps` RPC continues to return all apps
+      regardless (it's a low-level data API; the filter is UI-only).
+
+### R12: Janitor for inactive DCR clients
+
+**Status:** PENDING — operational cleanup.
+
+**Description:** MCP clients re-register on every startup (most don't
+cache the client_id; even when they do, lost-state scenarios force a
+re-register). Without cleanup, `apps7` accumulates tens-of-thousands
+of stale DCR-registered clients per year. Need a janitor (mirror of
+the JTI replay-dedupe janitor at `cavekit-software-statement.md` R9)
+that periodically deletes DCR-registered clients with no activity
+(no token issuance, no /authorize, no /userinfo) for a configurable
+retention window (default 30 days).
+
+**Acceptance Criteria:**
+- [ ] `internal/query/dcr_janitor.go` defines
+      `RunDCRClientJanitor(ctx, interval, recorder)` — same shape as
+      `RunSoftwareStatementJTIJanitor` (cavekit-software-statement.md
+      R9 / R9.1). Per-tick deadline at `interval/2`. Emits
+      `zitadel.dcr.client_janitor_reaped_total{result=ok|error}`
+      counter and `..._duration_seconds` histogram.
+- [ ] The reap query identifies DCR clients (where
+      `apps7_oidc_configs.registration_access_token_hash IS NOT NULL`)
+      whose last activity timestamp (computed from `oidc_sessions` or
+      a new `apps7_last_seen` column updated by the auth flow) is
+      older than `OIDC.DCR.ClientRetention.MaxIdleDuration` (default
+      `720h` = 30 days).
+- [ ] Reap deletes via the same path RFC 7592 DELETE uses
+      (`commands.DeleteRegisteredClient`) so events are emitted, sessions
+      are revoked, and the projection chain stays consistent.
+- [ ] New config `OIDC.DCR.ClientRetention.{Enabled,Interval,
+      MaxIdleDuration}` in `cmd/defaults.yaml`. Env-var bindings.
+      Enabled defaults to `false` (operator opt-in — the cleanup is
+      destructive).
+- [ ] Janitor goroutine started in `cmd/start/start.go` next to the
+      JTI janitor when `Enabled=true`. Same ctx-cancellation deadline
+      contract.
+- [ ] Test: simulated 30-day-stale DCR client → reaped. 29-day-stale →
+      preserved. ApplicationRemovedEvent emitted on each reap.
+- [ ] Operator runbook documents the retention window's downside:
+      stale-but-still-functional clients lose their identity and have
+      to re-register on next use.
+
+**Dependencies:** none directly; mirrors the `cavekit-software-statement.md`
+R9 janitor pattern. R7 of this kit (deletion paths) defines the supported
+delete API the janitor calls.
+
 ## Out of Scope
 
 - **Reactive cleanup of dangling apps when a default project is
@@ -359,3 +541,16 @@ v5.0.0-dcr.8 release (commit `4e3ae2289`).
   in-request defense-in-depth — surfaced by Alexander hitting the
   dangling-FK failure mode on dcr.7. R6 + R7 are doctrine-only,
   capturing semantics that previously cost debugging time.
+- 2026-05-08 (extended): Added R8..R12 — the remaining list Alexander
+  surfaced after running with dcr.8 against real MCP clients.
+  R8 (duplicate client_name → 500 instead of clean 201/400) is the
+  most user-visible bug. R9 + R10 (MCP profile defaults + auto-DevMode
+  for http localhost redirect URIs) close the zero-config promise of
+  DCR for local-dev clients. R11 (hide DCR-registered clients from the
+  Project General apps list) is UX hygiene that becomes load-bearing
+  once a project hosts hundreds of MCP-registered clients. R12 (janitor
+  for inactive DCR clients) is operational cleanup mirroring the JTI
+  replay-dedupe janitor at cavekit-software-statement.md R9. R4 + R5
+  remain pending and become the highest-priority items in the next
+  /ck:make cycle (boot validation prevents the dangling-FK failure mode
+  Alexander still hit on dcr.8 before discovering his project-id typo).
