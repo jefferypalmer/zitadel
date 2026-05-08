@@ -333,6 +333,31 @@ func NewServer(
 	return server, nil
 }
 
+// ContextToIssuer is the canonical issuer source for any handler that
+// builds an issuer-derived URL (OIDC discovery, RFC 8414 AS metadata,
+// RFC 7591 registration_endpoint, etc.).
+//
+// It reads the request origin from http_utils.DomainContext(ctx), which
+// is populated by zitadel's global WithOrigin middleware mounted on the
+// root router at cmd/start/start.go and is therefore available on every
+// request regardless of which sub-mux the handler lives behind.
+//
+// Important — issuer-source invariant for out-of-mux endpoints:
+// Handlers that mount OUTSIDE the OIDC server's middleware chain (notably
+// anything mounted via apis.RegisterHandlerOnPrefix that does not pass
+// through op.NewIssuerInterceptor — for example the RFC 8414 AS metadata
+// handler at /.well-known/oauth-authorization-server) MUST source the
+// issuer from this function, NOT from op.IssuerFromContext.
+//
+// op.IssuerFromContext only sees the context value populated by
+// op.NewIssuerInterceptor, which runs only inside the OIDC mux's
+// middleware chain. Calling it from an out-of-mux handler returns "" and
+// silently degrades every URL to a relative path. op.IssuerFromContext is
+// acceptable only as a test-fixture fallback (paired with
+// op.ContextWithIssuer in tests).
+//
+// See CONTRIBUTING.md "DCR & well-known endpoint invariants" and
+// context/kits/cavekit-dcr-bootstrap-validation.md R3.
 func ContextToIssuer(ctx context.Context) string {
 	return http_utils.DomainContext(ctx).Origin()
 }

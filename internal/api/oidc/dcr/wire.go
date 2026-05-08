@@ -1,3 +1,26 @@
+// Package dcr implements OAuth 2.0 Dynamic Client Registration
+// (RFC 7591) and Management (RFC 7592) endpoints for Zitadel.
+//
+// Mount-pattern invariant — empty-path normalization:
+//
+// This package's HTTP handler is mounted via
+// apis.RegisterHandlerOnPrefix("/oidc/v1/register", h), which calls
+// http.StripPrefix and produces an empty path string when the request
+// URL had no trailing slash. Gorilla mux normalizes the empty pattern
+// and "/" to the same canonical pattern and matches NEITHER an
+// actually-empty path. NewHandler therefore wraps the inner gorilla
+// router in a path-normalization shim that rewrites req.URL.Path = "/"
+// when it is empty.
+//
+// Any new HTTP handler mounted via apis.RegisterHandlerOnPrefix whose
+// internal router is gorilla mux MUST either ship the same shim OR
+// mount via a registration pattern that doesn't strip the prefix
+// (e.g. an exact Path match in the parent router). Either way, ship a
+// sibling *_no_slash_test.go regression test mirroring
+// no_slash_register_test.go::TestStripPrefixEmptyPath_NormalizationFix.
+//
+// See CONTRIBUTING.md "DCR & well-known endpoint invariants" and
+// context/kits/cavekit-dcr-bootstrap-validation.md R2.
 package dcr
 
 import (

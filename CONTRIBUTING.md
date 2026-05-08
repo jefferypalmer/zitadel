@@ -370,6 +370,29 @@ pnpm nx run @zitadel/functional-ui:lint-fix
 pnpm nx run @zitadel/functional-ui:test
 ```
 
+### DCR & well-known endpoint invariants
+
+These are load-bearing invariants for the OAuth Dynamic Client Registration (RFC 7591/7592) feature and any future well-known / `RegisterHandlerOnPrefix`-mounted handlers. Each was paid for by a production incident — please don't relitigate.
+
+#### Issuer source for well-known / out-of-mux endpoints (`cavekit-dcr-bootstrap-validation.md` R3)
+
+Any handler that builds an issuer-derived URL (discovery doc, RFC 8414 AS metadata, RFC 7591 `registration_endpoint`, etc.) and mounts **outside** the OIDC server's middleware chain MUST source the issuer from `internal/api/oidc.ContextToIssuer(ctx)`, which reads `http_utils.DomainContext(ctx).Origin()`. The DomainContext is populated by zitadel's global `WithOrigin` middleware (mounted on the root router at `cmd/start/start.go:458-462`) and is the correct shared source.
+
+Do **not** rely on `op.IssuerFromContext(ctx)` outside the OIDC-server mux: that context value is populated only by `op.NewIssuerInterceptor`, which runs only inside that mux's middleware chain. AS metadata at `/.well-known/oauth-authorization-server` mounts via `apis.RegisterHandlerOnPrefix` and does NOT pass through the interceptor, so `op.IssuerFromContext` returns "" there and every URL silently degrades to a relative path. `op.IssuerFromContext` is acceptable only as a test-fixture fallback (`op.ContextWithIssuer` in tests).
+
+When adding a new well-known or otherwise-out-of-mux endpoint, search-grep this rule before merging.
+
+#### `RegisterHandlerOnPrefix` + gorilla mux: empty-path normalization (`cavekit-dcr-bootstrap-validation.md` R2)
+
+`apis.RegisterHandlerOnPrefix` calls `http.StripPrefix`, which produces an empty path string for requests that hit the prefix without a trailing slash. Gorilla mux normalizes `r.HandleFunc("")` and `r.HandleFunc("/")` to the same canonical pattern and matches **neither** against an empty path — the request falls through to the parent's catch-all and returns a 301 redirect, which corrupts POST bodies in clients without `-L` (and most clients downgrade POST→GET on 301 per RFC 9110).
+
+Any new handler mounted via `apis.RegisterHandlerOnPrefix` whose internal router is gorilla mux MUST either:
+
+1. **Wrap the inner router in a path-normalization shim** that rewrites `req.URL.Path = "/"` when it sees `""` before calling `r.ServeHTTP`. See `internal/api/oidc/dcr/wire.go::NewHandler` for the canonical shim and `internal/api/oidc/dcr/no_slash_register_test.go::TestStripPrefixEmptyPath_NormalizationFix` for the regression-pin test, OR
+2. **Mount via a registration pattern that does not strip the prefix** (e.g. an exact `Path` match in the parent router).
+
+Either way, ship a sibling `*_no_slash_test.go` mirroring the canonical regression test. Registering both `""` and `"/"` on the inner gorilla router is a no-op (gorilla normalizes them); it does NOT solve the empty-path case.
+
 ## Contribute Frontend Code
 
 This repository uses **pnpm** as package manager and **Nx** for build orchestration.
