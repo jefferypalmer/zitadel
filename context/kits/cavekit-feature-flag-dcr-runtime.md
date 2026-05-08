@@ -200,6 +200,30 @@ The exact callsites the implementation will touch, captured at `cd21bc6ed..1439a
 - `internal/api/oidc/dcr/runtime_feature_test.go` — rewrite assertions to match new default.
 - 5 tests with local `DefaultRuntimeFlag = false` overrides in `internal/api/oidc/dcr_discovery_test.go` and `internal/api/grpc/admin/iat_test.go` — delete the override blocks.
 
+## Implementation Status (post-loop)
+
+All R1..R10 implemented in v5.0.0-dcr.6 commit `781a68d0` (single bundled
+PR — full E2E wire-up landed atomically). R10 path (a) chosen — auto-seed
+via `cmd/setup/72.{go,sql}` emits a system-level
+`feature.v2.system.dynamic_client_registration.set` event with
+`value=true` on first boot, idempotent. Existing instances upgrading
+through dcr.5 keep DCR working without operator intervention; per-instance
+disable is now flippable via Instance Settings → Features in the console.
+
+| R | Status | Commit / file |
+|---|--------|---------------|
+| R1 proto | DONE | `proto/zitadel/feature/v2/{instance,system}.proto` field 17/14 |
+| R2 codegen | DONE | `pkg/grpc/feature/v2/...` + `packages/zitadel-proto/...` |
+| R3 converter | DONE | `internal/api/grpc/feature/v2/converter.go:27,49,67,90` |
+| R4 cmd write model | DONE | `internal/command/{instance,system}_features{,_model}.go` |
+| R5 event types | DONE | `internal/repository/feature/feature_v2/{feature,eventstore}.go` |
+| R6 projection | DONE | `internal/query/projection/{instance,system}_features.go` |
+| R7 read model | DONE | `internal/query/{instance,system}_features{,_model}.go` |
+| R8 console | DONE | `console/src/app/components/features/features.component.ts` FEATURE_KEYS + i18n × 22 |
+| R9 hotfix revert | DONE | `internal/api/oidc/dcr/runtime_feature.go::DefaultRuntimeFlag = false` |
+| R10 auto-seed | DONE | `cmd/setup/72.go` emits SystemDynamicClientRegistration set-true |
+
 ## Changelog
 
 - 2026-05-06: Created — v5.0.0-dcr.5 hotfix exposed the gap (`internal/api/oidc/dcr/runtime_feature.go` `DefaultRuntimeFlag = true` is a band-aid). Initial draft adds R1..R10 covering proto, codegen, converter, command, eventstore, projection, query, console, and the hotfix-revert. R10 leaves the migration choice (auto-seed vs operator-documented) open pending operator-universe size.
+- 2026-05-06: Implemented in dcr.6 (commit 781a68d0). All 10 requirements landed in a single bundled commit. R10 chose path (a) auto-seed.

@@ -145,3 +145,46 @@ Next: `/ck:make` to drain Tier 8.
 - T-035: DONE. dcr-i18n-fill*.mjs archived with README. (F-009)
 
 **Phase 3 + Tier 5 status: 35/35 DONE. 9 commits this wave.**
+
+═══ Post-Phase-3 hotfix sequence — 2026-05-08 documentation pass ═══
+v5.0.0-dcr.4..dcr.8 shipped 5 hotfixes against bugs Alexander hit
+during integration. Capturing the patterns into kits so future builds
+pick them up:
+
+- dcr.4 (commit 41ab3bc77): cmd/setup/71 backfills 4 DCR columns on
+  apps7_oidc_configs that Phase-1/2 added to projection Init() but
+  never to a numbered ALTER step. Symptom: column c.jwks_inline does
+  not exist on /authorize after upgrade-from-base. Documented as
+  cavekit-dcr-bootstrap-validation.md R1.
+
+- dcr.5 (commit 1439a4842): permissive default for runtime feature
+  flag DefaultRuntimeFlag = true — band-aid because the proto/
+  projection wire-up wasn't finished. Reverted in dcr.6.
+
+- dcr.6 (commit 781a68d0): full E2E wire-up of the runtime feature
+  flag — proto, command, eventstore, projection, query, console.
+  cmd/setup/72 auto-seeds system-level dynamic_client_registration=true
+  on upgrade. Implements all 10 requirements of
+  cavekit-feature-flag-dcr-runtime.md.
+
+- dcr.7 (commit 68f9be8d2): AS metadata + DCR registration_endpoint
+  URL resolution — switched from op.IssuerFromContext (only populated
+  by OIDC server middleware) to ContextToIssuer (populated by global
+  WithOrigin middleware on every request). Documented as
+  cavekit-dcr-bootstrap-validation.md R3.
+
+- dcr.8 (commit 4e3ae2289): real fix for the slash bug. The dcr.6
+  attempt to register both "" and "/" was a no-op (gorilla normalizes
+  them). Real fix: path-normalization wrapper rewriting empty path to
+  "/" before the gorilla router runs. Documented as
+  cavekit-dcr-bootstrap-validation.md R2.
+
+- PENDING (no dcr.9 yet): Alexander hit the dangling-DefaultProjectID
+  bug — DCR registration succeeds with phantom project_id, /authorize
+  fails with Errors.App.NotFound. Documented as
+  cavekit-dcr-bootstrap-validation.md R4 + R5 (boot validation +
+  in-request defense-in-depth). Next /ck:make cycle should pick these up.
+
+cavekit-feature-flag-dcr-runtime.md updated with implementation status
+table. cavekit-dcr-bootstrap-validation.md created with 7 requirements
+covering the patterns that landed + the gap that didn't.
