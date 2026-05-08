@@ -62,6 +62,15 @@ jobs:
           NX_DAEMON: "false"
           NX_DISABLE_DB: "true"
         run: pnpm nx affected --nxBail --targets lint test build --exclude @zitadel/docs
+      # cavekit-dcr-bootstrap-validation.md R1: every projection Init()
+      # column add MUST ship with a matching cmd/setup/NN.sql ALTER step
+      # in the same commit range. The check is a no-op without BASE_REF
+      # set (local runs); CI sets it to origin/main so PRs are gated.
+      - name: Projection Init / cmd/setup ALTER parity (cavekit R1)
+        if: ${{ github.ref != 'refs/heads/main' }}
+        env:
+          BASE_REF: origin/main
+        run: go test ./tools/checks/...
       - name: Check for uncommitted changes (Codegen mismatch)
         run: git diff --exit-code
       - name: Suggest Pipeline Fix By Nx Cloud AI
