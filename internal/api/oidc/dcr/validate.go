@@ -134,13 +134,14 @@ func ValidateAndClampMetadata(
 		out.Jwks = canonical
 	}
 
-	// cavekit-dcr-bootstrap-validation.md R9: supply MCP-friendly
-	// defaults for grant_types / response_types / token_endpoint_auth_method
-	// / application_type when the request omits them. Runs BEFORE the
-	// empty-check + intersect so operator allow-lists remain authoritative
-	// — a default that lands outside the configured allow-list still
-	// fails with the same RFC 7591 envelope user-supplied requests get.
-	applyMCPProfileDefaults(&out)
+	// cavekit-dcr-bootstrap-validation.md R9 / F-004 hotfix:
+	// applyMCPProfileDefaults is NOT called here. RFC 7592 §2.2 PUT
+	// semantics require the body to be a full replacement — silently
+	// re-filling cleared arrays would override operator intent. The
+	// REGISTRATION dispatcher applies MCP defaults BEFORE invoking
+	// ValidateAndClampMetadata (see postRegisterDispatch in wire.go);
+	// the PUT/manage path skips that step so a `grant_types=[]` body
+	// retains its empty-check 400 below.
 
 	// grant_types — empty after defaulting is a 400.
 	if len(out.GrantTypes) == 0 {

@@ -63,26 +63,43 @@ func TestValidateAndClampMetadata_R4_HappyPath(t *testing.T) {
 }
 
 func TestValidateAndClampMetadata_R4_GrantTypes(t *testing.T) {
+	// cavekit-dcr-bootstrap-validation.md R9 / F-004 hotfix:
+	// ValidateAndClampMetadata does NOT apply MCP-profile defaults —
+	// that's the registration dispatcher's responsibility (so the
+	// PUT/manage path retains its full-replacement semantics per RFC
+	// 7592 §2.2). Therefore an empty grant_types body still 400s here;
+	// the dispatcher pre-fills via applyMCPProfileDefaults before
+	// invoking the clamp.
 	cfg := defaultStubConfig()
-	t.Run("empty grants get the MCP-profile defaults", func(t *testing.T) {
-		// cavekit-dcr-bootstrap-validation.md R9: empty grant_types
-		// now defaults to ["authorization_code","refresh_token"]
-		// instead of returning 400. The "all-disallowed" case below
-		// still returns 400 — operator allow-list is authoritative.
-		in := validHappyPathMetadata()
-		in.GrantTypes = []string{}
-		out, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
-		require.NoError(t, err)
-		assert.ElementsMatch(t, []string{"authorization_code", "refresh_token"}, out.GrantTypes)
-	})
-	t.Run("all-disallowed grants → invalid_client_metadata grant_types", func(t *testing.T) {
-		in := validHappyPathMetadata()
-		in.GrantTypes = []string{"client_credentials", "password"}
-		_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
-		ce := requireClampError(t, err)
-		assert.Equal(t, ErrCodeInvalidClientMetadata, ce.Code)
-		assert.Contains(t, ce.Description, "grant_types")
-	})
+	tests := []struct {
+		name      string
+		grants    []string
+		wantCode  string
+		wantField string
+	}{
+		{
+			name:      "empty after defaulting → invalid_client_metadata grant_types",
+			grants:    []string{},
+			wantCode:  ErrCodeInvalidClientMetadata,
+			wantField: "grant_types",
+		},
+		{
+			name:      "all-disallowed → invalid_client_metadata grant_types",
+			grants:    []string{"client_credentials", "password"},
+			wantCode:  ErrCodeInvalidClientMetadata,
+			wantField: "grant_types",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := validHappyPathMetadata()
+			in.GrantTypes = tt.grants
+			_, err := ValidateAndClampMetadata(cfg, in, []string{"RS256"}, false)
+			ce := requireClampError(t, err)
+			assert.Equal(t, tt.wantCode, ce.Code)
+			assert.Contains(t, ce.Description, tt.wantField)
+		})
+	}
 }
 
 func TestValidateAndClampMetadata_R4_GrantTypesIntersection(t *testing.T) {

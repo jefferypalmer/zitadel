@@ -133,7 +133,15 @@ func gitRepoRoot() (string, error) {
 }
 
 func gitDiff(base, head, pathspec string) (string, error) {
-	cmd := exec.Command("git", "diff", base+"..."+head, "--", pathspec)
+	// F-018 hotfix: pass a second pathspec to exclude *_test.go from the
+	// projection scan. Test fixtures legitimately use handler.NewColumn
+	// for assertion purposes and would otherwise false-positive on the
+	// "missing ALTER" check. Git pathspec magic word `:(exclude)`.
+	args := []string{"diff", base + "..." + head, "--", pathspec}
+	if pathspec == "internal/query/projection/*.go" {
+		args = append(args, ":(exclude)internal/query/projection/*_test.go")
+	}
+	cmd := exec.Command("git", args...)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err

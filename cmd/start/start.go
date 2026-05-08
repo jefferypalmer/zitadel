@@ -395,7 +395,16 @@ func startZitadel(ctx context.Context, config *Config, masterKey string, server 
 			batchLimit = 100
 		}
 		deleteFn := func(ctx context.Context, c query.InactiveDCRClient) error {
-			_, err := commands.DeleteRegisteredClient(ctx, c.ProjectID, c.OrgID, c.AppID, c.ClientID)
+			// cavekit-dcr-bootstrap-validation.md R12 — the janitor
+			// goroutine starts with the bare process ctx (no per-request
+			// instance interceptor), so commands.DeleteRegisteredClient
+			// would see authz.GetInstance(ctx).InstanceID()="" and the
+			// underlying eventstore write-model load would fail to find
+			// the (instance_id, project_id, app_id) aggregate. Derive
+			// the per-instance ctx from the candidate row before
+			// delegating.
+			ictx := internal_authz.WithInstanceID(ctx, c.InstanceID)
+			_, err := commands.DeleteRegisteredClient(ictx, c.ProjectID, c.OrgID, c.AppID, c.ClientID)
 			return err
 		}
 		go queries.RunDCRClientJanitor(

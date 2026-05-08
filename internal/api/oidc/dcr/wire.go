@@ -550,7 +550,18 @@ func postRegisterDispatch(deps RegistrationDeps) http.HandlerFunc {
 			return
 		}
 
-		// 3. Clamp + validate (R4 / R5)
+		// 3. cavekit-dcr-bootstrap-validation.md R9: supply MCP-friendly
+		// defaults for grant_types / response_types /
+		// token_endpoint_auth_method / application_type when the request
+		// omits them. Runs ONLY on the registration path (NOT on RFC
+		// 7592 PUT — see manage_put.go); PUT semantics treat the body
+		// as a full replacement and silently re-filling cleared arrays
+		// would override operator intent. Operator allow-lists remain
+		// authoritative — defaults that land outside DCR.AllowedGrantTypes
+		// (etc.) still fail in the intersect step below.
+		applyMCPProfileDefaults(decoded)
+
+		// 4. Clamp + validate (R4 / R5)
 		clamped, err := ValidateAndClampMetadata(deps.Config, decoded, deps.SupportedSigAlgs, deps.SoftwareStatementEnabled)
 		if err != nil {
 			writeDispatchError(ctx, w, err)
