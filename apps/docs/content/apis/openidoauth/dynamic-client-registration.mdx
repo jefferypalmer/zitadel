@@ -395,6 +395,17 @@ OIDC:
         - "::1/128"
         - "fc00::/7"
         - "fe80::/10"
+    OnNameCollision: suffix # "suffix" | "reject" | "" (off)
+    MCPProfile:
+      AccessTokenType: JWT
+      IDTokenRoleAssertion: true
+      IDTokenUserinfoAssertion: true
+      ClockSkew: 2s
+    ClientRetention: # see "Client retention janitor" below
+      Enabled: false
+      Interval: 6h
+      MaxIdleDuration: 720h
+      BatchLimit: 100
 ```
 
 The instance feature flag is the second gate: enable
@@ -420,6 +431,118 @@ The console's [Dynamic Clients view](/guides/manage/console/dynamic-client-regis
 uses this field to populate the listing. External tooling that wants
 to display DCR-registered clients separately from operator-managed ones
 can do the same.
+
+## Client retention janitor
+
+ZITADEL ships an opt-in periodic reaper that deletes inactive
+DCR-registered clients. cavekit-dcr-bootstrap-validation.md R12.
+
+### Why operators eventually need this
+
+MCP clients (Claude Code, VS Code MCP, etc.) re-register on every
+startup — most don't cache `client_id`, and even when they do, lost-state
+scenarios force a re-register. Without cleanup, `projections.apps7` +
+`apps7_oidc_configs` accumulate tens of thousands of stale clients per
+year per project.
+
+### Activity tracking
+
+Every successful OIDC client lookup updates
+`projections.apps7_oidc_configs.last_seen_at`:
+
+- `/authorize` (auth-request creation, v1 login + v2 token endpoints)
+- `/token` (every grant: authorization_code, refresh_token, jwt_profile,
+  token_exchange)
+- `/userinfo`, `/introspect`
+
+Writes are throttled to once per minute per `(instance_id, app_id)` so
+a busy CLI hitting `/introspect` on every command does not amplify into
+projection-table churn. The throttle is process-local; the worst case
+across replicas is a few duplicate UPDATEs per minute, absorbed by the
+per-row idempotent UPDATE.
+
+### Reap query semantics
+
+A client is a reap candidate when it is DCR-registered (the eventstore-
+canonical predicate is `registration_access_token_hash IS NOT NULL`)
+AND one of:
+
+- `last_seen_at < (now - MaxIdleDuration)` — last successful client use
+  is older than the retention window.
+- `last_seen_at IS NULL AND creation_date < (now - MaxIdleDuration)` —
+  row was created before this feature shipped, OR has never had a
+  successful use, AND the row's own creation has aged past the
+  threshold. Freshly-registered, never-used clients are NOT reaped
+  before the window expires.
+
+Reaping invokes the same `commands.DeleteRegisteredClient` path RFC 7592
+DELETE uses — events emitted, sessions revoked, projection chain
+consistent.
+
+### Configuration
+
+```yaml
+OIDC:
+  DCR:
+    ClientRetention:
+      Enabled: false # opt-in — destructive
+      Interval: 6h # tick cadence
+      MaxIdleDuration: 720h # 30 days
+      BatchLimit: 100 # candidates reaped per tick
+```
+
+Env-var bindings: `ZITADEL_OIDC_DCR_CLIENTRETENTION_*`.
+
+### Enabling: pre-flight checklist
+
+1. **Pick the retention window.** A common starting point is 30 days
+   (`720h`). Tighter windows (e.g. 7 days) reduce table size faster but
+   force more re-registrations from clients that genuinely run weekly.
+2. **Inspect candidate count first.** Before flipping `Enabled: true`,
+   run a dry-run query against the database:
+
+   ```sql
+   SELECT COUNT(*)
+   FROM projections.apps7 a
+   JOIN projections.apps7_oidc_configs c
+     ON a.instance_id = c.instance_id AND a.id = c.app_id
+   WHERE c.registration_access_token_hash IS NOT NULL
+     AND (
+       c.last_seen_at < NOW() - INTERVAL '30 days'
+       OR (c.last_seen_at IS NULL AND a.creation_date < NOW() - INTERVAL '30 days')
+     );
+   ```
+
+   If the count is in the millions, lower the `Interval` or raise
+   `BatchLimit` to ensure progress; the per-tick deadline is
+   `Interval/2`.
+3. **Confirm metric scrape.** The two OTel metrics
+   (`zitadel.dcr.client_janitor_reaped_total{result}`,
+   `zitadel.dcr.client_janitor_duration_seconds`) appear once the first
+   tick completes. Operators with no observability stack should
+   nevertheless tail `INFO`-level logs for `dcr: client janitor reaped
+   inactive clients` lines.
+4. **Roll out off-peak.** The first reap tick can delete a large
+   accumulated backlog. Schedule the enablement during a low-traffic
+   window so the eventstore commit pressure does not coincide with
+   peak registration / token traffic.
+
+### What reaping costs the user
+
+A reaped client is **not recoverable** — the next request from a CLI
+that still has the cached `client_id` will fail with
+`Errors.App.NotFound`. The CLI then re-registers from scratch (which is
+fine for stateless MCP-style integrations). For long-lived clients
+where the consumer expects stable identity (e.g. a CI pipeline that
+caches and reuses `client_id`), pick a longer `MaxIdleDuration` or
+disable the janitor.
+
+### Disabling
+
+Set `OIDC.DCR.ClientRetention.Enabled: false` (or unset
+`ZITADEL_OIDC_DCR_CLIENTRETENTION_ENABLED`) and restart. The goroutine
+exits cleanly within one tick of the process shutdown signal — no
+in-flight DELETE state leaks.
 
 ## Operator hardening (defaults you don't have to think about)
 
